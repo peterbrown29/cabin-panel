@@ -415,7 +415,7 @@ function hudDraw(p,r,fpa,live,now){
   const L=last,cx=180,cy=150,g="var(--hud)",T=(x,y,t,a,sz,w)=>`<text x="${x}" y="${y}" fill="${g}" stroke="none" font-size="${sz||12}" font-weight="${w||400}"${a?` text-anchor="${a}"`:""}>${t}</text>`;
   const symG=$("hudSym");
   /* power-on HUD align (skipped with reduced motion) */
-  const bt=now-bootT0;
+  const bt=Math.max(0,now-bootT0);
   if(!bootDone&&!reduceMo&&bt<1700){const f=Math.min(1,bt/1500),rot=bt*0.25;
     symG.setAttribute("opacity","1");
     symG.innerHTML=`<g stroke="${g}" fill="none" stroke-width="2"><circle cx="${cx}" cy="${cy}" r="46" stroke-dasharray="10 8" transform="rotate(${rot.toFixed(1)} ${cx} ${cy})"/><path d="M${cx-70} ${cy}H${cx-14}M${cx+14} ${cy}H${cx+70}M${cx} ${cy-70}V${cy-14}M${cx} ${cy+14}V${cy+70}"/><rect x="${cx-80}" y="${cy+92}" width="160" height="10"/><rect x="${cx-80}" y="${cy+92}" width="${(160*f).toFixed(1)}" height="10" fill="${g}"/></g>`+T(cx,cy-96,"HUD ALIGN","middle",14,700)+T(cx,cy+124,f<1?"BIT "+Math.round(f*100)+"%":"BIT PASS","middle",11,700);
