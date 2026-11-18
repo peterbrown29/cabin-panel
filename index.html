@@ -232,7 +232,7 @@ input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
     <div class="row">HUD scene <span class="seg" data-k="scn" style="flex-wrap:wrap"><button data-v="auto">Auto</button><button data-v="day">Outback</button><button data-v="ocean">Ocean</button><button data-v="sunset">Dusk</button><button data-v="night">Night</button><button data-v="app">Approach</button></span></div>
     <div class="row">Rotate for full HUD <span class="seg" data-k="autofh"><button data-v="on">On</button><button data-v="off">Off</button></span></div>
     <div class="row">Display <span class="seg" data-k="disp"><button data-v="day">Day</button><button data-v="night">Night</button><button data-v="nvg">NVG</button></span></div>
-    <div class="note" id="offTxt">Checking offline readiness…</div>
+    <div class="note" id="offTxt">Checking offline readiness…</div><div class="note" id="a2hsTip" style="display:none"></div>
     <div class="note" id="storeTxt">Flight data saves every few seconds and when the app closes.</div>
   </div>
   <div class="note">HUD scene: on Auto the background follows the real sun (night, dusk or day), switches to ocean over water and to a runway view on approach. The scenes are illustrations rendered in Blender, not real terrain.</div>
@@ -319,8 +319,10 @@ function onPos(p){
 function onErr(e){if(e.code!==1&&lastFixAt&&(Date.now()-lastFixAt)<45000)return;$("stat").textContent=e.code===1?"Location blocked — allow in Settings":"Searching for GPS…";$("dot").className="dot bad"}
 
 /* ---------- render ---------- */
+function vsClear(){setVal("vs","---","fpm");$("vs2").innerHTML="&nbsp;"}
 function render(){
   const L=last;
+  if(!L)vsClear();
   if(L){
     const s=fSpd(L.spd);
     setVal("gs",s==null?"---":Math.round(s),S.spd==="kmh"?"km/h":S.spd);
@@ -329,7 +331,7 @@ function render(){
     else{setVal("alt","---",S.alt);$("alt2").textContent="No altitude yet"}
     if(L.trk!=null){setVal("trk",String(Math.round(L.trk)%360).padStart(3,"0"),"°T");$("trk2").textContent="Heading "+card(L.trk)}
     const v=vsFpm();
-    if(v!=null){const r=Math.round(v/50)*50;setVal("vs",(r>0?"+":"")+r,"fpm");$("vs2").textContent=Math.abs(r)<200?"Level":r>0?"Climbing ▲":"Descending ▼"}
+    if(v!=null){const r=Math.round(v/50)*50;setVal("vs",(r>0?"+":"")+r,"fpm");$("vs2").textContent=Math.abs(r)<200?"Level":r>0?"Climbing ▲":"Descending ▼"}else vsClear();
     if(L.trk!=null){roseRot=unwrap(roseRot,-L.trk);$("rose").setAttribute("transform",`rotate(${roseRot} 150 150)`)}
   }
   const to=apBy(S.to),fr=apBy(S.from);
@@ -356,10 +358,11 @@ function render(){
 /* ---------- status + clock ---------- */
 setInterval(()=>{
   const n=new Date();$("clock").textContent=n.toTimeString().slice(0,5)+" · "+n.toISOString().slice(11,16)+"Z";
+  if(PH.ev&&PH.ev.up&&!PH.ev.td&&n.getSeconds()%10===0)evRender();
   if(watchId==null&&!demo)return;
   const age=(Date.now()-lastFixAt)/1000;
   if(!lastFixAt){$("stat").textContent="Searching… sit near a window";$("dot").className="dot warn";return}
-  if(age>45){$("stat").textContent="Signal lost "+Math.round(age)+"s — move closer to the window";$("dot").className="dot bad";return}
+  if(age>45){hist=[];vsClear();$("stat").textContent="Signal lost "+Math.round(age)+"s — move closer to the window";$("dot").className="dot bad";return}
   if(age>12){$("stat").textContent="Holding last position · "+Math.round(age)+"s since fix";$("dot").className="dot warn";return}
   const a=last&&last.acc,va=last&&last.altAcc;$("stat").textContent=(a<=50?"GPS good ±"+Math.round(a)+" m":a<=300?"GPS weak ±"+Math.round(a)+" m":"GPS poor ±"+Math.round(a||0)+" m")+(va!=null?" · V±"+Math.round(va)+" m":"");
   $("dot").className="dot "+(a<=50?"ok":a<=300?"warn":"bad");
@@ -437,7 +440,7 @@ function hudDraw(p,r,fpa,live,now){
   if(live&&fpa!=null){const y=Math.max(50,Math.min(250,cy-(fpa-p)*PX));h+=`<circle cx="${cx}" cy="${y}" r="7"/><path d="M${cx-7} ${y}H${cx-19}M${cx+7} ${y}H${cx+19}M${cx} ${y-7}V${y-14}"/>`}
   /* heading tape (labels kept clear of the box) */
   const hd=L&&L.trk!=null?L.trk:0;let ht="";
-  for(let d=Math.floor((hd-45)/5)*5;d<=hd+45;d+=5){const x=cx+(d-hd)*3,n=((d%360)+360)%360;ht+=`<line x1="${x}" y1="32" x2="${x}" y2="${n%10?27:23}"/>`;if(n%10===0&&Math.abs(x-cx)>38)ht+=T(x,17,String(n/10).padStart(2,"0"),"middle",11)}
+  for(let d=Math.floor((hd-45)/5)*5;d<=hd+45;d+=5){const x=cx+(d-hd)*3,n=((d%360)+360)%360;ht+=`<line x1="${x}" y1="32" x2="${x}" y2="${n%10?27:23}"/>`;if(n%10===0&&Math.abs(x-cx)>38&&x>=70&&x<=290)ht+=T(x,17,String(n/10).padStart(2,"0"),"middle",11)}
   const to=apBy(S.to);if(to&&L){const rel=((brg(L,to)-hd)%360+540)%360-180,x=cx+Math.max(-39,Math.min(39,rel))*3;ht+=`<path d="M${x} 27l5 6h-10z" fill="var(--mag)" stroke="var(--mag)"/>`}
   const box=d=>`<path d="${d}" fill="#000" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="${d}" fill="#000" stroke="${g}" stroke-width="1.7" stroke-linejoin="round"/>`;
   h+=`<g clip-path="url(#ht)" stroke-width="1.6">${ht}</g>`+box(`M${cx-25} 1H${cx+25}V21H${cx+5}L${cx} 27L${cx-5} 21H${cx-25}Z`)+T(cx,16,L&&L.trk!=null?String(Math.round(hd)%360).padStart(3,"0"):"---","middle",14,700);
@@ -565,7 +568,7 @@ function phaseStep(L){
     case "climb": if(hold("lvl",Math.abs(v)<300&&alt>(PH.alt0||0)+3000,t,60)){if(!PH.ev.toc){PH.ev.toc=t;PH.ev.cr=alt}setPhase("cruise",t);say("Reaching cruise, about "+fl(alt)+".")}else if(hold("dn",v<-700,t,30)&&alt>(PH.alt0||0)+1500){PH.ev.tod=PH.ev.tod||t;setPhase("descent",t);say("Descending"+(to?" into "+to.n:"")+". Start equalising your ears.")}break;
     case "cruise": if(hold("dn",v<-700,t,20)){PH.ev.tod=t;setPhase("descent",t);say("Top of descent. Starting down"+(to?" into "+to.n:"")+". Start equalising your ears.")}else if(hold("up",v>600,t,30))setPhase("climb",t);
       if(to&&sp>25&&!PH.said.tod5){const pl=plan(dist(fr||L,to)),tt=(dist(L,to)-pl.d)/sp;if(tt>0&&tt<300){PH.said.tod5=1;say("Top of descent in about 5 minutes.")}}break;
-    case "descent": if(alt<1200+(PH.alt0||0)*0&&hold("app",v<0,t,10)){setPhase("approach",t);say("On approach, below "+Math.round(alt*FT/1000)*1000+" feet.")}else if(hold("up",v>600&&alt>3000,t,30))setPhase("climb",t);break;
+    case "descent": {const ai=to?apInfo(to.c):null,fe=ai&&ai[4]!=null?ai[4]/FT:(PH.alt0||0);if(alt<fe+1200&&hold("app",v<0,t,10)){setPhase("approach",t);say("On approach, below "+Math.round(alt*FT/1000)*1000+" feet.")}else if(hold("up",v>600&&alt>3000,t,30))setPhase("climb",t);}break;
     case "approach": if(sp<45&&Math.abs(v)<400){PH.ev.td=t;const now=Date.now(),pk=gBuf.filter(q=>now-q.t<20000).reduce((m,q)=>Math.max(m,q.g),0);if(pk)PH.ev.tdG=pk;setPhase("landed",t);
         const firm=pk?(pk<1.3?" Smooth touchdown, ":pk<1.6?" Firm touchdown, ":" Hard touchdown, ")+pk.toFixed(1)+" G.":"";say((fltSpoken()?fltSpoken()+"touchdown":"Touchdown")+(to?". Welcome to "+to.n:"")+"."+firm)}
       else if(hold("ga",v>800&&sp>60,t,15)){setPhase("climb",t);say("Going around.")}break;
@@ -586,7 +589,8 @@ function evRender(){
   if(e.tod)rows.push(["Top of descent",f(e.tod)]);
   if(e.td)rows.push(["Touchdown",f(e.td)+(e.tdG?" · "+e.tdG.toFixed(2)+" G "+(e.tdG<1.3?"(smooth)":e.tdG<1.6?"(firm)":"(hard)"):"")]);
   if(e.on)rows.push(["On blocks",f(e.on)]);
-  if(e.up)rows.push(["Flight time",hm(((e.td||Date.now())-e.up)/1000)+(e.td?"":" so far")]);
+  const evNow=(demo||REPLAY||PH.demo)&&last&&last.t?last.t:Date.now();
+  if(e.up)rows.push(["Flight time",hm(((e.td||evNow)-e.up)/1000)+(e.td?"":" so far")]);
   if(e.off&&e.on)rows.push(["Block time",hm((e.on-e.off)/1000)]);
   $("evList").innerHTML=rows.length?rows.map(r=>`<li><b>${r[0]}</b><span>${r[1]}</span></li>`).join(""):'<li><span>Times fill in automatically as the flight happens.</span></li>';
   $("phase").textContent=PHN[PH.p];
@@ -859,7 +863,11 @@ $("impFile").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.targ
     const have=new Set(BOOK.map(b=>b.id));let n=0;for(const b of j.book){if(b&&b.id&&Array.isArray(b.pts)&&!have.has(b.id)){BOOK.push(b);n++}}
     BOOK.sort((a,b)=>b.date-a.date);if(BOOK.length>60)BOOK.length=60;
     for(const x of (j.xap||[])){if(x&&x.c&&!apBy(x.c)){AP.push(x);XAP.push(x);addApOption(x)}}store.set("xap",XAP);
-    const ok=store.set("book",BOOK);bookRender();$("bookTxt").textContent=ok?"Imported "+n+" flight"+(n===1?"":"s")+" ("+(j.book.length-n)+" already here).":"Imported, but saving failed. Storage may be full.";
+    const mk=m=>m.t+"|"+(+m.lat).toFixed(5)+"|"+(+m.lon).toFixed(5),hm_=new Set(MARKS.map(mk));let nm=0;
+    for(const m of (Array.isArray(j.marks)?j.marks:[])){if(m&&m.t&&m.lat!=null&&m.lon!=null&&!hm_.has(mk(m))){MARKS.push(m);hm_.add(mk(m));nm++}}
+    if(nm){MARKS.sort((a,b)=>a.t-b.t);store.set("marks",MARKS);markRender();try{drawMap()}catch(_){}}
+    let lg=false;if(j.log&&Array.isArray(j.log.pts)&&j.log.pts.length&&!(LOG.pts&&LOG.pts.length)){LOG={on:false,pts:j.log.pts};store.set("log",LOG);lg=true;try{logInfo()}catch(_){}}
+    const ok=store.set("book",BOOK);bookRender();$("bookTxt").textContent=ok?"Imported "+n+" flight"+(n===1?"":"s")+" ("+(j.book.length-n)+" already here)"+(nm?", "+nm+" mark"+(nm===1?"":"s"):"")+(lg?", and the saved track log":"")+".":"Imported, but saving failed. Storage may be full.";
   }catch(err){$("bookTxt").textContent="Couldn't import that file: "+err.message+"."}};
 async function storeInfo(){try{if(navigator.storage&&navigator.storage.estimate){const q=await navigator.storage.estimate();const pers=navigator.storage.persisted?await navigator.storage.persisted():false;
   if(!sfWarned)$("storeTxt").textContent="Flight data saves every few seconds and when the app closes. Using "+(q.usage/1048576).toFixed(1)+" MB"+(pers?", protected from automatic clearing.":".")}}catch(e){}}
@@ -974,7 +982,7 @@ function startGPS(){
   try{unlockAudio()}catch(e){}
   if(!("geolocation" in navigator)){$("stat").textContent="No location support";return}
   stopDemo();
-  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;$("gpsBtn").textContent="Start GPS";$("gpsBtn").classList.remove("on");$("stat").textContent="GPS off";$("dot").className="dot";return}
+  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;hist=[];vsClear();hfGps=false;$("gpsBtn").textContent="Start GPS";$("gpsBtn").classList.remove("on");$("stat").textContent="GPS off";$("dot").className="dot";return}
   if(PH.demo){PH.p="parked";PH.ev={};PH.said={};PH.lm=[];PH.demo=false;savePH();LOG={on:false,pts:[]};store.set("log",LOG);trail=[];prof=[];hist=[];trkH=[];last=null;evRender();render()}
   watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:5000,timeout:60000});
   $("gpsBtn").textContent="Stop GPS";$("gpsBtn").classList.add("on");$("stat").textContent="Searching… sit near a window";$("dot").className="dot warn";
@@ -989,13 +997,19 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 /* ---------- voice / hands-free ---------- */
 function setVoice(on){voiceOn=on;$("voiceBtn").textContent=on?"Voice on":"Voice off";$("voiceBtn").classList.toggle("on",on);if(on){pickVoice();try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance("Voice callouts on.");if(auVoice)u.voice=auVoice;speechSynthesis.speak(u)}catch(e){}}}
 $("voiceBtn").onclick=()=>setVoice(!voiceOn);
-$("hfBtn").onclick=async()=>{
-  unlockAudio();setVoice(true);
-  if(!gOn)$("gBtn").click();
-  if(!wantWake)$("wakeBtn").click();
-  if(watchId==null&&!demo)startGPS();
-  $("hfBtn").classList.add("on");$("hfBtn").textContent="Hands-free on";
-};
+let hfOn=false,hfGps=false,hfMine={};
+function hfUI(){$("hfBtn").classList.toggle("on",hfOn);$("hfBtn").textContent=hfOn?"Hands-free on":"Hands-free"}
+function hfSet(on){
+  if(on){unlockAudio();hfMine={voice:!voiceOn,g:!gOn,wake:!wantWake};
+    if(!voiceOn)setVoice(true);if(!gOn)$("gBtn").click();if(!wantWake)$("wakeBtn").click();
+    if(watchId==null&&!demo&&!REPLAY){startGPS();hfGps=true}}
+  else{if(hfMine.voice&&voiceOn)setVoice(false);if(hfMine.g&&gOn)$("gBtn").click();if(hfMine.wake&&wantWake)$("wakeBtn").click();
+    if(hfGps&&watchId!=null)startGPS();hfGps=false;hfMine={}}
+  hfOn=on;S.hf=on?"on":"off";saveS();hfUI();
+}
+$("hfBtn").onclick=()=>hfSet(!hfOn);
+if(S.hf==="on"){hfOn=true;hfUI();$("hfBtn").textContent="Hands-free on · tap screen to resume";
+  document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#hfBtn"))return;hfSet(true)},{once:true,capture:true})}
 
 /* ---------- demo flight ---------- */
 function stopDemo(){if(demo){clearInterval(demo.iv);demo=null;$("demoTag").style.display="none";$("demoBtn").classList.remove("on");$("demoBtn").textContent="Demo flight"}}
@@ -1097,7 +1111,7 @@ if("serviceWorker" in navigator&&window.isSecureContext){
 else{$("offTxt").textContent=window.isSecureContext?"Offline caching not supported in this browser.":"Open from an https address to enable offline mode."}
 $("updBtn").onclick=()=>{try{storeFlush()}catch(e){}location.reload()};
 if(standalone&&navigator.permissions&&navigator.permissions.query){navigator.permissions.query({name:"geolocation"}).then(r=>{if(r.state==="granted"&&watchId==null&&!demo&&!REPLAY)startGPS()}).catch(()=>{})}
-if(!standalone&&/iPhone|iPad/.test(navigator.userAgent))$("offTxt").textContent+=" Tip: Share → Add to Home Screen.";
+if(!standalone&&/iPhone|iPad/.test(navigator.userAgent)){$("a2hsTip").textContent="Tip: Share → Add to Home Screen.";$("a2hsTip").style.display=""}
 }
 </script>
 </body>

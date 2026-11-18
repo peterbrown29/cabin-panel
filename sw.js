@@ -1,5 +1,5 @@
 // Cabin Panel service worker. Bump C on every release, or installed phones keep the old version.
-const C='cabin-panel-v15';
+const C='cabin-panel-v16';
 const F=['./','index.html','manifest.webmanifest','icon-180.png','icon-512.png','icon-512-maskable.png',
   'bg-day.webp','bg-ocean.webp','bg-sunset.webp','bg-night.webp','bg-appday.webp','bg-appnight.webp',
   'plane.webp','bezel.webp','splash-1290x2796.jpg','splash-1179x2556.jpg','splash-1170x2532.jpg'];
