@@ -316,7 +316,7 @@ function onPos(p){
   windowInfo();try{skyInfo()}catch(e){}if(!REPLAY){try{phaseStep(last)}catch(e){}}
   render();drawMap();profAll();
 }
-function onErr(e){$("stat").textContent=e.code===1?"Location blocked — allow in Settings":"Searching for GPS…";$("dot").className="dot bad"}
+function onErr(e){if(e.code!==1&&lastFixAt&&(Date.now()-lastFixAt)<45000)return;$("stat").textContent=e.code===1?"Location blocked — allow in Settings":"Searching for GPS…";$("dot").className="dot bad"}
 
 /* ---------- render ---------- */
 function render(){
@@ -359,9 +359,10 @@ setInterval(()=>{
   if(watchId==null&&!demo)return;
   const age=(Date.now()-lastFixAt)/1000;
   if(!lastFixAt){$("stat").textContent="Searching… sit near a window";$("dot").className="dot warn";return}
-  if(age>12){$("stat").textContent="Signal lost "+Math.round(age)+"s — move closer to the window";$("dot").className="dot bad";return}
-  const a=last&&last.acc,va=last&&last.altAcc;$("stat").textContent=(a<=20?"GPS good ±"+Math.round(a)+" m":a<=100?"GPS weak ±"+Math.round(a)+" m":"GPS poor ±"+Math.round(a||0)+" m")+(va!=null?" · V±"+Math.round(va)+" m":"");
-  $("dot").className="dot "+(a<=20?"ok":a<=100?"warn":"bad");
+  if(age>45){$("stat").textContent="Signal lost "+Math.round(age)+"s — move closer to the window";$("dot").className="dot bad";return}
+  if(age>12){$("stat").textContent="Holding last position · "+Math.round(age)+"s since fix";$("dot").className="dot warn";return}
+  const a=last&&last.acc,va=last&&last.altAcc;$("stat").textContent=(a<=50?"GPS good ±"+Math.round(a)+" m":a<=300?"GPS weak ±"+Math.round(a)+" m":"GPS poor ±"+Math.round(a||0)+" m")+(va!=null?" · V±"+Math.round(va)+" m":"");
+  $("dot").className="dot "+(a<=50?"ok":a<=300?"warn":"bad");
 },1000);
 
 /* ---------- attitude ---------- */
@@ -711,7 +712,7 @@ function unlockAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioCo
 function beep(){if(!AC)return;try{const t=AC.currentTime;[[880,0],[660,0.18]].forEach(([f,o])=>{const os=AC.createOscillator(),g=AC.createGain();os.type="square";os.frequency.value=f;g.gain.setValueAtTime(0.0001,t+o);g.gain.exponentialRampToValueAtTime(0.12,t+o+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+o+0.16);os.connect(g);g.connect(AC.destination);os.start(t+o);os.stop(t+o+0.17)})}catch(e){}}
 function mcCheck(){
   let why="";
-  if(watchId!=null&&!REPLAY){const age=(Date.now()-lastFixAt)/1000;if(lastFixAt&&age>15)why="GPS SIGNAL LOST";else if(last&&last.acc>150){if(!mc.poorSince)mc.poorSince=Date.now();if(Date.now()-mc.poorSince>30000)why="GPS ACCURACY POOR"}else mc.poorSince=0}
+  if(watchId!=null&&!REPLAY){const age=(Date.now()-lastFixAt)/1000;if(lastFixAt&&age>90)why="GPS SIGNAL LOST";else if(last&&last.acc>500){if(!mc.poorSince)mc.poorSince=Date.now();if(Date.now()-mc.poorSince>120000)why="GPS ACCURACY POOR"}else mc.poorSince=0}
   if(why&&!mc.on){mc={...mc,on:true,ack:false,why};$("mcBtn").style.display="";$("mcBtn").textContent="MASTER CAUTION · "+why;say("Caution. "+why.toLowerCase()+".");beep();hap([120,80,120,80,120]);mc.lastBeep=Date.now()}
   else if(!why&&mc.on){mc.on=false;$("mcBtn").style.display="none";$("mcBtn").classList.remove("ack")}
   else if(mc.on&&!mc.ack&&Date.now()-mc.lastBeep>4000){beep();mc.lastBeep=Date.now()}
@@ -975,7 +976,7 @@ function startGPS(){
   stopDemo();
   if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;$("gpsBtn").textContent="Start GPS";$("gpsBtn").classList.remove("on");$("stat").textContent="GPS off";$("dot").className="dot";return}
   if(PH.demo){PH.p="parked";PH.ev={};PH.said={};PH.lm=[];PH.demo=false;savePH();LOG={on:false,pts:[]};store.set("log",LOG);trail=[];prof=[];hist=[];trkH=[];last=null;evRender();render()}
-  watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:1000,timeout:30000});
+  watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:5000,timeout:60000});
   $("gpsBtn").textContent="Stop GPS";$("gpsBtn").classList.add("on");$("stat").textContent="Searching… sit near a window";$("dot").className="dot warn";
 }
 $("gpsBtn").onclick=startGPS;
