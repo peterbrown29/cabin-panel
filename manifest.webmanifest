@@ -1,1 +1,2 @@
-{"name":"Cabin Panel","short_name":"Cabin Panel","start_url":"./","scope":"./","display":"standalone","orientation":"portrait","background_color":"#0a0f13","theme_color":"#0a0f13","icons":[{"src":"icon-180.png","sizes":"180x180","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}
+{"name":"Cabin Panel","short_name":"Cabin Panel","start_url":"./","scope":"./","display":"standalone","orientation":"any","background_color":"#090b0c","theme_color":"#1c2125",
+"icons":[{"src":"icon-180.png","sizes":"180x180","type":"image/png","purpose":"any"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},{"src":"icon-512-maskable.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}
