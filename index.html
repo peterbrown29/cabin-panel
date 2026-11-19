@@ -200,6 +200,8 @@ body.fhr #fhPhase{display:none}
 #pg-book #bookList{flex:1 1 auto}
 #pg-nav .wrap>.grid{flex:1 1 auto;align-content:start}
 #pg-hud #retroTile{display:flex;flex-direction:column}
+/* v22d: full retro panel keeps a bottom strip for the callout banner and the disclaimer, so no gauge is covered */
+body.fhr #fhToast{bottom:calc(22px + env(safe-area-inset-bottom));max-width:min(92%,640px);max-height:52px;overflow:hidden;font-size:11px;line-height:1.3}
 </style>
 </head>
 <body>
@@ -1979,7 +1981,7 @@ function arDraw(dt){
   cue(offL.filter(t=>t.n!==(des&&des.n)),-1);cue(offR.filter(t=>t.n!==(des&&des.n)),1);
   /* other targets in view: box or diamond always; name only where it fits (right, then left), else hidden */
   const others=on.filter(t=>t!==des).sort((a,b)=>pri(a)-pri(b)).slice(0,9);
-  for(const t of others){const s=Math.max(5,Math.min(40,Math.max(unc,deg(Math.atan2(t.r*0.5,t.d)))*ppd));x.save();const bR=[t.px-s,t.py-s,2*s,2*s],undr=[RS[1],RS[2]].some(q=>bR[0]<q[0]+q[2]&&bR[0]+bR[2]>q[0]&&bR[1]<q[1]+q[3]&&bR[1]+bR[3]>q[1]);x.globalAlpha=undr?.22:t.hid?.45:.9;
+  for(const t of others){const s=Math.max(5,Math.min(40,Math.max(unc,deg(Math.atan2(t.r*0.5,t.d)))*ppd));x.save();const bR=[t.px-s,t.py-s,2*s,2*s],undr=[RS[1],RS[2],RS[4]].some(q=>bR[0]<q[0]+q[2]&&bR[0]+bR[2]>q[0]&&bR[1]<q[1]+q[3]&&bR[1]+bR[3]>q[1]);x.globalAlpha=undr?.22:t.hid?.45:.9;
     if(s>9)S2(()=>{x.rect(t.px-s,t.py-s*0.7,2*s,1.4*s)},1.2);else S2(()=>{x.moveTo(t.px,t.py-6);x.lineTo(t.px+6,t.py);x.lineTo(t.px,t.py+6);x.lineTo(t.px-6,t.py);x.closePath()},1.3);
     const nm=(t.n.length>18?t.n.slice(0,17)+"…":t.n).toUpperCase();x.font=F(10);const lw=x.measureText(nm).width,ly=t.py-Math.max(s*0.7,6)+10;
     const cands=[[t.px+Math.max(s,6)+4,"left"],[t.px-Math.max(s,6)-4,"right"]];let done=false;
@@ -2046,12 +2048,13 @@ function retroData(dt){const L=viewL()||last,now=Date.now(),V=RET.v,useSen=S.att
 function retroFrame(ts){RET.raf=0;if(!retroVisible())return;if(ts-RET.lt<45){RET.raf=requestAnimationFrame(retroFrame);return}const dt=RET.lt?Math.min(0.5,(ts-RET.lt)/1000):0;RET.lt=ts;
   try{retroDraw(retroData(dt))}catch(e){console.warn(e)}RET.raf=requestAnimationFrame(retroFrame)}
 window.cpRetro=()=>({on:retroOn(),ac:S.cockpit||"modern",vis:retroVisible(),loaded:Object.values(RET.img).filter(i=>i.complete&&i.naturalWidth).length,v:RET.v,lay:RET.lay});
+const RETRO_BOT=78;/* full panel: bottom strip kept clear for the callout banner (2 lines) + disclaimer line */
 const RO={p51:["asi","ai","alt","tb","dg","vsi","mp","rpm","fuel","cmp"],f4:["aoa","asi","adi","alt","g","clock","hsi","vvi"]};
 function retroDraw(V){const ac=S.cockpit,box=$("retro"),cv=$("retroCv"),dpr=window.devicePixelRatio||1;
   const full=fhOn&&box.parentNode===$("fhSlot");let W=box.clientWidth,H;const land=full?box.clientWidth/Math.max(1,box.clientHeight)>1.25:false;
   let lay,cols,rows,cw,ch;
   let avail=0;if(!full){const pg=$("pg-hud"),nt=$("retroTile").querySelector(".note");avail=Math.floor(pg.getBoundingClientRect().bottom-box.getBoundingClientRect().top-(nt?nt.offsetHeight+8:0)-34)}
-  if(full||avail>W*1.25){H=full?box.clientHeight:avail;const ids=RO[ac],n=ids.length,top=full?Math.max(52,parseFloat(getComputedStyle($("fhOv")).paddingTop)||0):0,AH=Math.max(50,H-top-18);if(!full&&cv.style.height!==H+"px")cv.style.height=H+"px";let best=null;
+  if(full||avail>W*1.25){H=full?box.clientHeight:avail;const ids=RO[ac],n=ids.length,top=full?Math.max(52,parseFloat(getComputedStyle($("fhOv")).paddingTop)||0):0,bot=full?RETRO_BOT:18,AH=Math.max(50,H-top-bot);if(!full&&cv.style.height!==H+"px")cv.style.height=H+"px";let best=null;
     for(let c=2;c<=6;c++){const r=Math.ceil(n/c),cell=Math.min(W/c,AH/r);if(r*c-n>2)continue;if(!best||cell>best.cell+0.5)best={c,r,cell}}
     cols=best.c;rows=best.r;lay=[];for(let r=0;r<rows;r++)lay.push(ids.slice(r*cols,r*cols+cols).concat(Array(cols).fill(null)).slice(0,cols));
     cw=W/cols;ch=AH/rows;RET.top=top;RET.fillMode=full?"full":"tile"}
