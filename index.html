@@ -492,7 +492,98 @@ function bridgeGap(a,b,t){const gap=(t-a.t)/1000;if(!(gap>20&&gap<8*3600))return
   for(let i=1;i<n;i++){const f=i/n,q=gcPoint(a,b,f),al=a.alt!=null&&b.alt!=null?Math.round(a.alt+(b.alt-a.alt)*f):null,tt=Math.round(a.t+f*(t-a.t));
     if(LOG.on)LOG.pts.push([+q.lat.toFixed(6),+q.lon.toFixed(6),al,tt,sp]);const lt=trail[trail.length-1];if(!lt||dist(lt,q)>80)trail.push(q)}if(LOG.on)logDirty=true}
 function viewL(){const L=last;if(!L||demo||REPLAY||L.spd==null||L.spd<25||L.trk==null)return L;const age=(Date.now()-L.t)/1000;if(!(age>8&&age<4*3600))return L;if(!["climb","cruise","descent"].includes(PH.p))return L;const q=dPt(L,L.trk,L.spd*age);return Object.assign({},L,{lat:q.lat,lon:q.lon,dr:age})}
+/* ---------- v22e: ground GPS filter (gate and taxi wander fix). Spec by Claude, 20 Nov 2026; built into v22 by Grok Bot ----------
+   Runs on real GPS fixes before onPos (demo and replay bypass it). Stopped: one steady, accuracy-weighted position, speed 0, no heading.
+   Moving only on real evidence. Speed never from a single 1 s jump. Taxi positions smoothed and snapped to OSM taxiway centrelines.
+   Pass-through above 40 m/s and when airborne, so takeoff, flight and landing timing are unchanged. */
+let GF=null;
+function gfReset(){GF={m:"init",buf:[],park:null,out:0,spS:null,slS:null,x:null,v:null,lt:0,hd:null,sp:0,emitted:false,raw:[]}}
+gfReset();
+const gfLoc=(o,p)=>{const k=Math.cos(rad(o.lat));return [(p.lon-o.lon)*111320*k,(p.lat-o.lat)*111320]};
+const gfGeo=(o,xy)=>{const k=Math.cos(rad(o.lat));return {lat:o.lat+xy[1]/111320,lon:o.lon+xy[0]/111320/k}};
+function gfOut(p,pos,spd,hdg){return {gf:true,timestamp:p.timestamp,coords:{latitude:pos.lat,longitude:pos.lon,altitude:p.coords.altitude,accuracy:p.coords.accuracy,altitudeAccuracy:p.coords.altitudeAccuracy,speed:spd,heading:hdg}}}
+/* steady parked position: accuracy-weighted mean of up to ~2 min of fixes, outliers excluded */
+function gfPark(){const b=GF.buf;if(!b.length)return null;const o=b[b.length-1];
+  const pts=b.map(f=>({f,xy:gfLoc(o,f)}));
+  const med=a=>{const s=a.slice().sort((p,q)=>p-q);return s[s.length>>1]};
+  const mx=med(pts.map(q=>q.xy[0])),my=med(pts.map(q=>q.xy[1]));
+  let sw=0,sx=0,sy=0;for(const q of pts){const d=Math.hypot(q.xy[0]-mx,q.xy[1]-my);if(d>Math.max(25,1.5*q.f.acc)&&pts.length>3)continue;const w=1/Math.max(5,q.f.acc)**2;sw+=w;sx+=w*q.xy[0];sy+=w*q.xy[1]}
+  if(!sw)return GF.park;return gfGeo(o,[sx/sw,sy/sw])}
+/* v22e: snap to the nearest OSM taxiway centreline within 20 m (only the airport(s) whose box we are in) */
+let gfTw=null;
+function gfSnap(pos,trk){if(!TWY)return null;
+  if(!gfTw||gfTw.src!==TWY){gfTw={src:TWY,ap:TWY.map(a=>({bb:a.bb,o:{lat:(a.bb[0]+a.bb[1])/2,lon:(a.bb[2]+a.bb[3])/2},ws:a.ws.filter(w=>w.t===0),seg:null}))}}
+  let best=null;
+  for(const a of gfTw.ap){const m=0.003;if(pos.lat<a.bb[0]-m||pos.lat>a.bb[1]+m||pos.lon<a.bb[2]-m||pos.lon>a.bb[3]+m)continue;
+    if(!a.seg){a.seg=[];for(const w of a.ws){const q=w.p.map(p=>gfLoc(a.o,{lat:p[0],lon:p[1]}));for(let i=0;i+1<q.length;i++)a.seg.push([q[i][0],q[i][1],q[i+1][0],q[i+1][1]])}}
+    const P=gfLoc(a.o,pos);
+    for(const s of a.seg){const dx=s[2]-s[0],dy=s[3]-s[1],L2=dx*dx+dy*dy;if(!L2)continue;let u=((P[0]-s[0])*dx+(P[1]-s[1])*dy)/L2;u=Math.max(0,Math.min(1,u));const qx=s[0]+u*dx,qy=s[1]+u*dy,d=Math.hypot(P[0]-qx,P[1]-qy);
+      if(d>20)continue;let sb=(Math.atan2(dx,dy)*180/Math.PI+360)%360;let pen=0;
+      if(trk!=null){let df=Math.abs(((sb-trk)%360+540)%360-180);if(df>90){sb=(sb+180)%360;df=180-df}if(df>50)pen=15;}
+      if(!best||d+pen<best.s)best={s:d+pen,d,pos:gfGeo(a.o,[qx,qy]),brg:sb,pen}}}
+  return best&&!best.pen?best:null}
+function gndFilter(p){
+  const c=p.coords,t=p.timestamp||Date.now(),acc=(c.accuracy>0&&isFinite(c.accuracy))?c.accuracy:30;
+  const ps=(c.speed!=null&&c.speed>=0&&!isNaN(c.speed))?c.speed:null,ph=(c.heading!=null&&c.heading>=0&&!isNaN(c.heading))?c.heading:null;
+  const air=["climb","cruise","descent","approach"].includes(PH.p);
+  const fast=(ps!=null&&ps>40)||((GF.m==="move"||GF.m==="pass")&&GF.sp>40);
+  if(air||fast){if(GF.m!=="pass"){GF.m="pass";GF.buf=[];GF.x=null}GF.lt=t;
+    if(acc<=150){GF.raw.push({t,lat:c.latitude,lon:c.longitude,acc,ps});while(GF.raw.length>2&&t-GF.raw[0].t>13000)GF.raw.shift()}
+    if(ps!=null)GF.sp=ps;else{const r0=GF.raw.find(q=>t-q.t<=12000&&t-q.t>=5000);if(r0)GF.sp=dist(r0,{lat:c.latitude,lon:c.longitude})/((t-r0.t)/1000)}
+    if(ph!=null)GF.hd=ph;return p}
+  if(acc>150){if(GF.emitted)return null;GF.emitted=true;return gfOut(p,{lat:c.latitude,lon:c.longitude},0,null)}
+  const f={t,lat:c.latitude,lon:c.longitude,acc,ps};
+  GF.raw.push(f);while(GF.raw.length>2&&t-GF.raw[0].t>13000)GF.raw.shift();
+  const good=ps!=null&&acc<=60;
+  if(GF.m==="init"||GF.m==="pass"){
+    /* start (or come back down from the air): moving if the phone says so, otherwise stopped */
+    const wasPass=GF.m==="pass",pr=GF.raw.length>1?GF.raw.find(q=>t-q.t<=12000&&t-q.t>=3000):null;GF.buf=[f];GF.park={lat:f.lat,lon:f.lon};GF.out=0;GF.spS=null;GF.slS=null;
+    if(wasPass||(ps!=null&&ps>=2)){GF.m="move";GF.o={lat:f.lat,lon:f.lon};GF.x=[0,0];GF.lt=t;GF.sp=ps!=null?ps:(wasPass?GF.sp:0);
+      let h=ph!=null?ph:(pr&&dist(pr,f)>20?brg(pr,f):(GF.hd!=null?GF.hd:(last&&last.trk!=null?last.trk:null)));GF.hd=h;GF.v=h!=null?[GF.sp*Math.sin(rad(h)),GF.sp*Math.cos(rad(h))]:[0,0];
+      GF.emitted=true;return gfOut(p,f,GF.sp,GF.hd)}
+    GF.m="stop";GF.emitted=true;return gfOut(p,GF.park,0,null)}
+  if(GF.m==="stop"){
+    GF.spS=good&&ps>=2?(GF.spS||t):null;
+    const d=dist(GF.park,f),thr=Math.max(30,Math.min(2*acc,60)),out=d>thr&&!(good&&ps<0.8);GF.out=out?GF.out+1:0;
+    /* two in a row pulling clearly further away (accelerating, e.g. straight onto the runway) also counts */
+    const pull=GF.out===2&&GF.pd!=null&&d>GF.pd+10&&d>thr+10;GF.pd=out?d:null;
+    if((GF.spS&&t-GF.spS>=3000)||GF.out>=3||pull){
+      /* moving: track from the fixes since we left the parked spot */
+      GF.m="move";GF.o={lat:GF.park.lat,lon:GF.park.lon};GF.slS=null;GF.mt=t-(GF.out>=3?Math.min(8000,1000*GF.out+2000):4000);GF.lt=t;GF.v=[0,0];GF.x=gfLoc(GF.o,f);
+      GF.buf=[];GF.out=0;GF.spS=null;gfTrack(f,ps,good);
+      return gfMoveOut(p,f,ph)}
+    if(!out||GF.buf.length<3){GF.buf.push(f);while(GF.buf.length>1&&t-GF.buf[0].t>120000)GF.buf.shift();GF.park=gfPark()||GF.park}
+    return gfOut(p,GF.park,0,null)}
+  /* moving */
+  GF.lt=t;gfTrack(f,ps,good);const sp=GF.sp;
+  /* stop: under 1.2 m/s for 5 s, or the last 8 s of fixes all within the GPS error (and no real speed) */
+  GF.slS=sp<1.2?(GF.slS||t):null;
+  let still=false;{const r=GF.raw.filter(q=>t-q.t<=8000);if(r.length>=5&&t-r[0].t>=6000){const m=r.reduce((s,q)=>Math.max(s,dist(r[0],q)),0),ea=Math.min(...r.map(q=>q.acc));still=m<=Math.max(8,0.6*Math.min(ea,25))&&!(good&&ps>=2)&&sp<2}}
+  if((GF.slS&&t-GF.slS>=5000)||still){GF.m="stop";const pos=gfGeo(GF.o,GF.x);GF.buf=[Object.assign({},f,{lat:pos.lat,lon:pos.lon,acc:Math.max(5,acc/2)})];GF.park=pos;GF.out=0;GF.spS=null;GF.slS=null;GF.v=[0,0];GF.sp=0;return gfOut(p,pos,0,null)}
+  return gfMoveOut(p,f,ph)}
+/* moving: weighted straight-line fit to the recent fixes (longer window, so smoother, when slow), outliers dropped.
+   Gives position now and velocity; speed is the phone's own when it has a decent one, else the fitted speed less its error. */
+function gfTrack(f,ps,good){const t=f.t,sp0=GF.sp||0;
+  if(Math.hypot(GF.x[0],GF.x[1])>2000){GF.o=gfGeo(GF.o,GF.x);GF.x=[0,0]}
+  const N=1000*(sp0<3?10:Math.max(4,Math.min(10,48/sp0)));
+  let pts=GF.raw.filter(q=>t-q.t<=N&&q.t>=GF.mt).map(q=>{const xy=gfLoc(GF.o,q);return {x:xy[0],y:xy[1],dt:(q.t-t)/1000,w:1/Math.max(10,q.acc),acc:q.acc}});
+  const fit=a=>{let sw=0,st=0,stt=0,sx=0,sy=0,stx=0,sty=0;for(const q of a){sw+=q.w;st+=q.w*q.dt;stt+=q.w*q.dt*q.dt;sx+=q.w*q.x;sy+=q.w*q.y;stx+=q.w*q.dt*q.x;sty+=q.w*q.dt*q.y}
+    const den=sw*stt-st*st;if(a.length<3||den<=1e-9)return null;const vx=(sw*stx-st*sx)/den,vy=(sw*sty-st*sy)/den;return {x:(sx-vx*st)/sw,y:(sy-vy*st)/sw,vx,vy}};
+  let F=fit(pts);
+  if(F){const k=pts.filter(q=>Math.hypot(q.x-(F.x+F.vx*q.dt),q.y-(F.y+F.vy*q.dt))<=Math.max(25,1.5*q.acc));if(k.length>=3&&k.length<pts.length){pts=k;F=fit(pts)||F}}
+  if(F){GF.x=[F.x,F.y];GF.v=[F.vx,F.vy]}else{const xy=gfLoc(GF.o,f);GF.x=[(GF.x[0]+xy[0])/2,(GF.x[1]+xy[1])/2]}
+  const vs=Math.hypot(GF.v[0],GF.v[1]);
+  if(good)GF.sp=ps;else if(F){const span=Math.max(2,-Math.min(...pts.map(q=>q.dt))),am=pts.reduce((s,q)=>s+q.acc,0)/pts.length,se=0.5*am*3.46/(span*Math.sqrt(pts.length));GF.sp=Math.max(0,vs-Math.min(0.5,0.25*se))}else GF.sp=sp0}
+function gfMoveOut(p,f,ph){
+  let pos=gfGeo(GF.o,GF.x);const sp=GF.sp;
+  /* heading held below 3 m/s */
+  if(sp>=3){const vh=Math.hypot(GF.v[0],GF.v[1])>1?(Math.atan2(GF.v[0],GF.v[1])*180/Math.PI+360)%360:null;const h=(ph!=null&&f.ps!=null&&f.ps>=3)?ph:vh;if(h!=null)GF.hd=h}
+  let hd=GF.hd;
+  if(sp<15&&S.twySnap!==false){try{const s=gfSnap(pos,hd);if(s){pos=s.pos;if(sp>=3)hd=s.brg;GF.snap={d:s.d,t:f.t}}else GF.snap=null}catch(e){}}
+  return gfOut(p,pos,sp,hd)}
+window.cpGF=()=>GF?{m:GF.m,sp:GF.sp,snap:GF.snap||null}:null;
 function onPos(p){
+  if(!demo&&!REPLAY&&!p.gf){p=gndFilter(p);if(!p){lastFixAt=Date.now();return}}
   const c=p.coords,t=p.timestamp||Date.now();
   let spd=(c.speed!=null&&c.speed>=0&&!isNaN(c.speed))?c.speed:null;
   let trk=(c.heading!=null&&c.heading>=0&&!isNaN(c.heading))?c.heading:null;
@@ -800,8 +891,8 @@ function phaseStep(L){
   const t=L.t,sp=L.spd||0,v=vsFpm()||0,alt=L.alt||0,to=apBy(S.to),fr=apBy(S.from);
   spdH.push({t,s:sp});while(spdH.length>2&&t-spdH[0].t>20000)spdH.shift();
   switch(PH.p){
-    case "parked": {const mv=sp>1.8&&(L.acc==null||L.acc<=100);if(mv&&!goP)goP={lat:L.lat,lon:L.lon};if(!mv)goP=null;
-      const a=hold("go",mv,t,3),b=hold("go2",sp>4,t,2),far=goP&&dist(goP,L)>=12;
+    case "parked": {const mv=sp>1.8&&(L.acc==null||L.acc<=30);if(mv&&!goP)goP={lat:L.lat,lon:L.lon};if(!mv)goP=null;
+      const a=hold("go",mv,t,3),b=hold("go2",sp>4,t,2),far=goP&&dist(goP,L)>=Math.max(12,(L.acc||0));
       if((a&&far)||b){goP=null;if(resumeTaxiIn(t))break;PH.ev={off:t};PH.bookId=null;PH.ended=false;PH.rt=null;PH.sts=[stateAt(L.lat,L.lon)];PH.said={};PH.lm=[];PH.alt0=alt;setPhase("taxi",t);if(!LOG.on){LOG={on:true,pts:[]};store.set("log",LOG)}say(fltSpoken()+(fltSpoken()?"taxiing":"Taxiing")+(to?" for "+to.n:"")+".")}}break;
     case "taxi": {const ago=spdH.find(q=>q.t>=t-4000),ac=ago&&t-ago.t>=2000?(sp-ago.s)/((t-ago.t)/1000):0,accRoll=hold("acc",sp>12&&ac>1.2,t,2);
       if(sp>20.5||accRoll){const st0=[...spdH].reverse().find(q=>q.t<t&&q.s<10);PH.ev.roll=st0?st0.t:t;PH.ev.rollTrk=L.trk;setPhase("roll",t);say("Takeoff roll.")}else if(hold("stop",sp<1,t,180))setPhase("parked",t);}break;
@@ -1424,7 +1515,7 @@ function startGPS(){
   stopDemo();
   if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;hist=[];vsClear();hfGps=false;$("gpsBtn").textContent="Start GPS";$("gpsBtn").classList.remove("on");$("stat").textContent="GPS off";$("dot").className="dot";return}
   if(PH.demo){PH.p="parked";PH.ev={};PH.bookId=null;PH.ended=false;PH.rt=null;PH.said={};PH.lm=[];PH.demo=false;savePH();LOG={on:false,pts:[]};store.set("log",LOG);trail=[];prof=[];hist=[];trkH=[];last=null;evRender();render()}
-  watchId=navigator.geolocation.watchPosition(onPos,onErr,GPSO);
+  gfReset();watchId=navigator.geolocation.watchPosition(onPos,onErr,GPSO);
   $("gpsBtn").textContent="Stop GPS";$("gpsBtn").classList.add("on");$("stat").textContent="Searching… sit near a window";$("dot").className="dot warn";
 }
 $("gpsBtn").onclick=startGPS;
@@ -1438,7 +1529,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 let resumeAt=0;const GPSO={enableHighAccuracy:true,maximumAge:5000,timeout:60000};
 function resuming(){return !!resumeAt&&lastFixAt<resumeAt&&Date.now()-resumeAt<120000}
 function gpsResume(){try{staleCheck()}catch(e){}if(watchId==null||demo||REPLAY)return;resumeAt=Date.now();
-  try{navigator.geolocation.clearWatch(watchId)}catch(e){}watchId=navigator.geolocation.watchPosition(onPos,onErr,GPSO);
+  try{navigator.geolocation.clearWatch(watchId)}catch(e){}gfReset();watchId=navigator.geolocation.watchPosition(onPos,onErr,GPSO);
   try{navigator.geolocation.getCurrentPosition(onPos,()=>{},{enableHighAccuracy:true,maximumAge:0,timeout:30000})}catch(e){}
   mc.poorSince=0;if(mc.on){mc.on=false;$("mcBtn").style.display="none";$("mcBtn").classList.remove("ack")}
   $("stat").textContent="Resuming GPS…";$("dot").className="dot warn";if(wantWake)getWake();try{render()}catch(e){}}
