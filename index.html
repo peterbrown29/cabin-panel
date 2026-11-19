@@ -122,6 +122,20 @@ input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
 #endNote{margin-top:8px;padding:7px 10px;background:#000;border:1px solid var(--warn);color:var(--warn);font:700 12px var(--mono);text-transform:uppercase}#endNote .row{margin-top:6px}
 #resumeNote{margin-top:8px;padding:7px 10px;background:#000;border:1px solid var(--cyan);color:var(--cyan);font:700 12px var(--mono);text-transform:uppercase}
 @media(prefers-reduced-motion:no-preference){#rose,#needle{transition:transform .6s ease-out}}
+
+/* v21: full-screen magnetic compass view */
+#cmpOv{position:fixed;inset:0;z-index:31;background:#000;display:none;overflow:auto;padding:calc(56px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+body.cmp{overflow:hidden}body.cmp #cmpOv{display:grid;grid-template-columns:1fr;justify-items:center;align-content:start;gap:12px}
+#cmpExit{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));min-height:40px;font-size:12px;opacity:.85}
+#cmpPhase{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right))}
+#cmpTitle{position:absolute;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);font:700 12px var(--mono);color:var(--dim);letter-spacing:.12em}
+.cmpRead{text-align:center}.cmpRead .val{font-size:clamp(46px,15vw,76px)}.cmpRead .sub{font:700 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+#cmpSvg{--cw:min(calc(100vw - 28px),58vh,460px);--cw:min(calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right)),58dvh,460px);width:var(--cw);height:var(--cw);flex:none;display:block}
+.cmpSide{width:100%;max-width:460px;display:grid;gap:10px}
+#cmpMsg{padding:7px 10px;background:#000;border:1px solid var(--cyan);color:var(--cyan);font:700 12px var(--mono);text-transform:uppercase}#cmpMsg.warn{border-color:var(--warn);color:var(--warn)}
+#cmpOv .kv3 b{font-size:19px}#cmpDev.big{color:var(--warn)}
+@media(orientation:landscape) and (max-height:600px){body.cmp #cmpOv{grid-template-columns:auto minmax(0,1fr);align-items:center;align-content:center;column-gap:18px;padding-top:calc(50px + env(safe-area-inset-top))}
+ #cmpSvg{--cw:min(calc(100vh - 70px),52vw);--cw:min(calc(100dvh - 70px - env(safe-area-inset-top) - env(safe-area-inset-bottom)),52vw);grid-row:1/3}.cmpRead{grid-column:2}.cmpSide{grid-column:2}.cmpRead .val{font-size:52px}#cmpOv .note.cmpN{display:none}}
 </style>
 </head>
 <body>
@@ -197,6 +211,7 @@ input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
         <div>Time to go<b id="ete">---</b></div>
         <div>ETA <span id="etaTz"></span><b id="eta">---</b></div>
       </div>
+      <div class="row" style="grid-column:1/-1;justify-content:flex-end"><button id="cmpBtn">Compass view</button></div>
     </div>
   </div>
 
@@ -263,6 +278,25 @@ input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
   <div class="note">Out the window: sun times allow for your altitude letting you see further over the horizon. Landmark positions are approximate, and visibility depends on cloud.</div>
   <div class="note">Attitude, GPS mode: bank comes from how fast your track is turning (assuming a coordinated turn) and pitch from your climb angle plus about 2.5°. It needs groundspeed above about 60 kt. Gyro mode: stand the phone upright facing you, braced so it can't move, and tap Level in level flight. It catches quick changes well but drifts back toward level in long turns.</div>
   <div class="note">Uses your phone's GPS, which keeps working in flight mode. Sit at a window for a fix. Altitude is GPS height above sea level, not the pressure altitude the crew flies. Not for navigation.</div>
+</div>
+<div id="cmpOv" role="dialog" aria-label="Compass view"><button id="cmpExit">✕ Exit</button><span id="cmpTitle">COMPASS</span><span id="cmpPhase" class="chip"></span>
+  <svg id="cmpSvg" viewBox="0 0 320 320" aria-label="Magnetic compass"><circle cx="160" cy="160" r="156" fill="#000" stroke="var(--line)" stroke-width="2"/><g id="cRose"></g>
+    <path d="M160 2 L170 20 L150 20 Z" fill="var(--warn)"/><line x1="160" y1="22" x2="160" y2="44" stroke="var(--warn)" stroke-width="3"/>
+    <g fill="var(--ink)" stroke="#000" stroke-width="1.5"><path d="M160 118 L166 146 L198 162 L198 170 L166 162 L164 188 L174 196 L174 202 L160 198 L146 202 L146 196 L156 188 L154 162 L122 170 L122 162 L154 146 Z"/></g>
+    <text id="cNoHdg" x="160" y="228" text-anchor="middle" font-size="13" font-weight="700" fill="var(--dim)">NO COMPASS</text></svg>
+  <div class="cmpRead"><div class="val" id="cmpHdg">---<small>°M</small></div><div class="sub" id="cmpSub">Magnetic heading · top of phone</div></div>
+  <div class="cmpSide">
+    <div id="cmpMsg" style="display:none"></div>
+    <div class="row" id="cmpEnRow" style="display:none"><button id="cmpEn" class="pri">Enable compass</button></div>
+    <div class="tile" style="margin:6px"><div class="kv3">
+      <div>GPS track<b id="cmpTrkM">---</b></div>
+      <div>Cabin deviation<b id="cmpDev">---</b></div>
+      <div>GPS track, true<b id="cmpTrk">---</b></div>
+      <div>Magnetic variation<b id="cmpVar">---</b></div>
+      <div>Compass accuracy<b id="cmpAcc">---</b></div>
+    </div></div>
+    <div class="note cmpN">Magenta rose: the phone's magnetic compass. Cyan bug: your GPS track (the way you are actually moving), shown in °M so it compares directly. The aircraft's metal frame and electrics distort a phone compass inside the cabin, often by tens of degrees, so a big cabin deviation is normal. For a fair comparison, point the top of the phone at the nose. Wind drift also makes heading and track differ slightly. Entertainment only, not for navigation.</div>
+  </div>
 </div>
 <div id="fhOv" aria-label="Full screen HUD"><button id="fhExit">✕ Exit</button><span id="fhPhase" class="chip"></span><div id="fhSlot"></div><div id="fhToast"></div></div>
 <div id="cardOv"><div class="cardBox"><img id="cardImg" alt="Flight summary card"><div class="row"><button id="cardShare" class="pri">Share</button><button id="cardClose">Close</button></div><p class="note" id="cardHint">Long-press the image to save it to Photos.</p></div></div>
@@ -624,7 +658,7 @@ PH.holds={};
 let gBuf=[],spdH=[],goP=null;
 const savePH=()=>store.set("phase",{bookId:PH.bookId,ended:PH.ended,rt:PH.rt,sts:PH.sts,demo:PH.demo,p:PH.p,alt0:PH.alt0,ev:PH.ev,said:PH.said,lm:PH.lm,lastLm:PH.lastLm,st:PH.st});
 function hold(k,cond,t,secs){if(!cond){delete PH.holds[k];return false}if(PH.holds[k]==null)PH.holds[k]=t;return t-PH.holds[k]>=secs*1000}
-function setPhase(p,t){PH.p=p;PH.holds={};if(!REPLAY)hap([25,40,25]);{const fp=$("fhPhase");if(fp)fp.textContent=PHN[p]}setTimeout(()=>{try{pickScene()}catch(e){}},0);$("phase").textContent=PHN[p];savePH();evRender()}
+function setPhase(p,t){PH.p=p;PH.holds={};if(!REPLAY)hap([25,40,25]);{const fp=$("fhPhase");if(fp)fp.textContent=PHN[p];const cp=$("cmpPhase");if(cp)cp.textContent=PHN[p]}setTimeout(()=>{try{pickScene()}catch(e){}},0);$("phase").textContent=PHN[p];savePH();evRender()}
 const fl=a=>"flight level "+String(Math.round(a*FT/1000)*10).split("").join(" ");
 /* v20: a stop on the way to the gate can reach Parked (4 min still). If it moves again within 25 min of on-blocks,
    with no takeoff and the same route, it's still taxi-in on the same flight: same times, same log, same logbook entry. */
@@ -982,9 +1016,101 @@ function fhEnter(auto){if(fhOn)return;fhOn=true;fhAuto=!!auto;$("fhSlot").append
 function fhExit(){if(!fhOn)return;fhOn=false;fhAuto=false;const t=document.querySelector(".tile.hud");t.insertBefore($("hudwrap"),t.firstChild);document.body.classList.remove("fh");hudKey=""}
 $("fhBtn").onclick=()=>fhEnter(false);$("fhExit").onclick=fhExit;
 const landMQ=matchMedia("(orientation: landscape) and (max-height: 600px)");
-const landCheck=()=>{if((S.autofh||"on")!=="on")return;if(landMQ.matches)fhEnter(true);else if(fhAuto)fhExit()};
+const landCheck=()=>{if(cmpOn)return;if((S.autofh||"on")!=="on")return;if(landMQ.matches)fhEnter(true);else if(fhAuto)fhExit()};
 try{landMQ.addEventListener("change",landCheck)}catch(e){try{landMQ.addListener(landCheck)}catch(_){}}
 setTimeout(landCheck,300);
+
+/* ================= v21: compass view (phone magnetic compass vs GPS track) =================
+   Read-only: listens to deviceorientation only while this view is open. Never touches GPS, phases, logbook or map. */
+let cmpOn=false;
+const CMP={listen:false,perm:"",raw:null,s:null,acc:null,src:"",t:0,rot:0,trkRot:0,raf:0,lt:0,lastDraw:0,wait:0,decl:null,declAt:0,declPos:null};
+const WMM=[-29351.8,0,12,0,-1410.8,4545.4,9.7,-21.5,-2556.6,0,-11.6,0,2951.1,-3133.6,-5.2,-27.7,1649.3,-815.1,-8,-12.1,1361,0,-1.3,0,-2404.1,-56.6,-4.2,4,1243.8,237.5,0.4,-0.3,453.6,-549.5,-15.6,-4.1,895,0,-1.6,0,799.5,278.6,-2.4,-1.1,55.7,-133.9,-6,4.1,-281.1,212,5.6,1.6,12.1,-375.6,-7,-4.4,-233.2,0,0.6,0,368.9,45.4,1.4,-0.5,187.2,220.2,0,2.2,-138.7,-122.9,0.6,0.4,-142,43,2.2,1.7,20.9,106.1,0.9,1.9,64.4,0,-0.2,0,63.8,-18.4,-0.4,0.3,76.9,16.8,0.9,-1.6,-115.7,48.8,1.2,-0.4,-40.9,-59.8,-0.9,0.9,14.9,10.9,0.3,0.7,-60.7,72.7,0.9,0.9,79.5,0,-0,0,-77,-48.9,-0.1,0.6,-8.8,-14.4,-0.1,0.5,59.3,-1,0.5,-0.8,15.8,23.4,-0.1,0,2.5,-7.4,-0.8,-1,-11.1,-25.1,-0.8,0.6,14.2,-2.3,0.8,-0.2,23.2,0,-0.1,0,10.8,7.1,0.2,-0.2,-17.5,-12.6,0,0.5,2,11.4,0.5,-0.4,-21.7,-9.7,-0.1,0.4,16.9,12.7,0.3,-0.5,15,0.7,0.2,-0.6,-16.8,-5.2,-0,0.3,0.9,3.9,0.2,0.2,4.6,0,-0,0,7.8,-24.8,-0.1,-0.3,3,12.2,0.1,0.3,-0.2,8.3,0.3,-0.3,-2.5,-3.3,-0.3,0.3,-13.1,-5.2,0,0.2,2.4,7.2,0.3,-0.1,8.6,-0.6,-0.1,-0.2,-8.7,0.8,0.1,0.4,-12.9,10,-0.1,0.1,-1.3,0,0.1,0,-6.4,3.3,0,0,0.2,0,0.1,-0,2,2.4,0.1,-0.2,-1,5.3,-0,0.1,-0.6,-9.1,-0.3,-0.1,-0.9,0.4,0,0.1,1.5,-4.2,-0.1,0,0.9,-3.8,-0.1,-0.1,-2.7,0.9,-0,0.2,-3.9,-9.1,-0,-0,2.9,0,0,0,-1.5,0,-0,-0,-2.5,2.9,0,0.1,2.4,-0.6,0,-0,-0.6,0.2,0,0.1,-0.1,0.5,-0.1,-0,-0.6,-0.3,0,-0,-0.1,-1.2,-0,0.1,1.1,-1.7,-0.1,-0,-1,-2.9,-0.1,0,-0.2,-1.8,-0.1,0,2.6,-2.3,-0.1,0,-2,0,0,0,-0.2,-1.3,0,-0,0.3,0.7,-0,0,1.2,1,-0,-0.1,-1.3,-1.4,-0,0.1,0.6,-0,-0,-0,0.6,0.6,0.1,-0,0.5,-0.1,-0,-0,-0.1,0.8,0,0,-0.4,0.1,0,-0,-0.2,-1,-0.1,-0,-1.3,0.1,-0,0,-0.7,0.2,-0.1,-0.1];
+/* magnetic declination (degrees, east +) from the World Magnetic Model 2025 (NOAA/BGS, public domain), valid 2025-2030 */
+function magDecl(lat,lon,hKm,yr){
+  const t=yr-2025,D=Math.PI/180,A=6378.137,F=1/298.257223563,E2=F*(2-F),a0=6371.2;
+  const sl=Math.sin(lat*D),cl=Math.cos(lat*D),Rc=A/Math.sqrt(1-E2*sl*sl),p=(Rc+hKm)*cl,z=(Rc*(1-E2)+hKm)*sl,r=Math.hypot(p,z),pc=Math.asin(z/r);
+  const ct=Math.sin(pc),st=Math.max(1e-9,Math.cos(pc)),N=12,P=[],dP=[];
+  for(let n=0;n<=N;n++){P.push(new Array(n+1).fill(0));dP.push(new Array(n+1).fill(0))}
+  P[0][0]=1;
+  for(let n=1;n<=N;n++)for(let m=0;m<=n;m++){
+    if(m===n){if(n===1){P[1][1]=st;dP[1][1]=ct}else{const k=Math.sqrt(1-1/(2*n));P[n][n]=k*st*P[n-1][n-1];dP[n][n]=k*(st*dP[n-1][n-1]+ct*P[n-1][n-1])}}
+    else{const k1=Math.sqrt((n-1)*(n-1)-m*m),k2=Math.sqrt(n*n-m*m),p2=n-2>=m?P[n-2][m]:0,d2=n-2>=m?dP[n-2][m]:0;
+      P[n][m]=((2*n-1)*ct*P[n-1][m]-k1*p2)/k2;dP[n][m]=((2*n-1)*(ct*dP[n-1][m]-st*P[n-1][m])-k1*d2)/k2}}
+  let Bt=0,Bp=0,Br=0,i=0;const lm=lon*D;
+  for(let n=1;n<=N;n++){const ar=Math.pow(a0/r,n+2);for(let m=0;m<=n;m++,i+=4){
+    const g=WMM[i]+t*WMM[i+2],h=WMM[i+1]+t*WMM[i+3],c=Math.cos(m*lm),s=Math.sin(m*lm);
+    Br+=ar*(n+1)*(g*c+h*s)*P[n][m];Bt-=ar*(g*c+h*s)*dP[n][m];Bp+=ar*m*(g*s-h*c)*P[n][m]/st}}
+  const Xc=-Bt,Zc=-Br,ps=pc-lat*D,X=Xc*Math.cos(ps)-Zc*Math.sin(ps);
+  return Math.atan2(Bp,X)/D;
+}
+{let h="";for(let d=0;d<360;d+=5){const big=d%30===0,mid=d%10===0,a=rad(d),r1=150,r2=big?126:mid?136:142;
+  h+=`<line x1="${(160+r1*Math.sin(a)).toFixed(1)}" y1="${(160-r1*Math.cos(a)).toFixed(1)}" x2="${(160+r2*Math.sin(a)).toFixed(1)}" y2="${(160-r2*Math.cos(a)).toFixed(1)}" stroke="var(--mag)" stroke-width="${big?3:mid?2:1}" opacity="${big?1:.75}"/>`;
+  if(big){const lbl={0:"N",90:"E",180:"S",270:"W"}[d]||String(d/10),rr=108,x=(160+rr*Math.sin(a)).toFixed(1),y=(160-rr*Math.cos(a)).toFixed(1);
+    h+=`<text x="${x}" y="${(+y+8).toFixed(1)}" text-anchor="middle" font-size="${d%90===0?26:20}" font-weight="700" fill="${d===0?"var(--cyan)":"var(--ink)"}" transform="rotate(${d} ${x} ${y})">${lbl}</text>`}}
+ h+='<g id="cBug" style="display:none"><path d="M160 6 L172 6 L172 18 L166 26 L160 18 L154 26 L148 18 L148 6 Z" fill="none" stroke="var(--cyan)" stroke-width="3"/><line x1="160" y1="28" x2="160" y2="96" stroke="var(--cyan)" stroke-width="2" stroke-dasharray="5 5"/></g>';
+ $("cRose").innerHTML=h}
+const w180=d=>((d%360)+540)%360-180;
+const p3=v=>String(Math.round(((v%360)+360)%360)%360).padStart(3,"0");
+function cmpScrAng(){if(typeof window.orientation==="number")return window.orientation;try{if(screen.orientation&&typeof screen.orientation.angle==="number")return screen.orientation.angle}catch(e){}return 0}
+function cmpMsg(k){const m=$("cmpMsg"),er=$("cmpEnRow");const T={
+  need:["Tap Enable compass, then choose Allow, to read the phone's magnetic compass.",1,0],
+  denied:["Compass access was denied. Fully close Cabin Panel and reopen it, then tap Enable compass and choose Allow.",1,1],
+  unavail:["No compass reading from this phone or browser. The GPS track is still shown.",0,1],
+  wait:["Waiting for the compass…",0,0],
+  cal:["Compass needs calibrating: move the phone in a figure-8, away from metal.",0,1]}[k];
+  CMP.msg=k||"";if(!T){m.style.display="none";er.style.display="none";return}
+  m.textContent=T[0];m.className=T[2]?"warn":"";m.style.display="";er.style.display=T[1]?"":"none"}
+function onCmp(e){let h=null,acc=null,src="";
+  if(typeof e.webkitCompassHeading==="number"&&isFinite(e.webkitCompassHeading)&&e.webkitCompassHeading>=0){h=e.webkitCompassHeading;src="ios";
+    if(typeof e.webkitCompassAccuracy==="number"&&isFinite(e.webkitCompassAccuracy))acc=e.webkitCompassAccuracy}
+  else if((e.type==="deviceorientationabsolute"||e.absolute===true)&&typeof e.alpha==="number"&&isFinite(e.alpha)){h=360-e.alpha;src="abs"}
+  if(h==null)return;
+  if(src==="abs"&&CMP.src==="ios")return;
+  h=((h+cmpScrAng())%360+360)%360;
+  CMP.raw=h;CMP.acc=acc;CMP.src=src;CMP.t=Date.now();if(CMP.s==null)CMP.s=h;
+  if(CMP.msg==="wait"||CMP.msg==="unavail")cmpMsg(acc!=null&&acc<0?"cal":"");
+}
+function cmpListen(){if(CMP.listen)return;CMP.listen=true;window.addEventListener("deviceorientation",onCmp);if("ondeviceorientationabsolute" in window)window.addEventListener("deviceorientationabsolute",onCmp);
+  if(CMP.raw==null){cmpMsg("wait");clearTimeout(CMP.wait);CMP.wait=setTimeout(()=>{if(cmpOn&&CMP.raw==null)cmpMsg("unavail")},4000)}}
+function cmpUnlisten(){if(!CMP.listen)return;CMP.listen=false;window.removeEventListener("deviceorientation",onCmp);window.removeEventListener("deviceorientationabsolute",onCmp);clearTimeout(CMP.wait)}
+/* called straight from a tap so iOS shows its Allow prompt (requestPermission must start inside the tap) */
+function cmpStart(fromTap){
+  const DOE=window.DeviceOrientationEvent;
+  if(!DOE){cmpMsg("unavail");return}
+  if(typeof DOE.requestPermission==="function"&&CMP.perm!=="granted"){
+    if(!fromTap){cmpMsg("need");return}
+    let pr;try{pr=DOE.requestPermission()}catch(e){cmpMsg("need");return}
+    Promise.resolve(pr).then(r=>{if(r==="granted"){CMP.perm="granted";if(cmpOn)cmpListen()}else{CMP.perm="denied";cmpMsg("denied")}}).catch(()=>{cmpMsg(CMP.perm==="denied"?"denied":"need")});
+    return}
+  cmpListen()}
+function cmpDecl(L){const now=Date.now();if(!L)return CMP.decl;
+  if(CMP.decl==null||now-CMP.declAt>60000||!CMP.declPos||Math.abs(CMP.declPos[0]-L.lat)>0.5||Math.abs(CMP.declPos[1]-L.lon)>0.5){
+    try{const d=new Date(now),yr=d.getUTCFullYear()+(d-Date.UTC(d.getUTCFullYear(),0,1))/31557600000;CMP.decl=magDecl(L.lat,L.lon,Math.max(0,(L.alt||0)/1000),yr);CMP.declAt=now;CMP.declPos=[L.lat,L.lon]}catch(e){}}
+  return CMP.decl}
+function cmpFrame(ts){CMP.raf=0;if(!cmpOn)return;
+  const dt=CMP.lt?Math.min(0.5,(ts-CMP.lt)/1000):0;CMP.lt=ts;
+  if(CMP.raw!=null&&CMP.s!=null){const k=dt?1-Math.exp(-dt/0.3):1;CMP.s=((CMP.s+k*w180(CMP.raw-CMP.s))%360+360)%360}
+  if(!reduceMo||ts-CMP.lastDraw>250){CMP.lastDraw=ts;cmpDraw()}
+  CMP.raf=requestAnimationFrame(cmpFrame)}
+function cmpDraw(){
+  const L=last,fresh=CMP.raw!=null&&Date.now()-CMP.t<5000,hd=fresh?CMP.s:null;
+  const dec=L?cmpDecl(L):null,mov=!!(L&&L.trk!=null&&L.spd!=null&&L.spd>=2.6&&Date.now()-L.t<20000);
+  const trkM=mov&&dec!=null?((L.trk-dec)%360+360)%360:null;
+  if(hd!=null){const tgt=reduceMo?Math.round(hd):hd;CMP.rot=unwrap(CMP.rot,-tgt);$("cRose").setAttribute("transform",`rotate(${CMP.rot.toFixed(2)} 160 160)`);setVal("cmpHdg",p3(hd),"°M");$("cNoHdg").style.display="none"}
+  else{$("cmpHdg").innerHTML="---<small>°M</small>";$("cNoHdg").style.display=""}
+  const bug=$("cBug");if(trkM!=null){CMP.trkRot=unwrap(CMP.trkRot,trkM);bug.setAttribute("transform",`rotate(${CMP.trkRot.toFixed(2)} 160 160)`);bug.style.display=""}else bug.style.display="none";
+  $("cmpTrk").textContent=mov?p3(L.trk)+"°T":"Not moving";$("cmpTrkM").textContent=trkM!=null?p3(trkM)+"°M":mov?"---":"Not moving";
+  $("cmpVar").textContent=dec==null?"---":Math.abs(dec)<0.5?"0°":Math.round(Math.abs(dec))+"°"+(dec>0?"E":"W");
+  const dev=hd!=null&&trkM!=null?Math.round(w180(hd-trkM)):null,de=$("cmpDev");
+  de.textContent=dev==null?"---":(dev>0?"+":dev<0?"−":"±")+Math.abs(dev)+"°";de.classList.toggle("big",dev!=null&&Math.abs(dev)>=20);
+  $("cmpAcc").textContent=CMP.acc==null?(CMP.src==="abs"?"n/a":"---"):CMP.acc<0?"Calibrate":"±"+Math.round(CMP.acc)+"°";
+  if(fresh&&CMP.acc!=null&&CMP.acc<0&&CMP.msg!=="cal")cmpMsg("cal");else if(CMP.msg==="cal"&&!(CMP.acc!=null&&CMP.acc<0))cmpMsg("");
+}
+function cmpOpen(){if(cmpOn)return;if(typeof fhOn!=="undefined"&&fhOn)fhExit();cmpOn=true;document.body.classList.add("cmp");$("cmpPhase").textContent=PHN[PH.p]||"";
+  cmpStart(true);CMP.lt=0;if(!CMP.raf)CMP.raf=requestAnimationFrame(cmpFrame);cmpDraw();try{wantWake||$("wakeBtn").click()}catch(e){}try{$("cmpExit").focus()}catch(e){}}
+function cmpClose(){if(!cmpOn)return;cmpOn=false;document.body.classList.remove("cmp");cmpUnlisten();if(CMP.raf){cancelAnimationFrame(CMP.raf);CMP.raf=0}CMP.raw=null;CMP.s=null;CMP.src="";cmpMsg("");try{$("cmpBtn").focus()}catch(e){}setTimeout(()=>{try{landCheck()}catch(e){}},50)}
+$("cmpBtn").onclick=cmpOpen;$("cmpExit").onclick=cmpClose;$("cmpEn").onclick=()=>cmpStart(true);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&cmpOn)cmpClose()});
 
 /* ---------- map ---------- */
 const cv=$("map");
