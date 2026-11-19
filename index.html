@@ -63,7 +63,7 @@ header{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bez2),va
 .hsi svg{width:100%;max-width:300px;aspect-ratio:1;display:block;margin:0 auto}
 svg text{font-family:var(--mono)}
 .hud svg,.hudwrap svg{width:100%;max-width:460px;aspect-ratio:6/5;display:block;margin:0 auto}
-.hudkv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:8px;align-items:end;margin-top:8px}
+.hudkv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 10px;align-items:end;margin-top:8px}.hudkv>div:not(.row){overflow:hidden}.hudkv .row{grid-column:1/-1;justify-content:flex-end}
 .kv{display:grid;gap:10px}.kv div,.hudkv div{font:700 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.06em}.kv b,.hudkv b{display:block;font:700 20px var(--mono);color:var(--ink);white-space:nowrap;letter-spacing:0;text-shadow:0 0 6px var(--glow)}
 h2{font:700 13px var(--mono);margin:26px 2px 12px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;display:flex;align-items:center;gap:10px}
 h2::after{content:"";flex:1;height:1px;background:var(--line)}
@@ -110,7 +110,12 @@ input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
 .lm li.bk{align-items:center;flex-wrap:wrap}.lm li.bk>div:first-child{display:grid;gap:2px}.lm li.bk span{text-align:left;max-width:none}.lm li.bk button{min-height:40px;font-size:12px;padding:0 10px}
 #cardOv{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:20px}.cardBox{max-width:520px;width:100%;display:grid;gap:10px}.cardBox img{width:100%;height:auto;border:1px solid var(--line)}
 @media(prefers-reduced-motion:reduce){.mc{animation:none}}
-@media(max-width:420px){.hsi{grid-template-columns:1fr}.kv{grid-template-columns:repeat(3,minmax(0,1fr))}.kv b,.hudkv b{font-size:17px}.hudkv{grid-template-columns:repeat(3,minmax(0,1fr))}.hudkv .row{grid-column:1/-1}}
+@media(max-width:420px){.hsi{grid-template-columns:1fr}.kv{grid-template-columns:repeat(3,minmax(0,1fr))}.kv b{font-size:17px}}
+.hudkv b{font-size:clamp(15px,4.6vw,20px);overflow:hidden;text-overflow:clip}
+#bgA,#bgB{transition:opacity 1.4s ease}@media(prefers-reduced-motion:reduce){#bgA,#bgB{transition:none}}
+.lm li.dimside{opacity:.45}.lm li.myside b{color:var(--warn)}
+#pickTile .lm li{align-items:center;flex-wrap:wrap}#pickTile .lm li span{text-align:left;max-width:none;text-transform:none}#pickTile .lm li button{min-height:40px}
+#resumeNote{margin-top:8px;padding:7px 10px;background:#000;border:1px solid var(--cyan);color:var(--cyan);font:700 12px var(--mono);text-transform:uppercase}
 @media(prefers-reduced-motion:no-preference){#rose,#needle{transition:transform .6s ease-out}}
 </style>
 </head>
@@ -130,6 +135,14 @@ input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
     <button id="wakeBtn">Keep screen on</button>
     <button id="demoBtn">Demo flight</button>
     <button id="markBtn" class="pri">MARK</button>
+    <button id="pickBtn">Pick up current flight</button>
+  </div>
+  <div id="resumeNote" style="display:none"></div>
+  <div class="tile" id="pickTile" style="display:none;margin:10px 6px 22px">
+    <div class="lab"><span>Pick up current flight</span><span id="pickClose" role="button" tabindex="0" style="cursor:pointer">✕ Close</span></div>
+    <ul class="lm" id="pickList"></ul>
+    <div class="row" style="margin-top:8px"><button id="pickFileBtn">From exported file…</button><input type="file" id="pickFile" accept=".json,application/json" style="display:none"></div>
+    <div class="note" id="pickTxt" style="margin:8px 0 0">Carries on a flight saved on this phone (or in an exported logbook file): route, times, track, marks and phase.</div>
   </div>
   <div class="row" id="markRow" style="display:none;margin-bottom:12px"><input type="text" id="markNote" maxlength="80" placeholder="Note (optional)"><button id="markSave">Save</button></div>
   <div class="tile" id="rpTile" style="display:none;margin:10px 6px 22px">
@@ -140,7 +153,7 @@ input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
 
   <div class="grid">
     <div class="tile wide hud">
-      <div class="hudwrap" id="hudwrap"><svg id="hud" viewBox="0 0 360 300" aria-label="Head-up display"><defs><clipPath id="hbg"><rect x="0" y="0" width="360" height="300" rx="4"/></clipPath><filter id="nvgF"><feColorMatrix type="matrix" values="0 0 0 0 0  .30 .59 .11 0 0  0 0 0 0 0  0 0 0 1 0"/></filter><filter id="glow" x="-8%" y="-8%" width="116%" height="116%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.3" result="b"/><feDropShadow in="SourceGraphic" dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".9" result="s"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="s"/></feMerge></filter><filter id="sh" x="-5%" y="-5%" width="110%" height="110%"><feDropShadow dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".95"/></filter></defs><g clip-path="url(#hbg)"><g id="bgG"><image id="bgImg" href="" x="-180" y="-390" width="720" height="1080" preserveAspectRatio="none"/><rect id="skyF" x="-420" y="-1150" width="1200" height="1300" fill="#2a6fc0" opacity=".1"/><rect id="gndF" x="-420" y="150" width="1200" height="1300" fill="#6b4220" opacity=".1"/></g><rect id="bgDim" width="360" height="300" fill="#000" opacity=".34"/><rect x="0" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="302" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="60" y="0" width="240" height="34" fill="#000" opacity=".45"/><rect x="0" y="270" width="360" height="30" fill="#000" opacity=".45"/></g><g id="hudSym" filter="url(#glow)"></g></svg></div>
+      <div class="hudwrap" id="hudwrap"><svg id="hud" viewBox="0 0 360 300" aria-label="Head-up display"><defs><clipPath id="hbg"><rect x="0" y="0" width="360" height="300" rx="4"/></clipPath><filter id="nvgF"><feColorMatrix type="matrix" values="0 0 0 0 0  .30 .59 .11 0 0  0 0 0 0 0  0 0 0 1 0"/></filter><filter id="glow" x="-8%" y="-8%" width="116%" height="116%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.3" result="b"/><feDropShadow in="SourceGraphic" dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".9" result="s"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="s"/></feMerge></filter><filter id="sh" x="-5%" y="-5%" width="110%" height="110%"><feDropShadow dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".95"/></filter></defs><g clip-path="url(#hbg)"><g id="bgG"><image id="bgA" class="bgI" href="" x="-180" y="-390" width="720" height="1080" preserveAspectRatio="none" opacity="1"/><image id="bgB" class="bgI" href="" x="-180" y="-390" width="720" height="1080" preserveAspectRatio="none" opacity="0"/><rect id="skyF" x="-420" y="-1150" width="1200" height="1300" fill="#2a6fc0" opacity=".1"/><rect id="gndF" x="-420" y="150" width="1200" height="1300" fill="#6b4220" opacity=".1"/></g><rect id="bgDim" width="360" height="300" fill="#000" opacity=".34"/><rect x="0" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="302" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="60" y="0" width="240" height="34" fill="#000" opacity=".45"/><rect x="0" y="0" width="58" height="34" fill="#000" opacity=".5"/><rect x="302" y="0" width="58" height="34" fill="#000" opacity=".5"/><rect x="0" y="270" width="360" height="30" fill="#000" opacity=".45"/></g><g id="hudSym" filter="url(#glow)"></g></svg></div>
       <div class="hudkv">
         <div>Bank<b id="bank">---</b></div>
         <div>Pitch<b id="pitch">---</b></div>
@@ -183,6 +196,9 @@ input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
   <h2>Out the window</h2>
   <div class="tile">
     <div class="sunrow"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="#ffd400"/><g stroke="#ffd400" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></g></svg><p id="sunTxt">Waiting for a GPS fix.</p></div>
+    <div class="row" style="margin-top:10px">Window seat <span class="seg" data-k="seat"><button data-v="left">Left</button><button data-v="right">Right</button><button data-v="both">Both</button></span></div>
+    <div class="lab" style="margin-top:10px"><span id="cuHead">Coming up</span></div>
+    <ul id="cuList" class="lm"></ul>
     <div class="lab" style="margin-top:10px"><span id="lmHead">Landmarks</span></div>
     <ul id="lmList" class="lm"></ul>
     <div class="lab" style="margin-top:12px"><span id="skyHead">Sky</span></div>
@@ -236,6 +252,7 @@ input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
     <div class="note" id="storeTxt">Flight data saves every few seconds and when the app closes.</div>
   </div>
   <div class="note">HUD scene: on Auto the background follows the real sun (night, dusk or day), switches to ocean over water and to a runway view on approach. The scenes are illustrations rendered in Blender, not real terrain.</div>
+  <div class="note">Window seat: pick Left or Right (facing forward) and "Coming up" lists only what will pass your side, plus anything near the track ahead. Landmark voice callouts follow the same setting.</div>
   <div class="note">Out the window: sun times allow for your altitude letting you see further over the horizon. Landmark positions are approximate, and visibility depends on cloud.</div>
   <div class="note">Attitude, GPS mode: bank comes from how fast your track is turning (assuming a coordinated turn) and pitch from your climb angle plus about 2.5°. It needs groundspeed above about 60 kt. Gyro mode: stand the phone upright facing you, braced so it can't move, and tap Level in level flight. It catches quick changes well but drifts back toward level in long turns.</div>
   <div class="note">Uses your phone's GPS, which keeps working in flight mode. Sit at a window for a fix. Altitude is GPS height above sea level, not the pressure altitude the crew flies. Not for navigation.</div>
@@ -261,7 +278,9 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 window.addEventListener("pagehide",storeFlush);setInterval(storeFlush,30000);
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
-let S=Object.assign({spd:"kt",alt:"ft",dst:"nm",day:"0",disp:"day",scn:"auto",autofh:"on",att:"gps",from:"",to:""},store.get("settings",{}));
+let S=Object.assign({spd:"kt",alt:"ft",dst:"nm",day:"0",disp:"day",scn:"auto",autofh:"on",att:"gps",from:"",to:"",seat:"both"},store.get("settings",{}));
+const esc=t=>String(t==null?"":t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+const dPt=(a,b,m)=>{const d=m/R,t=rad(b),p1=rad(a.lat),l1=rad(a.lon);const p2=Math.asin(Math.sin(p1)*Math.cos(d)+Math.cos(p1)*Math.sin(d)*Math.cos(t));const l2=l1+Math.atan2(Math.sin(t)*Math.sin(d)*Math.cos(p1),Math.cos(d)-Math.sin(p1)*Math.sin(p2));return {lat:deg(p2),lon:((deg(l2)+540)%360)-180}};
 let LOG=store.get("log",{on:false,pts:[]});
 let last=null,hist=[],trail=[],watchId=null,demo=null,lastFixAt=0,wake=null,wantWake=false;
 let prof=[],trkH=[],att={p:0,r:0,rate:null},sen={on:false,p:0,r:0,gp:null,gr:null,p0:0,r0:0,lt:0};
@@ -295,6 +314,11 @@ $("to").onchange=e=>{prof=[];S.to=e.target.value;saveS();render();drawMap();prof
 function vsFpm(){if(hist.length<3)return null;const t0=hist[0].t,span=(hist[hist.length-1].t-t0)/1000;if(span<4)return null;let n=hist.length,sx=0,sy=0,sxx=0,sxy=0;for(const p of hist){const x=(p.t-t0)/1000;sx+=x;sy+=p.a;sxx+=x*x;sxy+=x*p.a}const den=n*sxx-sx*sx;if(!den)return null;return (n*sxy-sx*sy)/den*FT*60}
 
 /* ---------- position handler ---------- */
+/* v18: after a gap (app in background, signal loss or a picked-up flight) bridge the track with a great-circle line */
+function bridgeGap(a,b,t){const gap=(t-a.t)/1000;if(!(gap>20&&gap<8*3600))return;const d=dist(a,b);if(d/gap>400||d<200)return;const n=Math.min(240,Math.floor(gap/15));const sp=+(d/gap).toFixed(1);
+  for(let i=1;i<n;i++){const f=i/n,q=gcPoint(a,b,f),al=a.alt!=null&&b.alt!=null?Math.round(a.alt+(b.alt-a.alt)*f):null,tt=Math.round(a.t+f*(t-a.t));
+    if(LOG.on)LOG.pts.push([+q.lat.toFixed(6),+q.lon.toFixed(6),al,tt,sp]);const lt=trail[trail.length-1];if(!lt||dist(lt,q)>80)trail.push(q)}if(LOG.on)logDirty=true}
+function viewL(){const L=last;if(!L||demo||REPLAY||L.spd==null||L.spd<25||L.trk==null)return L;const age=(Date.now()-L.t)/1000;if(!(age>8&&age<4*3600))return L;if(!["climb","cruise","descent"].includes(PH.p))return L;const q=dPt(L,L.trk,L.spd*age);return Object.assign({},L,{lat:q.lat,lon:q.lon,dr:age})}
 function onPos(p){
   const c=p.coords,t=p.timestamp||Date.now();
   let spd=(c.speed!=null&&c.speed>=0&&!isNaN(c.speed))?c.speed:null;
@@ -302,6 +326,7 @@ function onPos(p){
   const here={lat:c.latitude,lon:c.longitude};
   if(last){const d=dist(last,here),dt=(t-last.t)/1000;if(dt>0&&spd==null)spd=d/dt;if(trk==null&&d>5)trk=brg(last,here)}
   if(trk==null&&last)trk=last.trk;
+  if(last&&!demo&&!REPLAY&&t-last.t>20000){try{bridgeGap(last,{lat:here.lat,lon:here.lon,alt:c.altitude},t)}catch(e){}}
   if(spd!=null&&spd<1.5)trk=last?last.trk:trk;
   last={lat:here.lat,lon:here.lon,alt:c.altitude,acc:c.accuracy,altAcc:(c.altitudeAccuracy!=null&&c.altitudeAccuracy>=0)?c.altitudeAccuracy:null,spd,trk,t};
   if(c.altitude!=null){hist.push({t,a:c.altitude});const win=(last.altAcc!=null&&last.altAcc>25)?30000:15000;while(hist.length>5&&t-hist[0].t>win)hist.shift()}
@@ -316,12 +341,14 @@ function onPos(p){
   windowInfo();try{skyInfo()}catch(e){}if(!REPLAY){try{phaseStep(last)}catch(e){}}
   render();drawMap();profAll();
 }
-function onErr(e){if(e.code!==1&&lastFixAt&&(Date.now()-lastFixAt)<45000)return;$("stat").textContent=e.code===1?"Location blocked — allow in Settings":"Searching for GPS…";$("dot").className="dot bad"}
+function onErr(e){if(e.code!==1&&((lastFixAt&&(Date.now()-lastFixAt)<45000)||resuming()))return;$("stat").textContent=e.code===1?"Location blocked — allow in Settings":"Searching for GPS…";$("dot").className="dot bad"}
 
 /* ---------- render ---------- */
 function vsClear(){setVal("vs","---","fpm");$("vs2").innerHTML="&nbsp;"}
+function navT(L,to){if(!L||!to||L.spd==null||L.spd<=25)return null;const d=dist(L,to),sec=d/L.spd;let eta="";try{eta=new Date(Date.now()+sec*1000).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:to.tz})}catch(e){eta=new Date(Date.now()+sec*1000).toTimeString().slice(0,5)}return {d,sec,eta}}
+const remS=s=>{if(!isFinite(s)||s<0)return "--";const m=Math.round(s/60),h=Math.floor(m/60);return h+"H"+String(m%60).padStart(2,"0")+"M"};
 function render(){
-  const L=last;
+  const L=viewL();
   if(!L)vsClear();
   if(L){
     const s=fSpd(L.spd);
@@ -341,14 +368,13 @@ function render(){
     $("dtg").textContent=Math.round(fDst(d)).toLocaleString()+" "+S.dst;
     $("brg").textContent=String(Math.round(b)%360).padStart(3,"0")+"°";
     const rel=L.trk!=null?b-L.trk:b;needleRot=unwrap(needleRot,rel);$("needle").setAttribute("transform",`rotate(${needleRot} 150 150)`);
-    if(L.spd!=null&&L.spd>25){const sec=d/L.spd;$("ete").textContent=hm(sec);const eta=new Date(Date.now()+sec*1000);try{$("eta").textContent=eta.toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:to.tz});$("etaTz").textContent="("+to.c+" local)"}catch(e){$("eta").textContent=eta.toTimeString().slice(0,5)}}
-    else{$("ete").textContent="---";$("eta").textContent="---"}
+    {const n=navT(L,to);if(n){$("ete").textContent=hm(n.sec);$("eta").textContent=n.eta;$("etaTz").textContent="("+to.c+" local)"}else{$("ete").textContent="---";$("eta").textContent="---"}}
     if(fr){const tot=dist(fr,to),pct=Math.max(0,Math.min(100,(1-d/tot)*100));$("progBar").style.width=pct+"%";$("progTxt").textContent=`${fr.c} → ${to.c} · ${Math.round(fDst(tot)).toLocaleString()} ${S.dst} total · ${Math.round(pct)}% done`}
   }else if(to&&fr){const tot=dist(fr,to);$("progTxt").textContent=`${fr.c} → ${to.c} · ${Math.round(fDst(tot)).toLocaleString()} ${S.dst} great-circle · initial track ${String(Math.round(brg(fr,to))).padStart(3,"0")}°`}
   const st=$("strip");
   if(fr&&to&&fr.c!==to.c){st.style.display="";$("sFrom").textContent=fr.c;$("sTo").textContent=to.c;const tot=dist(fr,to);
     if(L){const d=dist(L,to),pct=Math.max(0,Math.min(100,(1-d/tot)*100));
-      let t=(S.flt?S.flt+" · ":"")+Math.round(pct)+"% · "+Math.round(fDst(d)).toLocaleString()+" "+S.dst+" to go";if(L.spd!=null&&L.spd>25){t+=" · "+hm(d/L.spd);try{t+=" · ETA "+new Date(Date.now()+d/L.spd*1000).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:to.tz})}catch(e){}}$("sTxt").textContent=t}
+      let t=(S.flt?S.flt+" · ":"")+Math.round(pct)+"% · "+Math.round(fDst(d)).toLocaleString()+" "+S.dst+" to go";const n=navT(L,to);if(n){t+=" · "+hm(n.sec)+" · ETA "+n.eta}if(L.dr)t+=" · EST";$("sTxt").textContent=t}
     else{$("sTxt").textContent=Math.round(fDst(tot)).toLocaleString()+" "+S.dst+" · waiting for GPS"}}
   else st.style.display="none";
   try{posInfo();arrInfo()}catch(e){}
@@ -361,6 +387,8 @@ setInterval(()=>{
   if(PH.ev&&PH.ev.up&&!PH.ev.td&&n.getSeconds()%10===0)evRender();
   if(watchId==null&&!demo)return;
   const age=(Date.now()-lastFixAt)/1000;
+  if(watchId!=null&&last&&!demo&&!REPLAY&&(Date.now()-last.t)>8000&&n.getSeconds()%5===0){try{render()}catch(e){}}
+  if(resuming()){$("stat").textContent="Resuming GPS…"+(lastFixAt?" last fix "+Math.round((Date.now()-lastFixAt)/1000)+"s ago":"");$("dot").className="dot warn";return}
   if(!lastFixAt){$("stat").textContent="Searching… sit near a window";$("dot").className="dot warn";return}
   if(age>45){hist=[];vsClear();$("stat").textContent="Signal lost "+Math.round(age)+"s — move closer to the window";$("dot").className="dot bad";return}
   if(age>12){$("stat").textContent="Holding last position · "+Math.round(age)+"s since fix";$("dot").className="dot warn";return}
@@ -395,18 +423,25 @@ async function senStart(){
 }
 function senStop(){window.removeEventListener("devicemotion",onOrient);sen.on=false}
 $("lvlBtn").onclick=()=>{if(sen.gr==null)return;sen.r0+=sen.gr;sen.p0+=sen.gp;sen.r=0;sen.p=0;sen.gr=0;sen.gp=0};
-const SCNI={day:"bg-day.webp",ocean:"bg-ocean.webp",sunset:"bg-sunset.webp",night:"bg-night.webp",appday:"bg-appday.webp",appnight:"bg-appnight.webp"};
-const SCNN={day:"OUTBACK",ocean:"OCEAN",sunset:"DUSK",night:"NIGHT",appday:"APPROACH",appnight:"APPROACH NIGHT"};
+const SCNI={day:"bg-day.webp",ocean:"bg-ocean.webp",sunset:"bg-sunset.webp",night:"bg-night.webp",appday:"bg-appday.webp",appnight:"bg-appnight.webp",apron:"bg-apron.webp",apronnight:"bg-apronnight.webp"};
+const SCNN={day:"OUTBACK",ocean:"OCEAN",sunset:"DUSK",night:"NIGHT",appday:"APPROACH",appnight:"APPROACH NIGHT",apron:"GROUND",apronnight:"GROUND NIGHT"};
 function inAus(lat,lon){for(const poly of COAST){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const yi=poly[i][0],xi=poly[i][1],yj=poly[j][0],xj=poly[j][1];if(((yi>lat)!==(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi)+xi))c=!c}if(c)return true}return false}
-let curScn="",curFlip=false;
+let curScn="",curFlip=false,bgTop="bgA";
+const GROUND=["parked","taxi","roll","landed"];
+/* v18: cross-fade between two images so phase/scene changes (e.g. apron to sky after takeoff) are smooth */
+function bgSet(href,flip){const cur=$(bgTop),nxt=$(bgTop==="bgA"?"bgB":"bgA");const ft=flip?"translate(360 0) scale(-1 1)":null;
+  if(!cur.getAttribute("href")){cur.setAttribute("href",href);if(ft)cur.setAttribute("transform",ft);else cur.removeAttribute("transform");return}
+  if(cur.getAttribute("href")===href){if(ft)cur.setAttribute("transform",ft);else cur.removeAttribute("transform");return}
+  nxt.setAttribute("href",href);if(ft)nxt.setAttribute("transform",ft);else nxt.removeAttribute("transform");
+  nxt.parentNode.appendChild(nxt);for(const id of ["skyF","gndF"])nxt.parentNode.appendChild($(id));
+  nxt.setAttribute("opacity","0");void nxt.getBoundingClientRect();nxt.style.opacity="1";cur.style.opacity="0";bgTop=nxt.id}
 function pickScene(){
-  const im=$("bgImg");if(!im)return;let k=S.scn||"auto",flip=false;const L=last;
+  const im=$("bgA");if(!im)return;let k=S.scn||"auto",flip=false;const L=last;
   const sp=L?sunPos(Date.now(),L.lat,L.lon):sunPos(Date.now(),-35.3,149.1);
-  if(k==="auto"){if(PH.p==="approach")k=sp.el<-4?"appnight":"appday";else if(sp.el<-6)k="night";else if(sp.el<6)k="sunset";else if(L&&!inAus(L.lat,L.lon))k="ocean";else k="day"}
+  if(k==="auto"){if(GROUND.includes(PH.p)&&!(demo&&demo.stg==="air"))k=sp.el<-4?"apronnight":"apron";else if(PH.p==="approach")k=sp.el<-4?"appnight":"appday";else if(sp.el<-6)k="night";else if(sp.el<6)k="sunset";else if(L&&!inAus(L.lat,L.lon))k="ocean";else k="day"}
   else if(k==="app")k=sp.el<-4?"appnight":"appday";
   if(k==="sunset"&&L&&L.trk!=null){const rel=((sp.az-L.trk)%360+540)%360-180;flip=rel>0}
-  if(k!==curScn){const dark=k==="night"||k==="appnight";$("skyF").setAttribute("opacity",dark?".34":".1");$("gndF").setAttribute("opacity",dark?".42":".1");im.setAttribute("href",SCNI[k]);try{im.setAttributeNS("http://www.w3.org/1999/xlink","xlink:href",SCNI[k])}catch(e){}curScn=k}
-  if(flip!==curFlip){if(flip)im.setAttribute("transform","translate(360 0) scale(-1 1)");else im.removeAttribute("transform");curFlip=flip}
+  if(k!==curScn||flip!==curFlip){const dark=k==="night"||k==="appnight"||k==="apronnight";$("skyF").setAttribute("opacity",dark?".34":".1");$("gndF").setAttribute("opacity",dark?".42":".1");bgSet(SCNI[k],flip);curScn=k;curFlip=flip}
 }
 setInterval(pickScene,5000);
 let adiR=0,adiP=0,dispS=null,dispA=null,hudKey="",hudLast=0,bootT0=performance.now(),bootDone=false;
@@ -456,12 +491,16 @@ function hudDraw(p,r,fpa,live,now){
   for(let u=Math.floor((avv-120/ap[0])/ap[1])*ap[1];u<=avv+120/ap[0];u+=ap[1]){const y=cy-(u-avv)*ap[0];at+=`<line x1="303" y1="${y}" x2="${u%ap[2]?309:314}" y2="${y}"/>`;if(u%ap[2]===0&&Math.abs(y-cy)>18)at+=T(318,y+4,u,null,10)}
   const afs=avv>=10000?13:14;
   h+=`<g clip-path="url(#ha)" stroke-width="1.6">${at}</g><line x1="302" y1="40" x2="302" y2="260" stroke-width="1"/>`+box(`M358 ${cy-13}H311L303 ${cy}L311 ${cy+13}H358Z`)+roll(355,av==null?null:av/10,afs,"abx",true)+T(356,30,"ALT "+S.alt.toUpperCase(),"end",10);
+  /* v18: ETA and time remaining, same values as the top progress bar */
+  {const nt=hudNav();if(nt)h+=T(3,14,nt[0],null,10,700)+T(357,14,nt[1],"end",10,700)}
   /* bottom readouts */
   const v=vsFpm();h+=T(4,292,"VS "+(v==null?"---":(v>0?"+":"")+Math.round(v/50)*50),null,12,700)+T(cx,292,gOn&&gS!=null?"G "+gS.toFixed(1):(curScn?"SVS "+SCNN[curScn]:""),"middle",gOn&&gS!=null?12:10,700)+T(356,292,(S.att==="sen"&&sen.on?"GYRO":"GPS")+" ATT","end",12,700);
   if(!L)h+=`<rect x="${cx-62}" y="${cy-62}" width="124" height="22" fill="#000" stroke="var(--warn)"/><text x="${cx}" y="${cy-46}" fill="var(--warn)" stroke="none" font-size="12" font-weight="700" text-anchor="middle">NO GPS</text>`;
   h+="</g>";symG.innerHTML=h;
 }
 /* battery: one rAF loop at ~15 fps that skips frames when nothing on the HUD has changed */
+function hudNav(){const to=apBy(S.to);if(!to)return null;const n=navT(viewL(),to);return n?["ETA "+n.eta,"REM "+remS(n.sec)]:["ETA --:--","REM --"]}
+let bgXf="";
 function hudLoop(now){
   requestAnimationFrame(hudLoop);
   if(document.hidden||now-hudLast<66)return;hudLast=now;
@@ -474,7 +513,11 @@ function hudLoop(now){
   dispA=tA==null?null:(dispA==null||Math.abs(tA-dispA)>3000?tA:dispA+(tA-dispA)*0.18);
   const booting=!bootDone||(now-bootT0<500);
   const key=[booting?Math.round(now/66):0,adiP.toFixed(1),adiR.toFixed(1),last&&last.trk!=null?Math.round(last.trk):"-",dispS==null?"-":dispS.toFixed(2),dispA==null?"-":dispA.toFixed(1),v==null?"-":Math.round(v/50),fpa==null?"-":fpa.toFixed(1),live?1:0,last?1:0,curScn,S.spd,S.alt,S.att,sen.on?1:0,gOn&&gS!=null?gS.toFixed(1):"",S.to].join("|");
-  if(key!==hudKey){hudKey=key;hudDraw(Math.max(-60,Math.min(60,adiP)),adiR,fpa,live,now)}
+  const nt=hudNav();
+  const k2=key+"|"+(nt?nt.join(""):"");if(k2!==hudKey){hudKey=k2;hudDraw(Math.max(-60,Math.min(60,adiP)),adiR,fpa,live,now)}
+  /* v18: backdrop pitches and banks with the horizon (same scale as the ladder), capped; static with reduced motion */
+  {const bp=Math.max(-25,Math.min(25,adiP)),br=Math.max(-60,Math.min(60,adiR));const xf=reduceMo||!live?"":`rotate(${(-br).toFixed(1)} 180 150) translate(0 ${(bp*PX).toFixed(1)})`;
+   if(xf!==bgXf){bgXf=xf;const g=$("bgG");if(xf)g.setAttribute("transform",xf);else g.removeAttribute("transform")}}
   const bk=live?(Math.abs(adiR)<1?"LVL":Math.round(Math.abs(adiR))+"° "+(adiR>0?"R":"L")):"---",pt=live?(adiP>=0?"+":"")+adiP.toFixed(1)+"°":"---",tr=!useSen&&att.rate!=null?Math.abs(att.rate).toFixed(1)+"°/s":"---";
   if($("bank").textContent!==bk)$("bank").textContent=bk;if($("pitch").textContent!==pt)$("pitch").textContent=pt;if($("trate").textContent!==tr)$("trate").textContent=tr;
 }
@@ -524,9 +567,27 @@ function windowInfo(){
   const hft=Math.max(0,(L.alt||0)*FT),range=Math.min(150,Math.max(25,1.17*Math.sqrt(hft)))*NMm;
   const all=LM.map(l=>({l,d:dist(L,l),b:brg(L,l)})).sort((a,b)=>a.d-b.d);
   inView=all.filter(x=>x.d<=range).slice(0,6);
-  const rows=(inView.length?inView:all.slice(0,1)).map(x=>{const sd=L.trk!=null?side(x.b-L.trk):null;return `<li><b>${x.l.n}</b><span>${Math.round(fDst(x.d))} ${S.dst} · ${sd?(sd.s==="left"||sd.s==="right"?sd.s+", "+sd.clk+" o'clock":sd.s):String(Math.round(x.b)).padStart(3,"0")+"°"}</span></li>`}).join("");
+  const seat=S.seat==="left"||S.seat==="right"?S.seat:null;
+  const rows=(inView.length?inView:all.slice(0,1)).map(x=>{const sd=L.trk!=null?side(x.b-L.trk):null;const cls=seat&&sd&&(sd.s==="left"||sd.s==="right")?(sd.s===seat?' class="myside"':' class="dimside"'):"";return `<li${cls}><b>${esc(x.l.n)}</b><span>${Math.round(fDst(x.d))} ${S.dst} · ${sd?(sd.s==="left"||sd.s==="right"?sd.s+", "+sd.clk+" o'clock":sd.s):String(Math.round(x.b)).padStart(3,"0")+"°"}</span></li>`}).join("");
   $("lmList").innerHTML=rows;
   $("lmHead").textContent=inView.length?`In view within about ${Math.round(fDst(range))} ${S.dst}`:"Nothing on the list in view. Nearest:";
+  comingUp(L,range);
+}
+/* v18: what passes your window next, filtered to your seat side */
+function comingUp(L0,range){
+  const L=viewL()||L0,el=$("cuList"),to=apBy(S.to),seat=S.seat==="left"||S.seat==="right"?S.seat:null;
+  if(!L||L.spd==null||L.spd<25||(!to&&L.trk==null)){el.innerHTML='<li><span>Shows what will pass your window once you are moving.</span></li>';$("cuHead").textContent="Coming up";return}
+  const crs=to?brg(L,to):L.trk,lim=to?dist(L,to):L.spd*3600,near=5*NMm,hft=Math.max(30000,(L.alt||0)*FT),vr=Math.min(150,Math.max(40,1.17*Math.sqrt(hft)))*NMm;
+  const cands=LM.map(l=>({n:l.n,lat:l.lat,lon:l.lon,k:"lm"})).concat(AP.filter(a=>!to||a.c!==to.c).map(a=>({n:a.n+" airport ("+a.c+")",lat:a.lat,lon:a.lon,k:"ap"})));
+  const out=[];
+  for(const c of cands){const d13=dist(L,c)/R,dth=rad(brg(L,c)-crs);if(Math.cos(dth)<=0)continue;const xt=Math.asin(Math.sin(d13)*Math.sin(dth))*R;
+    const at=Math.acos(Math.max(-1,Math.min(1,Math.cos(d13)/Math.cos(xt/R))))*R;if(at>lim||at<2000||Math.abs(xt)>vr)continue;
+    const sd=Math.abs(xt)<near?"near track":xt>0?"right":"left";if(seat&&sd!=="near track"&&sd!==seat)continue;out.push({n:c.n,at,xt,sd,sec:at/L.spd})}
+  out.sort((a,b)=>a.at-b.at);
+  const rows=out.slice(0,6).map(x=>`<li${seat&&x.sd===seat?' class="myside"':""}><b>${esc(x.n)}</b><span>in ${hm(x.sec)} · ${x.sd==="near track"?"near track":x.sd+" "+Math.round(fDst(Math.abs(x.xt)))+" "+S.dst+" off"}</span></li>`);
+  if(to){const n=navT(L,to);if(n)rows.push(`<li><b>Arrive ${esc(to.c)}</b><span>in ${hm(n.sec)} · ETA ${n.eta}</span></li>`)}
+  el.innerHTML=rows.length?rows.join(""):'<li><span>Nothing on the list passes your side before arrival.</span></li>';
+  $("cuHead").textContent="Coming up"+(seat?" on your "+seat.toUpperCase()+" side":" (both sides)");
 }
 
 /* ---------- states & time zones ---------- */
@@ -553,7 +614,7 @@ const sayDist=m=>Math.round(fDst(m))+(S.dst==="nm"?" nautical miles":" kilometre
 const PHN={parked:"Parked",taxi:"Taxi",roll:"Takeoff roll",climb:"Climb",cruise:"Cruise",descent:"Descent",approach:"Approach",landed:"Landed"};
 let PH=Object.assign({p:"parked",alt0:null,ev:{},said:{},lm:[],lastLm:0,st:null,stC:0,holds:{}},store.get("phase",{}));
 PH.holds={};
-let gBuf=[],spdH=[];
+let gBuf=[],spdH=[],goP=null;
 const savePH=()=>store.set("phase",{sts:PH.sts,demo:PH.demo,p:PH.p,alt0:PH.alt0,ev:PH.ev,said:PH.said,lm:PH.lm,lastLm:PH.lastLm,st:PH.st});
 function hold(k,cond,t,secs){if(!cond){delete PH.holds[k];return false}if(PH.holds[k]==null)PH.holds[k]=t;return t-PH.holds[k]>=secs*1000}
 function setPhase(p,t){PH.p=p;PH.holds={};if(!REPLAY)hap([25,40,25]);{const fp=$("fhPhase");if(fp)fp.textContent=PHN[p]}setTimeout(()=>{try{pickScene()}catch(e){}},0);$("phase").textContent=PHN[p];savePH();evRender()}
@@ -562,10 +623,13 @@ function phaseStep(L){
   const t=L.t,sp=L.spd||0,v=vsFpm()||0,alt=L.alt||0,to=apBy(S.to),fr=apBy(S.from);
   spdH.push({t,s:sp});while(spdH.length>2&&t-spdH[0].t>20000)spdH.shift();
   switch(PH.p){
-    case "parked": if(hold("go",sp>3,t,4)){PH.ev={off:t};PH.sts=[stateAt(L.lat,L.lon)];PH.said={};PH.lm=[];PH.alt0=alt;setPhase("taxi",t);if(!LOG.on){LOG={on:true,pts:[]};store.set("log",LOG)}say(fltSpoken()+(fltSpoken()?"taxiing":"Taxiing")+(to?" for "+to.n:"")+".")}break;
-    case "taxi": if(sp>30){PH.ev.roll=t;PH.ev.rollTrk=L.trk;setPhase("roll",t);say("Takeoff roll.")}else if(hold("stop",sp<1,t,180))setPhase("parked",t);break;
-    case "roll": if(v>400&&sp>50){const ago=spdH.find(q=>q.t>=t-8000)||{t,s:sp};PH.ev.up=ago.t;PH.ev.upGs=ago.s;setPhase("climb",t);say("Airborne at "+Math.round(PH.ev.upGs*3600/NMm)+" knots, climbing.")}else if(sp<15){setPhase("taxi",t);say("Takeoff abandoned.")}break;
-    case "climb": if(hold("lvl",Math.abs(v)<300&&alt>(PH.alt0||0)+3000,t,60)){if(!PH.ev.toc){PH.ev.toc=t;PH.ev.cr=alt}setPhase("cruise",t);say("Reaching cruise, about "+fl(alt)+".")}else if(hold("dn",v<-700,t,30)&&alt>(PH.alt0||0)+1500){PH.ev.tod=PH.ev.tod||t;setPhase("descent",t);say("Descending"+(to?" into "+to.n:"")+". Start equalising your ears.")}break;
+    case "parked": {const mv=sp>1.8&&(L.acc==null||L.acc<=100);if(mv&&!goP)goP={lat:L.lat,lon:L.lon};if(!mv)goP=null;
+      const a=hold("go",mv,t,3),b=hold("go2",sp>4,t,2),far=goP&&dist(goP,L)>=12;
+      if((a&&far)||b){goP=null;PH.ev={off:t};PH.sts=[stateAt(L.lat,L.lon)];PH.said={};PH.lm=[];PH.alt0=alt;setPhase("taxi",t);if(!LOG.on){LOG={on:true,pts:[]};store.set("log",LOG)}say(fltSpoken()+(fltSpoken()?"taxiing":"Taxiing")+(to?" for "+to.n:"")+".")}}break;
+    case "taxi": {const ago=spdH.find(q=>q.t>=t-4000),ac=ago&&t-ago.t>=2000?(sp-ago.s)/((t-ago.t)/1000):0,accRoll=hold("acc",sp>12&&ac>1.2,t,2);
+      if(sp>20.5||accRoll){const st0=[...spdH].reverse().find(q=>q.t<t&&q.s<10);PH.ev.roll=st0?st0.t:t;PH.ev.rollTrk=L.trk;setPhase("roll",t);say("Takeoff roll.")}else if(hold("stop",sp<1,t,180))setPhase("parked",t);}break;
+    case "roll": if((v>400&&sp>50)||(sp>70&&alt>(PH.alt0||0)+60)){const ago=spdH.find(q=>q.t>=t-8000)||{t,s:sp};PH.ev.up=ago.t;PH.ev.upGs=ago.s;setPhase("climb",t);say("Airborne at "+Math.round(PH.ev.upGs*3600/NMm)+" knots, climbing.")}else if(hold("abort",sp<8,t,5)){setPhase("taxi",t);say("Takeoff abandoned.")}break;
+    case "climb": if(hold("lvl",vsFpm()!=null&&Math.abs(v)<500&&alt>(PH.alt0||0)+3000,t,25)){const first=!PH.ev.toc;if(first){PH.ev.toc=t;PH.ev.cr=alt}setPhase("cruise",t);say((first?"Reaching cruise, about ":"Level at about ")+fl(alt)+".")}else if(hold("dn",v<-700,t,30)&&alt>(PH.alt0||0)+1500){PH.ev.tod=PH.ev.tod||t;setPhase("descent",t);say("Descending"+(to?" into "+to.n:"")+". Start equalising your ears.")}break;
     case "cruise": if(hold("dn",v<-700,t,20)){PH.ev.tod=t;setPhase("descent",t);say("Top of descent. Starting down"+(to?" into "+to.n:"")+". Start equalising your ears.")}else if(hold("up",v>600,t,30))setPhase("climb",t);
       if(to&&sp>25&&!PH.said.tod5){const pl=plan(dist(fr||L,to)),tt=(dist(L,to)-pl.d)/sp;if(tt>0&&tt<300){PH.said.tod5=1;say("Top of descent in about 5 minutes.")}}break;
     case "descent": {const ai=to?apInfo(to.c):null,fe=ai&&ai[4]!=null?ai[4]/FT:(PH.alt0||0);if(alt<fe+1200&&hold("app",v<0,t,10)){setPhase("approach",t);say("On approach, below "+Math.round(alt*FT/1000)*1000+" feet.")}else if(hold("up",v>600&&alt>3000,t,30))setPhase("climb",t);}break;
@@ -577,7 +641,7 @@ function phaseStep(L){
   const air=["climb","cruise","descent","approach"].includes(PH.p);
   if(["descent","approach"].includes(PH.p)&&alt<3050&&alt>1500&&!PH.said.ear10){PH.said.ear10=1;say("Passing ten thousand feet. Keep equalising your ears; cabin pressure is rising.")}
   if(air&&to&&sp>50){const ete=dist(L,to)/sp/60;for(const m of [30,20,10]){if(ete<=m&&ete>m-4&&!PH.said["e"+m]){PH.said["e"+m]=1;say("About "+m+" minutes to "+to.n+"."+(m===30?" Local time there is "+new Date().toLocaleTimeString("en-AU",{hour:"numeric",minute:"2-digit",timeZone:to.tz})+".":""));break}}}
-  if(air&&t-PH.lastLm>150000&&L.trk!=null){for(const x of inView){if(x.d>45*NMm||PH.lm.includes(x.l.n))continue;const sd=side(x.b-L.trk);if(sd.s==="behind")continue;PH.lm.push(x.l.n);PH.lastLm=t;say(spokenName(x.l.n)+(sd.s==="ahead"?" ahead, ":" on the "+sd.s+", ")+sayDist(x.d)+".",true);break}}
+  if(air&&t-PH.lastLm>150000&&L.trk!=null){for(const x of inView){if(x.d>45*NMm||PH.lm.includes(x.l.n))continue;const sd=side(x.b-L.trk);if(sd.s==="behind")continue;if((S.seat==="left"||S.seat==="right")&&sd.s!=="ahead"&&sd.s!==S.seat)continue;PH.lm.push(x.l.n);PH.lastLm=t;say(spokenName(x.l.n)+(sd.s==="ahead"?" ahead, ":" on the "+sd.s+", ")+sayDist(x.d)+".",true);break}}
   const st=stateAt(L.lat,L.lon);
   if(st!==PH.st){PH.stC++;if(PH.stC>=3){const old=PH.st;PH.st=st;PH.stC=0;PH.sts=PH.sts||[];if(!PH.sts.includes(st))PH.sts.push(st);if(old&&air){let msg="Crossing into "+STN[st]+".";const a=tzOff(STZ[old]),b=tzOff(STZ[st]);if(a!=null&&b!=null&&a!==b){const d=b-a,h=Math.abs(d);msg+=" Clocks go "+(d>0?"forward ":"back ")+(h===30?"half an hour":h===60?"one hour":h===90?"an hour and a half":h/60+" hours")+". Local time is now "+new Date().toLocaleTimeString("en-AU",{hour:"numeric",minute:"2-digit",timeZone:"Australia/"+STZ[st]})+"."}say(msg)}savePH()}}else PH.stC=0;
 }
@@ -701,7 +765,7 @@ function arrInfo(){
 /* ================= MARK ================= */
 let MARKS=store.get("marks",[]);
 function markRender(){
-  $("markList").innerHTML=MARKS.length?MARKS.map(m=>`<li><b>MK${m.n} ${new Date(m.t).toTimeString().slice(0,5)}</b><span>${toMGRS(m.lat,m.lon)}${m.note?"<br>"+m.note.replace(/[<>&]/g,""):""}</span></li>`).join(""):'<li><span>Tap MARK to save a point of interest.</span></li>';
+  $("markList").innerHTML=MARKS.length?MARKS.map(m=>`<li><b>MK${m.n} ${new Date(m.t).toTimeString().slice(0,5)}</b><span>${toMGRS(m.lat,m.lon)}${m.note?"<br>"+esc(m.note):""}</span></li>`).join(""):'<li><span>Tap MARK to save a point of interest.</span></li>';
 }
 $("markBtn").onclick=()=>{
   if(!last){say("No position to mark.");return}
@@ -716,7 +780,8 @@ function unlockAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioCo
 function beep(){if(!AC)return;try{const t=AC.currentTime;[[880,0],[660,0.18]].forEach(([f,o])=>{const os=AC.createOscillator(),g=AC.createGain();os.type="square";os.frequency.value=f;g.gain.setValueAtTime(0.0001,t+o);g.gain.exponentialRampToValueAtTime(0.12,t+o+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+o+0.16);os.connect(g);g.connect(AC.destination);os.start(t+o);os.stop(t+o+0.17)})}catch(e){}}
 function mcCheck(){
   let why="";
-  if(watchId!=null&&!REPLAY){const age=(Date.now()-lastFixAt)/1000;if(lastFixAt&&age>90)why="GPS SIGNAL LOST";else if(last&&last.acc>500){if(!mc.poorSince)mc.poorSince=Date.now();if(Date.now()-mc.poorSince>120000)why="GPS ACCURACY POOR"}else mc.poorSince=0}
+  if(document.hidden)return;
+  if(watchId!=null&&!REPLAY&&!resuming()){const age=(Date.now()-lastFixAt)/1000;if(lastFixAt&&age>90)why="GPS SIGNAL LOST";else if(last&&last.acc>500){if(!mc.poorSince)mc.poorSince=Date.now();if(Date.now()-mc.poorSince>120000)why="GPS ACCURACY POOR"}else mc.poorSince=0}
   if(why&&!mc.on){mc={...mc,on:true,ack:false,why};$("mcBtn").style.display="";$("mcBtn").textContent="MASTER CAUTION · "+why;say("Caution. "+why.toLowerCase()+".");beep();hap([120,80,120,80,120]);mc.lastBeep=Date.now()}
   else if(!why&&mc.on){mc.on=false;$("mcBtn").style.display="none";$("mcBtn").classList.remove("ack")}
   else if(mc.on&&!mc.ack&&Date.now()-mc.lastBeep>4000){beep();mc.lastBeep=Date.now()}
@@ -738,9 +803,9 @@ function bookRender(){
   const real=BOOK.filter(b=>!b.demo);let km=0,secs=0,hi=0,firm=null,longest=null;const sts=new Set();
   for(const b of real){km+=b.d;if(b.ev.up&&b.ev.td){const s=(b.ev.td-b.ev.up)/1000;secs+=s;if(!longest||s>longest.s)longest={s,b}}hi=Math.max(hi,b.ma);if(b.ev.tdG&&(!firm||b.ev.tdG>firm.g))firm={g:b.ev.tdG,b};(b.st||[]).forEach(x=>sts.add(x))}
   const kv=[["Flights",real.length],["Distance",Math.round(fDst(km)).toLocaleString()+" "+S.dst],["Flight time",hm(secs)],["Highest",hi?Math.round(fAlt(hi)).toLocaleString()+" "+S.alt:"—"],["Longest",longest?hm(longest.s)+" "+longest.b.from+"–"+longest.b.to:"—"],["Firmest landing",firm?firm.g.toFixed(2)+" G "+firm.b.to:"—"],["States crossed",sts.size?[...sts].join(" "):"—"]];
-  $("statKv").innerHTML=kv.map(r=>`<div>${r[0]}<b>${r[1]}</b></div>`).join("");
+  $("statKv").innerHTML=kv.map(r=>`<div>${esc(r[0])}<b>${esc(r[1])}</b></div>`).join("");
   $("bookList").innerHTML=BOOK.length?BOOK.map((b,i)=>{const ft=b.ev.up&&b.ev.td?hm((b.ev.td-b.ev.up)/1000):"—";const dt=new Date(b.date).toLocaleDateString("en-AU",{day:"numeric",month:"short"});
-    return `<li class="bk"><div><b>${b.flt?b.flt+" ":""}${b.from} → ${b.to}${b.demo?" (demo)":""}</b><span>${dt} · ${ft} · ${Math.round(fDst(b.d))} ${S.dst}</span></div><div class="row"><button data-a="rp" data-i="${i}">Replay</button><button data-a="cd" data-i="${i}">Card</button><button data-a="gpx" data-i="${i}">GPX</button><button data-a="del" data-i="${i}">✕</button></div></li>`}).join(""):'<li><span>Flights save here automatically when you park.</span></li>';
+    return `<li class="bk"><div><b>${b.flt?esc(b.flt)+" ":""}${esc(b.from)} → ${esc(b.to)}${b.demo?" (demo)":""}</b><span>${dt} · ${ft} · ${Math.round(fDst(b.d))} ${S.dst}</span></div><div class="row"><button data-a="rp" data-i="${i}">Replay</button><button data-a="cd" data-i="${i}">Card</button><button data-a="gpx" data-i="${i}">GPX</button><button data-a="del" data-i="${i}">✕</button></div></li>`}).join(""):'<li><span>Flights save here automatically when you park.</span></li>';
 }
 $("bookList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const i=+b.dataset.i,en=BOOK[i];if(!en)return;
   if(b.dataset.a==="gpx"){const nm=(en.flt?en.flt+"-":"")+en.from+"-"+en.to+"-"+new Date(en.date).toISOString().slice(0,10);shareOrDownload(nm+".gpx","application/gpx+xml",gpxOf(en.pts,en.marks,nm),$("bookTxt"));return}
@@ -847,7 +912,7 @@ async function lookupFlight(){
 }
 $("fltBtn").onclick=lookupFlight;$("fltIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();lookupFlight()}});
 $("fltClr").onclick=()=>{S.flt="";S.fltName="";S.fltCs="";saveS();$("fltIn").value="";fltMsg("Flight number cleared.");render()};
-XAP.forEach(x=>{if(!apBy(x.c))AP.push(x);addApOption(x)});
+XAP=XAP.map(cleanAp).filter(Boolean);XAP.forEach(x=>{if(!apBy(x.c))AP.push(x);addApOption(x)});
 if(S.from)$("from").value=S.from;if(S.to)$("to").value=S.to;
 if(S.flt){$("fltIn").value=S.flt;fltMsg(`Saved: ${S.flt}${S.fltName?" · "+S.fltName:""}, ${S.from||"?"} → ${S.to||"?"}. Works offline.`)}
 
@@ -855,18 +920,28 @@ if(S.flt){$("fltIn").value=S.flt;fltMsg(`Saved: ${S.flt}${S.fltName?" · "+S.flt
 /* ================= logbook export / import, haptics ================= */
 function hap(p){try{if(navigator.vibrate)navigator.vibrate(p)}catch(e){}}
 $("expBtn").onclick=()=>{storeFlush();const d=new Date().toISOString().slice(0,10);
-  const data=JSON.stringify({app:"cabin-panel",format:1,exported:new Date().toISOString(),book:BOOK,marks:MARKS,log:LOG,xap:XAP,settings:S});
+  const data=JSON.stringify({app:"cabin-panel",format:1,v:18,exported:new Date().toISOString(),book:BOOK,marks:MARKS,log:LOG,xap:XAP,settings:S,phase:phSnap()});
   shareOrDownload("cabin-panel-logbook-"+d+".json","application/json",data,$("bookTxt"))};
 $("impBtn").onclick=()=>$("impFile").click();
+/* v18: imported files are untrusted, so only well-formed values get through (and everything is escaped when shown) */
+function num(v){return typeof v==="number"&&isFinite(v)?v:(v!=null&&v!==""&&typeof v!=="object"&&isFinite(+v)?+v:null)}
+function code(v){return String(v==null?"":v).toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,9)}
+function tzOk(z){if(typeof z!=="string"||!/^[A-Za-z_]+(\/[A-Za-z_+-]+){0,2}$/.test(z))return false;try{new Intl.DateTimeFormat("en-AU",{timeZone:z});return true}catch(e){return false}}
+function cleanPts(a){if(!Array.isArray(a))return [];const o=[];for(const p of a){if(!Array.isArray(p))continue;const la=num(p[0]),lo=num(p[1]),t=num(p[3]);if(la==null||lo==null||t==null||Math.abs(la)>90||Math.abs(lo)>180)continue;o.push([la,lo,num(p[2]),t,num(p[4])]);if(o.length>=40000)break}return o}
+function cleanMark(m){if(!m||typeof m!=="object")return null;const lat=num(m.lat),lon=num(m.lon),t=num(m.t);if(lat==null||lon==null||t==null)return null;return {n:Math.max(1,Math.round(num(m.n)||1)),t,lat,lon,alt:num(m.alt),note:String(m.note==null?"":m.note).slice(0,80)}}
+function cleanEv(e){const o={};if(!e||typeof e!=="object")return o;for(const k of ["off","roll","up","toc","tod","td","on","rollTrk","upGs","cr","tdG"]){const v=num(e[k]);if(v!=null)o[k]=v}return o}
+function cleanEntry(b){if(!b||typeof b!=="object"||!num(b.id))return null;const pts=cleanPts(b.pts);if(!pts.length)return null;
+  return {id:num(b.id),flt:code(b.flt).slice(0,9),demo:!!b.demo,from:code(b.from).slice(0,5)||"???",to:code(b.to).slice(0,5)||"???",date:num(b.date)||pts[0][3],ev:cleanEv(b.ev),st:(Array.isArray(b.st)?b.st:[]).filter(x=>STN[x]),d:num(b.d)||0,ma:num(b.ma)||0,ms:num(b.ms)||0,marks:(Array.isArray(b.marks)?b.marks:[]).map(cleanMark).filter(Boolean),pts}}
+function cleanAp(x){if(!x||typeof x!=="object")return null;const c=code(x.c).slice(0,5);const lat=num(x.lat),lon=num(x.lon);if(c.length<3||lat==null||lon==null)return null;return {c,n:String(x.n==null?c:x.n).replace(/[<>&"]/g,"").slice(0,24),lat,lon,tz:tzOk(x.tz)?x.tz:"Australia/Sydney",icao:code(x.icao).slice(0,4)}}
 $("impFile").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
   try{const j=JSON.parse(await f.text());if(!j||j.app!=="cabin-panel"||!Array.isArray(j.book))throw new Error("not a Cabin Panel logbook");
-    const have=new Set(BOOK.map(b=>b.id));let n=0;for(const b of j.book){if(b&&b.id&&Array.isArray(b.pts)&&!have.has(b.id)){BOOK.push(b);n++}}
+    const have=new Set(BOOK.map(b=>b.id));let n=0;for(const b0 of j.book){const b=cleanEntry(b0);if(b&&!have.has(b.id)){BOOK.push(b);have.add(b.id);n++}}
     BOOK.sort((a,b)=>b.date-a.date);if(BOOK.length>60)BOOK.length=60;
-    for(const x of (j.xap||[])){if(x&&x.c&&!apBy(x.c)){AP.push(x);XAP.push(x);addApOption(x)}}store.set("xap",XAP);
+    for(const x0 of (Array.isArray(j.xap)?j.xap:[])){const x=cleanAp(x0);if(x&&!apBy(x.c)){AP.push(x);XAP.push(x);addApOption(x)}}store.set("xap",XAP);
     const mk=m=>m.t+"|"+(+m.lat).toFixed(5)+"|"+(+m.lon).toFixed(5),hm_=new Set(MARKS.map(mk));let nm=0;
-    for(const m of (Array.isArray(j.marks)?j.marks:[])){if(m&&m.t&&m.lat!=null&&m.lon!=null&&!hm_.has(mk(m))){MARKS.push(m);hm_.add(mk(m));nm++}}
+    for(const m0 of (Array.isArray(j.marks)?j.marks:[])){const m=cleanMark(m0);if(m&&!hm_.has(mk(m))){MARKS.push(m);hm_.add(mk(m));nm++}}
     if(nm){MARKS.sort((a,b)=>a.t-b.t);store.set("marks",MARKS);markRender();try{drawMap()}catch(_){}}
-    let lg=false;if(j.log&&Array.isArray(j.log.pts)&&j.log.pts.length&&!(LOG.pts&&LOG.pts.length)){LOG={on:false,pts:j.log.pts};store.set("log",LOG);lg=true;try{logInfo()}catch(_){}}
+    let lg=false;const ipts=j.log?cleanPts(j.log.pts):[];if(ipts.length&&!(LOG.pts&&LOG.pts.length)){LOG={on:false,pts:ipts};store.set("log",LOG);lg=true;try{logInfo()}catch(_){}}
     const ok=store.set("book",BOOK);bookRender();$("bookTxt").textContent=ok?"Imported "+n+" flight"+(n===1?"":"s")+" ("+(j.book.length-n)+" already here)"+(nm?", "+nm+" mark"+(nm===1?"":"s"):"")+(lg?", and the saved track log":"")+".":"Imported, but saving failed. Storage may be full.";
   }catch(err){$("bookTxt").textContent="Couldn't import that file: "+err.message+"."}};
 async function storeInfo(){try{if(navigator.storage&&navigator.storage.estimate){const q=await navigator.storage.estimate();const pers=navigator.storage.persisted?await navigator.storage.persisted():false;
@@ -984,7 +1059,7 @@ function startGPS(){
   stopDemo();
   if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;hist=[];vsClear();hfGps=false;$("gpsBtn").textContent="Start GPS";$("gpsBtn").classList.remove("on");$("stat").textContent="GPS off";$("dot").className="dot";return}
   if(PH.demo){PH.p="parked";PH.ev={};PH.said={};PH.lm=[];PH.demo=false;savePH();LOG={on:false,pts:[]};store.set("log",LOG);trail=[];prof=[];hist=[];trkH=[];last=null;evRender();render()}
-  watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:5000,timeout:60000});
+  watchId=navigator.geolocation.watchPosition(onPos,onErr,GPSO);
   $("gpsBtn").textContent="Stop GPS";$("gpsBtn").classList.add("on");$("stat").textContent="Searching… sit near a window";$("dot").className="dot warn";
 }
 $("gpsBtn").onclick=startGPS;
@@ -993,6 +1068,17 @@ $("gpsBtn").onclick=startGPS;
 async function getWake(){try{if("wakeLock" in navigator){wake=await navigator.wakeLock.request("screen");wake.addEventListener("release",()=>{if(!wantWake)$("wakeBtn").classList.remove("on")});$("wakeBtn").classList.add("on");$("wakeBtn").textContent="Screen stays on"}else{$("wakeBtn").textContent="Not supported — set Auto-Lock to Never"}}catch(e){$("wakeBtn").textContent="Couldn't lock — try again"}}
 $("wakeBtn").onclick=async()=>{if(wantWake){wantWake=false;try{wake&&await wake.release()}catch(e){}wake=null;$("wakeBtn").classList.remove("on");$("wakeBtn").textContent="Keep screen on"}else{wantWake=true;getWake()}};
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&wantWake)getWake()});
+/* v18: iOS pauses GPS when you switch apps. On return, restart the watch at once, ask for a fresh fix and show "Resuming GPS"
+   (not Signal lost / Master Caution) until it arrives. Position, ETA and progress are estimated from the last groundspeed and track meanwhile. */
+let resumeAt=0;const GPSO={enableHighAccuracy:true,maximumAge:5000,timeout:60000};
+function resuming(){return !!resumeAt&&lastFixAt<resumeAt&&Date.now()-resumeAt<120000}
+function gpsResume(){if(watchId==null||demo||REPLAY)return;resumeAt=Date.now();
+  try{navigator.geolocation.clearWatch(watchId)}catch(e){}watchId=navigator.geolocation.watchPosition(onPos,onErr,GPSO);
+  try{navigator.geolocation.getCurrentPosition(onPos,()=>{},{enableHighAccuracy:true,maximumAge:0,timeout:30000})}catch(e){}
+  mc.poorSince=0;if(mc.on){mc.on=false;$("mcBtn").style.display="none";$("mcBtn").classList.remove("ack")}
+  $("stat").textContent="Resuming GPS…";$("dot").className="dot warn";if(wantWake)getWake();try{render()}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")gpsResume()});
+window.addEventListener("pageshow",e=>{if(e.persisted)gpsResume()});
 
 /* ---------- voice / hands-free ---------- */
 function setVoice(on){voiceOn=on;$("voiceBtn").textContent=on?"Voice on":"Voice off";$("voiceBtn").classList.toggle("on",on);if(on){pickVoice();try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance("Voice callouts on.");if(auVoice)u.voice=auVoice;speechSynthesis.speak(u)}catch(e){}}}
@@ -1083,9 +1169,61 @@ $("gpxBtn").onclick=()=>{
 };
 
 
+/* ================= v18: pick up current flight ================= */
+function phSnap(){return {sts:PH.sts,demo:PH.demo,p:PH.p,alt0:PH.alt0,ev:PH.ev,said:PH.said,lm:PH.lm,lastLm:PH.lastLm,st:PH.st}}
+function inferPhase(pts){/* for files without saved phase: rebuild key times and the phase from the track */
+  const ev={},a0=pts.find(p=>p[2]!=null),alt0=a0?a0[2]:0;let maxA=-1e9;
+  for(const p of pts){if(!ev.off&&p[4]!=null&&p[4]>3)ev.off=p[3];if(!ev.up&&p[4]!=null&&p[4]>50&&p[2]!=null&&p[2]>alt0+60)ev.up=p[3];if(p[2]!=null)maxA=Math.max(maxA,p[2])}
+  if(ev.up){const tc=pts.find(p=>p[3]>=ev.up&&p[2]!=null&&p[2]>=maxA-150);if(tc&&maxA>alt0+3000){ev.toc=tc[3];ev.cr=tc[2]}}
+  const l=pts[pts.length-1],back=pts.filter(p=>p[3]>=l[3]-120000&&p[2]!=null);let vs=0;if(back.length>1){const f=back[0],g=back[back.length-1];vs=(g[2]-f[2])/Math.max(1,(g[3]-f[3])/1000)*FT*60}
+  let p="parked";const sp=l[4]||0,al=l[2]||0;
+  if(sp>50&&al>alt0+300)p=vs>500?"climb":vs<-500?"descent":(al>alt0+3000?"cruise":"climb");else if(sp>3)p="taxi";
+  return {p,ev,alt0,said:{},lm:[],sts:[],st:null}}
+function pickCands(){const c=[];const ph=store.get("phase",{});
+  if(LOG.pts&&LOG.pts.length>=2)c.push({src:"phone",label:"Saved on this phone",from:S.from,to:S.to,flt:S.flt,fltName:S.fltName,pts:LOG.pts,marks:null,ph:ph&&ph.p&&!ph.demo?ph:null,demo:!!(ph&&ph.demo)});
+  return c.concat(window.__pickFile||[])}
+function pickRender(){const cs=pickCands();const f=t=>t?new Date(t).toTimeString().slice(0,5):"—";
+  $("pickList").innerHTML=cs.length?cs.map((c,i)=>{const l=c.pts[c.pts.length-1],ph=c.ph||inferPhase(c.pts),ago=Math.round((Date.now()-l[3])/60000);
+    return `<li><div style="display:grid;gap:2px"><b>${esc(c.flt?c.flt+" ":"")}${esc(c.from||"?")} → ${esc(c.to||"?")}${c.demo?" (demo)":""}</b><span>${esc(c.label)} · ${esc(PHN[ph.p]||ph.p)} · off blocks ${f(ph.ev&&ph.ev.off)} · wheels up ${f(ph.ev&&ph.ev.up)} · last point ${f(l[3])} (${ago<1?"just now":hm(ago*60)+" ago"}) · ${c.pts.length.toLocaleString()} points</span></div><button class="pri" data-i="${i}">Pick up</button></li>`}).join("")
+    :'<li><span>No flight saved on this phone. Use "From exported file…" if you exported one.</span></li>'}
+function pickUp(c){
+  if(demo)stopDemo();if(REPLAY)replayStop();
+  if(c.from&&apBy(c.from))S.from=c.from;if(c.to&&apBy(c.to))S.to=c.to;if(c.flt!=null){S.flt=c.flt;S.fltName=c.fltName||S.fltName||""}saveS();$("from").value=S.from;$("to").value=S.to;if(S.flt)$("fltIn").value=S.flt;
+  const pts=c.pts.slice().sort((a,b)=>a[3]-b[3]);LOG={on:true,pts};store.set("log",LOG);
+  if(c.marks&&c.marks.length){const mk=m=>m.t+"|"+(+m.lat).toFixed(5)+"|"+(+m.lon).toFixed(5),hs=new Set(MARKS.map(mk));for(const m of c.marks)if(!hs.has(mk(m))){MARKS.push(m);hs.add(mk(m))}MARKS.sort((a,b)=>a.t-b.t);store.set("marks",MARKS)}
+  const ph=c.ph||inferPhase(pts);
+  PH=Object.assign(PH,{p:ph.p||"cruise",ev:Object.assign({},ph.ev||{}),alt0:ph.alt0!=null?ph.alt0:PH.alt0,said:ph.said||{},lm:ph.lm||[],lastLm:ph.lastLm||0,sts:ph.sts||[],st:ph.st||null,demo:false,holds:{}});savePH();
+  rebuildFromLog();
+  if(watchId==null)startGPS();resumeAt=Date.now();
+  $("phase").textContent=PHN[PH.p];{const fp=$("fhPhase");if(fp)fp.textContent=PHN[PH.p]}
+  $("pickTile").style.display="none";$("resumeNote").style.display="none";
+  evRender();markRender();logInfo();render();drawMap();profAll();pickScene();hudKey="";
+  say("Picked up "+(S.flt?S.flt+" ":"")+(S.from&&S.to?S.from+" to "+S.to+" ":"")+"at "+PHN[PH.p].toLowerCase()+". Carrying on.")}
+/* rebuild the map trail, flown profile and last known position from the saved track (v17 didn't save these) */
+function rebuildFromLog(){const pts=LOG.pts;if(!pts||!pts.length)return;trail=[];prof=[];
+  const fr=apBy(S.from),to=apBy(S.to),tot=fr&&to&&fr.c!==to.c?dist(fr,to):0;
+  for(const p of pts){const q={lat:p[0],lon:p[1]};const lt=trail[trail.length-1];if(!lt||dist(lt,q)>80)trail.push(q);
+    if(tot&&p[2]!=null){const f=Math.max(0,Math.min(1,1-dist(q,to)/tot)),lp=prof[prof.length-1];if(!lp||Math.abs(f-lp.f)>0.002||Math.abs(p[2]-lp.a)>40)prof.push({f,a:p[2]})}}
+  if(trail.length>6000)trail=trail.slice(-6000);if(prof.length>4000)prof=prof.slice(-4000);
+  if(!last){const l=pts[pts.length-1],k=pts[Math.max(0,pts.length-6)];const trk=dist({lat:k[0],lon:k[1]},{lat:l[0],lon:l[1]})>200?brg({lat:k[0],lon:k[1]},{lat:l[0],lon:l[1]}):null;
+    last={lat:l[0],lon:l[1],alt:l[2],acc:null,altAcc:null,spd:l[4],trk,t:l[3]}}}
+$("pickBtn").onclick=()=>{const t=$("pickTile");if(t.style.display!=="none"){t.style.display="none";return}pickRender();t.style.display="";t.scrollIntoView({block:"start",behavior:"smooth"})};
+$("pickClose").onclick=()=>{$("pickTile").style.display="none"};
+$("pickList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const c=pickCands()[+b.dataset.i];if(c)pickUp(c)});
+$("pickFileBtn").onclick=()=>$("pickFile").click();
+$("pickFile").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  try{const j=JSON.parse(await f.text());if(!j||j.app!=="cabin-panel")throw new Error("not a Cabin Panel file");const pts=cleanPts(j.log&&j.log.pts);if(pts.length<2)throw new Error("it has no track log");
+    const st=j.settings||{},ph=j.phase&&typeof j.phase==="object"&&PHN[j.phase.p]&&!j.phase.demo?{p:j.phase.p,ev:cleanEv(j.phase.ev),alt0:num(j.phase.alt0),said:{},lm:[],sts:(Array.isArray(j.phase.sts)?j.phase.sts:[]).filter(x=>STN[x])}:null;
+    for(const x0 of (Array.isArray(j.xap)?j.xap:[])){const x=cleanAp(x0);if(x&&!apBy(x.c)){AP.push(x);XAP.push(x);addApOption(x)}}store.set("xap",XAP);
+    window.__pickFile=[{src:"file",label:"From "+String(f.name).slice(0,40),from:code(st.from).slice(0,5),to:code(st.to).slice(0,5),flt:code(st.flt).slice(0,9),fltName:String(st.fltName||"").replace(/[<>&"]/g,"").slice(0,30),pts,marks:(Array.isArray(j.marks)?j.marks:[]).map(cleanMark).filter(Boolean),ph}];
+    $("pickTxt").textContent="Loaded "+f.name+". Tap Pick up on it.";pickRender()}catch(err){$("pickTxt").textContent="Couldn't read that file: "+err.message+"."}};
+/* on start-up, a flight that was in progress is already restored (phase, times, track); rebuild the map trail and say so */
+if(LOG.on&&LOG.pts&&LOG.pts.length>=2&&!PH.demo&&PH.p!=="parked"){try{rebuildFromLog()}catch(e){}
+  $("resumeNote").textContent="Flight in progress restored ("+PHN[PH.p]+(S.from&&S.to?", "+S.from+" → "+S.to:"")+"). Tap Pick up current flight to confirm and continue.";$("resumeNote").style.display="";$("pickBtn").classList.add("pri")}
+
 /* ---------- settings ---------- */
-function applySeg(){document.querySelectorAll(".seg").forEach(s=>{s.querySelectorAll("button").forEach(b=>b.classList.toggle("sel",String(S[s.dataset.k])===b.dataset.v))});document.body.classList.toggle("m-night",S.disp==="night");document.body.classList.toggle("m-nvg",S.disp==="nvg");{const hs=$("hudSym");if(hs)hs.setAttribute("filter",(S.disp==="nvg"||reduceMo)?"url(#sh)":"url(#glow)");}{const bi=$("bgImg"),bd=$("bgDim");if(bi&&bd){if(S.disp==="nvg")bi.setAttribute("filter","url(#nvgF)");else bi.removeAttribute("filter");bd.setAttribute("opacity",S.disp==="day"?".34":S.disp==="night"?".62":".6")}}$("lvlBtn").style.display=S.att==="sen"?"":"none";}
-document.querySelectorAll(".seg").forEach(s=>s.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S[s.dataset.k]=b.dataset.v;saveS();applySeg();render();drawMap();profAll();if(s.dataset.k==="scn")pickScene();if(s.dataset.k==="att"){if(S.att==="sen")senStart();else senStop()}}));
+function applySeg(){document.querySelectorAll(".seg").forEach(s=>{s.querySelectorAll("button").forEach(b=>b.classList.toggle("sel",String(S[s.dataset.k])===b.dataset.v))});document.body.classList.toggle("m-night",S.disp==="night");document.body.classList.toggle("m-nvg",S.disp==="nvg");{const hs=$("hudSym");if(hs)hs.setAttribute("filter",(S.disp==="nvg"||reduceMo)?"url(#sh)":"url(#glow)");}{const bd=$("bgDim");if(bd){for(const bi of [$("bgA"),$("bgB")]){if(S.disp==="nvg")bi.setAttribute("filter","url(#nvgF)");else bi.removeAttribute("filter")}bd.setAttribute("opacity",S.disp==="day"?".34":S.disp==="night"?".62":".6")}}$("lvlBtn").style.display=S.att==="sen"?"":"none";}
+document.querySelectorAll(".seg").forEach(s=>s.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S[s.dataset.k]=b.dataset.v;saveS();applySeg();if(s.dataset.k==="seat")try{windowInfo()}catch(_){}render();drawMap();profAll();if(s.dataset.k==="scn")pickScene();if(s.dataset.k==="att"){if(S.att==="sen")senStart();else senStop()}}));
 let framed=false;try{framed=window.self!==window.top}catch(e){framed=true}
 if(framed){$("stat").textContent="Preview: GPS is blocked here. Tap Demo flight";$("dot").className="dot warn"}
 if(S.att==="sen"){S.att="gps";$("bank").textContent="Tap Gyro"}
