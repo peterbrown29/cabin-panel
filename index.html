@@ -177,6 +177,17 @@ body.ar{overflow:hidden}body.ar #arOv{display:block}
 body.arMin #arBar{display:none}body.arMin #arShow{display:block}
 #arMsg{justify-self:center;max-width:100%;padding:7px 10px;background:rgba(0,0,0,.85);border:1px solid var(--warn);color:var(--warn);font:700 12px var(--mono);text-transform:uppercase;text-align:center}
 #arDisc{position:absolute;left:0;right:0;bottom:calc(4px + env(safe-area-inset-bottom));z-index:4;text-align:center;font:700 10px var(--mono);color:var(--warn);text-transform:uppercase;letter-spacing:.06em;pointer-events:none;text-shadow:0 0 3px #000,0 0 3px #000}
+/* v22b: AR camera looks (Apache-style TV / FLIR green / FLIR white-hot) */
+body.arf-grn #arVid{filter:grayscale(1) sepia(1) hue-rotate(55deg) saturate(4) contrast(1.25) brightness(.95)}
+body.arf-wht #arVid{filter:grayscale(1) contrast(1.35) brightness(1.05)}
+/* v22b: retro cockpits */
+#ckRow{margin:6px 0 2px}#ckRow .sub{margin-right:4px}
+#retroTile .lab{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}#fpBtn{min-height:34px;font-size:12px}
+#retro{position:relative;width:100%;border-radius:10px;overflow:hidden;background:#0b0b0a}
+#retroCv{display:block;width:100%;height:240px}
+body.fhr #fhOv{justify-content:center}body.fhr #fhSlot{flex:1;align-items:stretch}
+body.fhr #fhSlot{position:relative;width:100%;min-height:0}body.fhr #fhSlot #retro{position:absolute;inset:0;width:auto;height:auto;border-radius:0}body.fhr #fhSlot #retroCv{height:100%!important}
+body.fhr #fhPhase{display:none}
 </style>
 </head>
 <body>
@@ -214,6 +225,7 @@ body.arMin #arBar{display:none}body.arMin #arShow{display:block}
     <div class="row" style="margin-top:8px"><button id="rpPlay">Pause</button><span class="seg" id="rpSpeed"><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button></span><button id="rpExit">Exit</button></div>
     <div class="row"><input type="range" id="rpSlider" min="0" max="1000" value="0" aria-label="Replay position"></div>
   </div>
+  <div class="row" id="ckRow"><span class="sub">Cockpit</span><span class="seg" data-k="cockpit"><button data-v="modern">Modern</button><button data-v="f4">F-4</button><button data-v="p51">P-51</button></span></div>
   <div class="grid">
     <div class="tile wide hud">
       <div class="hudwrap" id="hudwrap"><svg id="hud" viewBox="0 0 360 300" aria-label="Head-up display"><defs><clipPath id="hbg"><rect x="0" y="0" width="360" height="300" rx="4"/></clipPath><filter id="nvgF"><feColorMatrix type="matrix" values="0 0 0 0 0  .30 .59 .11 0 0  0 0 0 0 0  0 0 0 1 0"/></filter><filter id="glow" x="-8%" y="-8%" width="116%" height="116%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.3" result="b"/><feDropShadow in="SourceGraphic" dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".9" result="s"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="s"/></feMerge></filter><filter id="sh" x="-5%" y="-5%" width="110%" height="110%"><feDropShadow dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".95"/></filter></defs><g clip-path="url(#hbg)"><g id="bgG"><image id="bgA" class="bgI" href="" x="-180" y="-390" width="720" height="1080" preserveAspectRatio="none" opacity="1"/><image id="bgB" class="bgI" href="" x="-180" y="-390" width="720" height="1080" preserveAspectRatio="none" opacity="0"/><rect id="skyF" x="-420" y="-1150" width="1200" height="1300" fill="#2a6fc0" opacity=".1"/><rect id="gndF" x="-420" y="150" width="1200" height="1300" fill="#6b4220" opacity=".1"/></g><rect id="bgDim" width="360" height="300" fill="#000" opacity=".34"/><rect x="0" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="302" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="60" y="0" width="240" height="34" fill="#000" opacity=".45"/><rect x="0" y="0" width="58" height="34" fill="#000" opacity=".5"/><rect x="302" y="0" width="58" height="34" fill="#000" opacity=".5"/><rect x="0" y="270" width="360" height="30" fill="#000" opacity=".45"/></g><g id="hudSym" filter="url(#glow)"></g></svg></div>
@@ -229,6 +241,7 @@ body.arMin #arBar{display:none}body.arMin #arShow{display:block}
     <div class="tile"><div class="lab"><span>Track</span></div><div class="val" id="trk">---<small>°T</small></div><div class="sub" id="trk2">&nbsp;</div></div>
     <div class="tile"><div class="lab"><span>Vertical speed</span></div><div class="val" id="vs">---<small>fpm</small></div><div class="sub" id="vs2">&nbsp;</div></div>
 
+    <div class="tile wide" id="retroTile" style="display:none"><div class="lab"><span id="retroName">Retro panel</span><button id="fpBtn">Full panel</button></div><div id="retroHome"><div id="retro"><canvas id="retroCv" aria-label="Retro instrument panel driven by GPS"></canvas></div></div><div class="note" style="margin:6px 0 0">Classic-style gauges driven by your phone's GPS. Airspeed is groundspeed; engine, fuel and AOA are simulated from the flight phase. Generic designs, not real aircraft instruments. Entertainment only.</div></div>
   </div>
 </div></section>
 <section class="page" id="pg-map" data-t="Map"><div class="wrap">
@@ -294,7 +307,7 @@ body.arMin #arBar{display:none}body.arMin #arShow{display:block}
   <div class="tile">
     <p class="note" style="margin:0 0 10px">Hold the phone up to the window. The rear camera shows the view with targeting-pod boxes on landmarks, airports, your destination, top of descent and your marks, each with distance, bearing and a short note. Arrows at the edges point to things off to the left or right. Tap a box to lock it.</p>
     <div class="row"><button id="arBtn" class="pri">Open AR window</button></div>
-    <div class="note">A box shows where something should be, sized by how sure the phone is of its heading. Inside a metal cabin the compass can be out by 10–40°: choose GPS track (hold the phone square to the window), or tap Align while looking square out of the window, then fine-tune with Trim. Things beyond your horizon get dashed boxes. Entertainment only, not for navigation.</div>
+    <div class="note">A box shows where something should be, sized by how sure the phone is of its heading. Fused (default) uses the compass for where the phone points and your GPS track to correct its drift, so boxes stay tight (about ±1.5°) and widen by themselves if the compass reports trouble or drifts away from the GPS. If boxes sit off, tap Align while looking square out of the window, or fine-tune with Trim. TV, GRN and WHT switch the camera look. Things beyond your horizon get dashed boxes. Entertainment only, not for navigation.</div>
   </div>
 </div></section>
 <section class="page" id="pg-route" data-t="Route"><div class="wrap">
@@ -350,6 +363,8 @@ body.arMin #arBar{display:none}body.arMin #arShow{display:block}
     <div class="row">Altitude <span class="seg" data-k="alt"><button data-v="ft">ft</button><button data-v="m">m</button></span></div>
     <div class="row">Distance <span class="seg" data-k="dst"><button data-v="nm">nm</button><button data-v="km">km</button></span></div>
     <div class="row">HUD scene <span class="seg" data-k="scn" style="flex-wrap:wrap"><button data-v="auto">Auto</button><button data-v="day">Outback</button><button data-v="ocean">Ocean</button><button data-v="sunset">Dusk</button><button data-v="night">Night</button><button data-v="app">Approach</button></span></div>
+    <div class="row">Cockpit <span class="seg" data-k="cockpit"><button data-v="modern">Modern</button><button data-v="f4">F-4 Phantom</button><button data-v="p51">P-51 Mustang</button></span></div>
+    <div class="row">Voice <span class="seg" data-k="vox"><button data-v="female">Female callouts</button><button data-v="system">System</button><button data-v="off">Off</button></span></div>
     <div class="row">Rotate for full HUD <span class="seg" data-k="autofh"><button data-v="on">On</button><button data-v="off">Off</button></span></div>
     <div class="row">Display <span class="seg" data-k="disp"><button data-v="day">Day</button><button data-v="night">Night</button><button data-v="nvg">NVG</button></span></div>
     <div class="note" id="offTxt">Checking offline readiness…</div><div class="note" id="a2hsTip" style="display:none"></div>
@@ -395,8 +410,8 @@ body.arMin #arBar{display:none}body.arMin #arShow{display:block}
   <div id="arBar">
     <div id="arMsg" style="display:none"></div>
     <div class="row"><button id="arCam">Camera on</button><button id="arSen" class="pri">Enable compass</button><button id="arAlign">Align</button><button id="arHide" aria-label="Hide controls">Hide</button></div>
-    <div class="row"><span class="seg" data-k="arSrc"><button data-v="cmp">Compass</button><button data-v="gps">GPS track</button></span><span class="seg" data-k="arSide"><button data-v="left">Left win</button><button data-v="right">Right win</button></span></div>
-    <div class="row"><span class="sub">Trim</span><input type="range" id="arTrim" min="-60" max="60" step="1" value="0" aria-label="Heading trim, degrees"><b id="arTrimV">0°</b></div>
+    <div class="row"><span class="seg" data-k="arSrc"><button data-v="fus">Fused</button><button data-v="cmp">Compass</button><button data-v="gps">GPS</button></span><span class="seg" data-k="arFlt"><button data-v="norm">TV</button><button data-v="grn">GRN</button><button data-v="wht">WHT</button></span></div>
+    <div class="row"><span class="seg" data-k="arSide"><button data-v="left">Left window</button><button data-v="right">Right window</button></span><span class="sub">Trim</span><input type="range" id="arTrim" min="-60" max="60" step="1" value="0" aria-label="Heading trim, degrees"><b id="arTrimV">0°</b></div>
   </div>
   <button id="arShow" aria-label="Show controls">⚙</button>
   <div id="arDisc">Entertainment only · not for navigation · positions approximate</div>
@@ -745,11 +760,11 @@ function tzOff(city){try{const s=new Intl.DateTimeFormat("en-AU",{timeZone:"Aust
 
 /* ---------- voice ---------- */
 let voiceOn=false,auVoice=null,toastT=0;
-function pickVoice(){try{const v=speechSynthesis.getVoices();auVoice=v.find(x=>/en-AU/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}catch(e){}}
+function pickVoice(){try{const v=speechSynthesis.getVoices();auVoice=(S.vox!=="system"&&voxFemale(v))||v.find(x=>/en-AU/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}catch(e){}}
 try{speechSynthesis.onvoiceschanged=pickVoice;pickVoice()}catch(e){}
 function say(text,low){
   $("toast").textContent=text;$("toast").style.display="";{const ft=$("fhToast");if(ft){ft.textContent=text;ft.style.opacity="1";clearTimeout(window.__ftT);window.__ftT=setTimeout(()=>{ft.style.opacity="0"},7000)}}clearTimeout(toastT);toastT=setTimeout(()=>{$("toast").style.display="none"},9000);
-  if(!voiceOn)return;try{if(low&&(speechSynthesis.pending||speechSynthesis.speaking))return;const u=new SpeechSynthesisUtterance(text);if(auVoice)u.voice=auVoice;u.rate=1;speechSynthesis.speak(u)}catch(e){}
+  if(!voiceOn||S.vox==="off")return;if(voxSay(text,low))return;try{if(low&&(speechSynthesis.pending||speechSynthesis.speaking))return;const u=new SpeechSynthesisUtterance(text);if(auVoice)u.voice=auVoice;u.rate=1;speechSynthesis.speak(u)}catch(e){}
 }
 const spokenName=n=>n.replace(/\s*\(.*?\)/,"").replace(/–/g," ").replace(/kunanyi \/ /,"");
 const sayDist=m=>Math.round(fDst(m))+(S.dst==="nm"?" nautical miles":" kilometres");
@@ -1116,8 +1131,8 @@ storeInfo();setInterval(storeInfo,60000);
 /* ================= full-screen HUD (button, or rotate to landscape) ================= */
 let arOn=false;
 let fhOn=false,fhAuto=false;
-function fhEnter(auto){if(fhOn)return;fhOn=true;fhAuto=!!auto;$("fhSlot").appendChild($("hudwrap"));document.body.classList.add("fh");$("fhPhase").textContent=PHN[PH.p]||"";hudKey="";try{wantWake||$("wakeBtn").click()}catch(e){}}
-function fhExit(){if(!fhOn)return;fhOn=false;fhAuto=false;const t=document.querySelector(".tile.hud");t.insertBefore($("hudwrap"),t.firstChild);document.body.classList.remove("fh");hudKey=""}
+function fhEnter(auto){if(fhOn)return;fhOn=true;fhAuto=!!auto;const rr=typeof retroOn==="function"&&retroOn();$("fhSlot").appendChild(rr?$("retro"):$("hudwrap"));document.body.classList.toggle("fhr",!!rr);document.body.classList.add("fh");if(rr)setTimeout(retroKick,0);$("fhPhase").textContent=PHN[PH.p]||"";hudKey="";try{wantWake||$("wakeBtn").click()}catch(e){}}
+function fhExit(){if(!fhOn)return;fhOn=false;fhAuto=false;const t=document.querySelector(".tile.hud");if($("hudwrap").parentNode!==t)t.insertBefore($("hudwrap"),t.firstChild);if($("retro").parentNode!==$("retroHome"))$("retroHome").appendChild($("retro"));document.body.classList.remove("fh","fhr");hudKey=""}
 $("fhBtn").onclick=()=>fhEnter(false);$("fhExit").onclick=fhExit;
 const landMQ=matchMedia("(orientation: landscape) and (max-height: 600px)");
 const landCheck=()=>{if(cmpOn||arOn)return;if((S.autofh||"on")!=="on")return;if(landMQ.matches)fhEnter(true);else if(fhAuto)fhExit()};
@@ -1649,6 +1664,15 @@ const rtKey=(a,b)=>a+"-"+b;
 function packGet(){if(!S.from||!S.to||S.from===S.to)return null;const k=rtKey(S.from,S.to);if(PK.key!==k){PK.key=k;PK.cur=store.get("pack_"+k,null)}return PK.cur}
 const LV=[850,700,500,300,250,200];
 function packMsg(t){$("packTxt").textContent=t}
+/* Open-Meteo forecast for route points at the hour each point is overflown */
+const OMV=(()=>{const hv=["temperature_2m","precipitation","weather_code","cloud_cover","cape","wind_speed_10m","wind_gusts_10m"];for(const p of LV)hv.push("wind_speed_"+p+"hPa","wind_direction_"+p+"hPa","temperature_"+p+"hPa","geopotential_height_"+p+"hPa");return hv})();
+async function omSamples(pts,timeOf){const url="https://api.open-meteo.com/v1/forecast?latitude="+pts.map(p=>p.lat).join(",")+"&longitude="+pts.map(p=>p.lon).join(",")+"&hourly="+OMV.join(",")+"&wind_speed_unit=kn&timeformat=unixtime&forecast_days=3&timezone=GMT";
+  const r=await fetchT(url,25000);if(!r.ok)throw new Error("weather service answered "+r.status);let j=await r.json();if(!Array.isArray(j))j=[j];
+  return pts.map((p,i)=>{const h=(j[i]||{}).hourly||{},tt=timeOf(p);let bi=0,bd=1e15;(h.time||[]).forEach((t,k)=>{const d=Math.abs(t*1000-tt);if(d<bd){bd=d;bi=k}});
+      const g=k=>{const a=h[k];const v=a?a[bi]:null;return typeof v==="number"&&isFinite(v)?+v.toFixed(1):null};
+      return {f:+p.f.toFixed(4),lat:p.lat,lon:p.lon,t:h.time&&h.time[bi]?h.time[bi]*1000:tt,T:g("temperature_2m"),pr:g("precipitation"),wc:g("weather_code"),cc:g("cloud_cover"),cape:g("cape"),w10:g("wind_speed_10m"),g10:g("wind_gusts_10m"),
+        lv:LV.map(pl=>[pl,g("geopotential_height_"+pl+"hPa"),g("wind_speed_"+pl+"hPa"),g("wind_direction_"+pl+"hPa"),g("temperature_"+pl+"hPa")])}});
+}
 async function packDownload(fk,tk){
   const fr=apBy(fk||S.from),to=apBy(tk||S.to);if(!fr||!to||fr.c===to.c){packMsg("Pick a departure and destination first.");return}
   const btn=$("packBtn");if(btn.disabled)return;btn.disabled=true;const old=btn.textContent;btn.textContent="Downloading…";
@@ -1656,16 +1680,8 @@ async function packDownload(fk,tk){
     const tot=dist(fr,to),n=Math.max(8,Math.min(24,Math.round(tot/150000)+2)),pts=[];
     for(let i=0;i<n;i++){const f=i/(n-1),q=gcPoint(fr,to,f);pts.push({f,lat:+q.lat.toFixed(3),lon:+q.lon.toFixed(3)})}
     let dep=Date.now();const tv=$("packDep").value;if(/^\d\d:\d\d/.test(tv)){const [hh,mm]=tv.split(":").map(Number),d=new Date();d.setHours(hh,mm,0,0);if(d.getTime()<Date.now()-3*3600000)d.setDate(d.getDate()+1);dep=d.getTime()}
-    const hv=["temperature_2m","precipitation","weather_code","cloud_cover","cape","wind_speed_10m","wind_gusts_10m"];
-    for(const p of LV)hv.push("wind_speed_"+p+"hPa","wind_direction_"+p+"hPa","temperature_"+p+"hPa","geopotential_height_"+p+"hPa");
     packMsg("Downloading weather for "+n+" points along "+fr.c+" → "+to.c+"…");
-    const url="https://api.open-meteo.com/v1/forecast?latitude="+pts.map(p=>p.lat).join(",")+"&longitude="+pts.map(p=>p.lon).join(",")+"&hourly="+hv.join(",")+"&wind_speed_unit=kn&timeformat=unixtime&forecast_days=3&timezone=GMT";
-    const r=await fetchT(url,25000);if(!r.ok)throw new Error("weather service answered "+r.status);
-    let j=await r.json();if(!Array.isArray(j))j=[j];
-    const smp=pts.map((p,i)=>{const h=(j[i]||{}).hourly||{},tt=dep+20*60000+p.f*tot/230*1000;let bi=0,bd=1e15;(h.time||[]).forEach((t,k)=>{const d=Math.abs(t*1000-tt);if(d<bd){bd=d;bi=k}});
-      const g=k=>{const a=h[k];const v=a?a[bi]:null;return typeof v==="number"&&isFinite(v)?+v.toFixed(1):null};
-      return {f:+p.f.toFixed(4),lat:p.lat,lon:p.lon,t:h.time&&h.time[bi]?h.time[bi]*1000:tt,T:g("temperature_2m"),pr:g("precipitation"),wc:g("weather_code"),cc:g("cloud_cover"),cape:g("cape"),w10:g("wind_speed_10m"),g10:g("wind_gusts_10m"),
-        lv:LV.map(pl=>[pl,g("geopotential_height_"+pl+"hPa"),g("wind_speed_"+pl+"hPa"),g("wind_direction_"+pl+"hPa"),g("temperature_"+pl+"hPa")])}});
+    const smp=await omSamples(pts,p=>dep+20*60000+p.f*tot/230*1000);
     if(!smp.some(s=>s.lv.some(l=>l[2]!=null)))throw new Error("no wind data in the reply");
     const pk={v:1,from:fr.c,to:to.c,at:Date.now(),dep,smp,lm:[],src:"Open-Meteo.com (CC BY 4.0)"};
     if($("packWiki").checked){packMsg("Weather saved. Looking up places along the route on Wikipedia…");try{pk.lm=await wikiPlaces(pts)}catch(e){pk.wikiErr=String(e&&e.message||e)}}
@@ -1717,13 +1733,13 @@ function turbSummary(){const pk=packGet(),el=$("turbTxt");if(!el)return;const fr
   const tot=dist(fr,to),cnt=[0,0,0,0],worst=[];for(let i=0;i<100;i++){const f=(i+.5)/100,t=turbAt(pk,f,planAlt(f,tot));if(!t)continue;const c=tcat(t.v);cnt[c]++;if(c>=2)worst.push({f,c,why:t.why})}
   const age=(Date.now()-pk.at)/3600000;let s=`Rough guide, not a forecast: about ${cnt[0]}% smooth, ${cnt[1]}% light, ${cnt[2]}% moderate, ${cnt[3]}% rough along the planned profile.`;
   if(worst.length){const w=worst.sort((a,b)=>b.c-a.c)[0];s+=` Bumpiest around ${Math.round(fDst(w.f*tot)).toLocaleString()} ${S.dst} from ${esc(fr.c)} (${esc(w.why)}).`}
-  s+=` Forecast for your departure ${new Date(pk.dep).toTimeString().slice(0,5)}, downloaded ${age<1?Math.round(age*60)+" min":Math.round(age)+" h"} ago`+(age>18?" — getting old, update it if you can":"")+". Weather data by Open-Meteo.com.";
+  s+=` Forecast for your departure ${new Date(pk.dep).toTimeString().slice(0,5)}, downloaded ${age<1?Math.round(age*60)+" min":Math.round(age)+" h"} ago`+(age>18&&!pk.upd?" — getting old, update it if you can":"")+"."+(pk.upd?" Updated in flight "+new Date(pk.upd).toTimeString().slice(0,5)+" for the remaining route.":"")+" Weather data by Open-Meteo.com.";
   el.innerHTML=s}
 /* cruise-level wind summary for the pack tile */
 function packRender(){const pk=packGet(),fr=apBy(S.from),to=apBy(S.to),ul=$("packSum");
   $("packHead").textContent=fr&&to&&fr.c!==to.c?"Pack for "+fr.c+" → "+to.c:"Pre-flight pack";
   if(!pk||!fr||!to){$("packAge").textContent="none";ul.innerHTML="";try{turbSummary()}catch(e){}return}
-  const age=(Date.now()-pk.at)/3600000;$("packAge").textContent=age<1?Math.round(age*60)+" min old":Math.round(age)+" h old";
+  const age=(Date.now()-pk.at)/3600000;$("packAge").textContent=pk.upd?"updated in flight "+new Date(pk.upd).toTimeString().slice(0,5):age<1?Math.round(age*60)+" min old":Math.round(age)+" h old";
   const crs=brg(fr,to);let hw=0,n=0,mx=0,ts=0,rain=0;for(const s of pk.smp){const l=s.lv.find(q=>q[0]===250);if(l&&l[2]!=null&&l[3]!=null){hw+=l[2]*Math.cos(rad(l[3]-(crs+180)));n++;mx=Math.max(mx,l[2])}if(s.wc>=95||(s.cape||0)>1000)ts++;if((s.pr||0)>=0.5)rain++}
   const tw=n?Math.round(hw/n):null;
   ul.innerHTML=[`<li><b>Winds near cruise (FL340)</b><span>${tw==null?"—":(tw>=0?"tailwind ":"headwind ")+Math.abs(tw)+" kt avg · max "+Math.round(mx)+" kt"}</span></li>`,
@@ -1744,7 +1760,7 @@ function wxDraw(x,P,sc,W,H,col,glow,fr,to){const pk=packGet();if(!pk||(S.wx||"on
   {const kk=Math.max(1,Math.ceil(46/Math.max(1,sp)));x.font="700 10px \"B612 Mono\",monospace";x.textAlign="center";for(let si=0;si<sm.length;si+=kk){const s=sm[si];const [px,py]=P(s);if(px<20||py<20||px>W-20||py>H-30)continue;const l=s.lv.find(q=>q[0]===250);
     const t1=WXC(s.wc),t2=l&&l[2]!=null?String(Math.round(l[3]/10)*10%360).padStart(3,"0")+"/"+Math.round(l[2]):"";
     x.fillStyle="rgba(0,0,0,.6)";x.fillRect(px-24,py-21,48,t2?24:13);x.fillStyle=s.wc>=95?col("--bad"):(s.pr||0)>=0.3?col("--cyan"):col("--ink");x.fillText(t1,px,py-11);if(t2){x.fillStyle=col("--dim");x.fillText(t2,px,py-1)}}}
-  const age=(Date.now()-pk.at)/3600000;x.font="10px \"B612 Mono\",monospace";x.textAlign="left";x.fillStyle=col("--dim");x.fillText("WX "+new Date(pk.dep).toTimeString().slice(0,5)+" DEP · "+(age<1?Math.round(age*60)+"M":Math.round(age)+"H")+" OLD · OPEN-METEO",6,14);
+  const age=(Date.now()-pk.at)/3600000;x.font="10px \"B612 Mono\",monospace";x.textAlign="left";x.fillStyle=col("--dim");x.fillText(pk.upd?"WX UPDATED IN FLIGHT "+new Date(pk.upd).toTimeString().slice(0,5)+" · OPEN-METEO":"WX "+new Date(pk.dep).toTimeString().slice(0,5)+" DEP · "+(age<1?Math.round(age*60)+"M":Math.round(age)+"H")+" OLD · OPEN-METEO",6,14);
   x.restore();return true}
 $("mzWx").onclick=()=>{S.wx=(S.wx||"on")==="on"?"off":"on";saveS();wxBtn();hap(15);drawMap()};
 function wxBtn(){const b=$("mzWx"),on=(S.wx||"on")==="on";b.classList.toggle("on",on);b.setAttribute("aria-pressed",on?"true":"false");
@@ -1768,8 +1784,8 @@ rtRender();packRender();wxBtn();
 /* ================= AR window view =================
    Rear camera + targeting-pod boxes. Heading from the phone compass (true = magnetic + WMM variation + trim) or from
    GPS track ± 90° for the chosen window. Tilt from device orientation. Read-only; stops the camera when closed. */
-const AR={stream:null,cam:"",sen:"",listen:false,raw:null,hs:null,acc:null,src:"",ht:0,b:null,g:null,ot:0,ps:null,rs:null,raf:0,lt:0,tg:[],tgAt:0,lock:null,hits:[],aligned:false,msgK:""};
-if(S.arSrc!=="cmp"&&S.arSrc!=="gps")S.arSrc="cmp";if(S.arSide!=="left"&&S.arSide!=="right")S.arSide=S.seat==="right"?"right":"left";if(typeof S.arTrim!=="number")S.arTrim=0;
+const AR={bias:0,agree:null,stream:null,cam:"",sen:"",listen:false,raw:null,hs:null,acc:null,src:"",ht:0,b:null,g:null,ot:0,ps:null,rs:null,raf:0,lt:0,tg:[],tgAt:0,lock:null,hits:[],aligned:false,msgK:""};
+if(S.arSrc!=="fus"&&S.arSrc!=="cmp"&&S.arSrc!=="gps"||!S.arV2){S.arSrc="fus";S.arV2=1}if(!["norm","grn","wht"].includes(S.arFlt))S.arFlt="norm";if(S.arSide!=="left"&&S.arSide!=="right")S.arSide=S.seat==="right"?"right":"left";if(typeof S.arTrim!=="number")S.arTrim=0;
 function arOri(e){const b=e.beta,g=e.gamma,a=e.alpha;if(typeof b==="number"&&isFinite(b)&&typeof g==="number"&&isFinite(g)){AR.b=b;AR.g=g;AR.ot=Date.now()}
   let h=null,acc=null,src="";
   if(typeof e.webkitCompassHeading==="number"&&isFinite(e.webkitCompassHeading)&&e.webkitCompassHeading>=0){h=e.webkitCompassHeading;src="ios";if(typeof e.webkitCompassAccuracy==="number"&&isFinite(e.webkitCompassAccuracy))acc=e.webkitCompassAccuracy}
@@ -1802,10 +1818,10 @@ $("arSen").onclick=()=>{arSenStart(true);arUI()};
 $("arHide").onclick=()=>document.body.classList.add("arMin");$("arShow").onclick=()=>document.body.classList.remove("arMin");
 $("arTrim").oninput=e=>{S.arTrim=+e.target.value||0;AR.aligned=false;arUI();saveS()};
 $("arAlign").onclick=()=>{const L=last,mov=L&&L.trk!=null&&L.spd!=null&&L.spd>=10;if(!mov||AR.hs==null){AR.msgK="align";AR.msgT=Date.now();return}
-  const dec=cmpDecl(L)||0,win=L.trk+(S.arSide==="right"?90:-90);S.arTrim=Math.round(w180(win-(AR.hs+dec)));S.arTrim=Math.max(-60,Math.min(60,S.arTrim));AR.aligned=true;saveS();arUI();hap(20)};
+  const dec=cmpDecl(L)||0,win=L.trk+(S.arSide==="right"?90:-90);if(S.arSrc==="fus"){AR.bias=Math.max(-15,Math.min(15,w180(win-(AR.hs+dec))));S.arTrim=0}else S.arTrim=Math.round(w180(win-(AR.hs+dec)));S.arTrim=Math.max(-60,Math.min(60,S.arTrim));AR.aligned=true;saveS();arUI();hap(20)};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&arOn)arClose()});
 function arUI(){$("arTrim").value=S.arTrim;$("arTrimV").textContent=(S.arTrim>0?"+":"")+S.arTrim+"°";$("arCam").textContent=AR.stream?"Camera off":"Camera on";
-  $("arSen").style.display=AR.listen&&AR.ot?"none":"";$("arAlign").style.display=S.arSrc==="cmp"?"":"none";applySeg()}
+  $("arSen").style.display=AR.listen&&AR.ot?"none":"";$("arAlign").style.display=S.arSrc==="gps"?"none":"";document.body.classList.toggle("arf-grn",S.arFlt==="grn");document.body.classList.toggle("arf-wht",S.arFlt==="wht");applySeg()}
 /* targets: landmarks (with notes), airports, destination/origin, estimated top of descent, your marks */
 function arTargets(){const L=last;if(!L)return [];const h=Math.max(0,L.alt||0),hz=Math.sqrt(2*R*Math.max(h,2)/0.87),maxD=Math.max(60000,Math.min(420000,hz*1.25)),out=[];
   const add=(n,lat,lon,kind,note,rk,always)=>{const p={lat,lon},d=dist(L,p);if(!always&&d>maxD)return;if(d<400&&kind!=="mk")return;let he=0;try{he=Math.max(0,elevAt(lat,lon)||0)}catch(e){}
@@ -1824,7 +1840,7 @@ function arStatus(){const L=last,now=Date.now();
   if(AR.sen==="denied")return "Motion access denied: fully close and reopen the app, then tap Enable compass. Using GPS track meanwhile.";
   if(!L)return "Waiting for GPS: tap Start GPS (or Demo flight) on the HUD page for positions.";
   if(AR.msgK==="align"&&now-AR.msgT<4000)return "Align needs the compass and the aircraft moving: look square out of the window, then tap Align.";
-  if(S.arSrc==="cmp"&&(AR.hs==null||now-AR.ht>5000)&&AR.sen!=="wait")return "No compass reading: using GPS track. Hold the phone square to the window.";
+  if(S.arSrc!=="gps"&&(AR.hs==null||now-AR.ht>5000)&&AR.sen!=="wait")return "No compass reading: using GPS track. Hold the phone square to the window.";
   if(S.arSrc==="gps"&&!(L.trk!=null&&L.spd>=10))return "GPS track needs the aircraft moving. Using the compass if available.";
   if(AR.cam==="none")return "No camera here: synthetic view.";return ""}
 function arFrame(ts){AR.raf=0;if(!arOn)return;const dt=AR.lt?Math.min(0.5,(ts-AR.lt)/1000):0;AR.lt=ts;
@@ -1832,85 +1848,279 @@ function arFrame(ts){AR.raf=0;if(!arOn)return;const dt=AR.lt?Math.min(0.5,(ts-AR
   if(AR.b!=null){const B=rad(AR.b),G=rad(AR.g),pitch=deg(Math.asin(Math.max(-1,Math.min(1,-Math.cos(B)*Math.cos(G))))),roll=w180(deg(Math.atan2(-Math.cos(B)*Math.sin(G),Math.sin(B)))-cmpScrAng());
     AR.ps=AR.ps==null?pitch:AR.ps+k*(pitch-AR.ps);AR.rs=AR.rs==null?roll:AR.rs+k*w180(roll-AR.rs)}
   if(ts-AR.tgAt>1000){AR.tgAt=ts;try{AR.tg=arTargets()}catch(e){AR.tg=[]}const m=arStatus(),el=$("arMsg");if(m!==AR.msgShown){AR.msgShown=m;el.textContent=m;el.style.display=m?"":"none"}if(AR.sen==="wait"&&AR.ot)AR.sen="ok";$("arSen").style.display=AR.listen&&AR.ot?"none":"";$("arPhase").textContent=PHN[PH.p]||""}
-  try{arDraw()}catch(e){}
+  try{arDraw(dt)}catch(e){console.warn(e)}
   AR.raf=requestAnimationFrame(arFrame)}
-window.cpAR=()=>({on:arOn,cam:AR.cam,sen:AR.sen,src:AR.src,hdg:AR.hs,pitch:AR.ps,roll:AR.rs,targets:AR.tg.length,view:AR.view||null,lock:AR.lock});
-function arDraw(){
+window.cpAR=()=>({bias:AR.bias,flt:S.arFlt,on:arOn,cam:AR.cam,sen:AR.sen,src:AR.src,hdg:AR.hs,pitch:AR.ps,roll:AR.rs,targets:AR.tg.length,view:AR.view||null,lock:AR.lock,hits:(AR.hits||[]).slice(0,12)});
+/* heading solution: FUSED (default) = phone compass for orientation (+WMM variation) with a slow GPS-track drift/bias
+   correction learned while you look out of the chosen window; COMPASS = compass only; GPS = track ±90°.
+   Box size = heading uncertainty: ~1° compass (measured in flight) + 0.5° lens/FOV + GPS terms, widened if iOS reports
+   poor compass accuracy or the compass and GPS disagree. */
+function arSolve(dt){const L=last,now=Date.now(),mov=!!(L&&L.trk!=null&&L.spd!=null&&L.spd>=10&&now-L.t<20000),cmpOk=AR.hs!=null&&now-AR.ht<5000;
+  const dec=L?(cmpDecl(L)||0):0,win=mov?L.trk+(S.arSide==="right"?90:-90):null,ct=cmpOk?AR.hs+dec:null;
+  if(ct!=null&&win!=null&&dt){const d=w180(win-ct);if(Math.abs(w180(d-AR.bias))<25&&Math.abs(AR.ps||0)<35){const k=1-Math.exp(-dt/90);AR.bias=Math.max(-15,Math.min(15,AR.bias+k*w180(d-AR.bias)));AR.agree=Math.abs(d)}const e=Math.abs(w180(d-AR.bias));if(e<40&&Math.abs(AR.ps||0)<35)AR.dev=AR.dev==null?e:AR.dev+(1-Math.exp(-dt/8))*(e-AR.dev)}else if(win==null)AR.dev=null;
+  const accT=AR.acc==null?0:AR.acc<0?20:Math.max(0,AR.acc-10)*0.5,gpsT=L&&L.acc?Math.min(1,L.acc/200):0.3;
+  let az=null,unc=null,src="";const want=S.arSrc;
+  if(want==="gps"&&win!=null){az=win+S.arTrim;unc=4+gpsT;src="GPS TRK "+(S.arSide==="right"?"R":"L")}
+  else if(ct!=null&&want==="cmp"){az=ct+S.arTrim;unc=1+0.5+accT+gpsT+(AR.aligned?0:0.5);src="COMPASS"}
+  else if(ct!=null){az=ct+AR.bias+S.arTrim;unc=1+0.5+accT+gpsT+0.3*Math.abs(AR.bias)+(AR.dev!=null?Math.min(8,Math.max(0,AR.dev-3)*0.5):0.5);src="FUSED"}
+  else if(win!=null){az=win+S.arTrim;unc=4+gpsT;src="GPS TRK "+(S.arSide==="right"?"R":"L")}
+  return {az:az==null?null:((az%360)+360)%360,unc,src,win,mov,dec}}
+function arDraw(dt){
   const cv=$("arCv"),W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;const dpr=window.devicePixelRatio||1;if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
-  const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);const css=getComputedStyle(document.body),col=k=>css.getPropertyValue(k).trim();
-  const ink=col("--ink"),warn=col("--warn"),mag=col("--mag"),cyan=col("--cyan"),dim=col("--dim"),F=s=>s+"px \"B612 Mono\",monospace";
-  const L=last,now=Date.now(),mov=!!(L&&L.trk!=null&&L.spd!=null&&L.spd>=10&&now-L.t<20000),cmpOk=AR.hs!=null&&now-AR.ht<5000;
-  const dec=L?(cmpDecl(L)||0):0,win=mov?L.trk+(S.arSide==="right"?90:-90):null;
-  let az=null,unc=null,src="";
-  if(S.arSrc==="cmp"&&cmpOk){az=AR.hs+dec+S.arTrim;unc=(AR.acc!=null&&AR.acc>=0?AR.acc:12)+(AR.aligned?3:8);src="COMPASS"}
-  else if(win!=null){az=win+S.arTrim;unc=10;src="GPS TRK "+(S.arSide==="right"?"R":"L")+" WIN"}
-  else if(cmpOk){az=AR.hs+dec+S.arTrim;unc=(AR.acc!=null&&AR.acc>=0?AR.acc:12)+8;src="COMPASS"}
-  if(AR.acc!=null&&AR.acc<0)unc=30;
-  const pitch=AR.ps!=null&&now-AR.ot<5000?AR.ps:0,roll=AR.rs!=null&&now-AR.ot<5000?AR.rs:0,tiltOk=AR.ps!=null&&now-AR.ot<5000;
-  /* field of view: ~64° across the camera's long side, cropped by object-fit:cover */
-  const v=$("arVid"),vw=v.videoWidth||0,vh=v.videoHeight||0,camOn=!!(AR.stream&&vw&&vh);let ppd;
-  if(camOn){const s=Math.max(W/vw,H/vh);ppd=Math.max(vw,vh)*s/64}else ppd=Math.max(W,H)/64;
-  const cx=W/2,cy=H*0.46,cr=Math.cos(rad(roll)),sr=Math.sin(rad(roll));
-  const proj=(dAz,dEl)=>{const dx=dAz*ppd,dy=dEl*ppd;return [cx+dx*cr+dy*sr,cy+dx*sr-dy*cr]};
+  const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
+  const flt=S.arFlt||"norm",SYM=flt==="wht"?"#ffffff":flt==="grn"?"#e4ffe4":"#8dff9e",DIM=flt==="norm"?"rgba(141,255,158,.75)":"rgba(255,255,255,.75)",F=s=>"700 "+s+"px \"B612 Mono\",monospace";
+  const L=last,now=Date.now(),so=arSolve(dt),az=so.az,unc=so.unc;
+  const tiltOk=AR.ps!=null&&now-AR.ot<5000,pitch=tiltOk?AR.ps:0,roll=tiltOk&&AR.rs!=null?AR.rs:0;
+  const v=$("arVid"),vw=v.videoWidth||0,vh=v.videoHeight||0,camOn=!!(AR.stream&&vw&&vh);
+  const ppd=camOn?Math.max(vw,vh)*Math.max(W/vw,H/vh)/64:Math.max(W,H)/64;
+  const cx=W/2,cy=H*0.45,cr=Math.cos(rad(roll)),sr=Math.sin(rad(roll)),proj=(dA,dE)=>{const dx=dA*ppd,dy=dE*ppd;return [cx+dx*cr+dy*sr,cy+dx*sr-dy*cr]};
   const h=L?Math.max(0,L.alt||0):0,dip=deg(Math.acos(R/(R+h)));
-  /* synthetic sky/ground when there's no camera picture */
-  if(!camOn){const hp=proj(0,-dip-pitch);x.save();x.translate(hp[0],hp[1]);x.rotate(rad(roll));x.fillStyle="#04111c";x.fillRect(-2*W,-3*H,4*W,3*H);x.fillStyle="#0c1408";x.fillRect(-2*W,0,4*W,3*H);x.restore();
-    x.fillStyle=dim;x.font=F(11);x.textAlign="center";x.fillText(AR.cam==="wait"?"STARTING CAMERA…":"SYNTHETIC VIEW · NO CAMERA",W/2,H*0.80)}
-  x.save();x.shadowColor="rgba(0,0,0,.9)";x.shadowBlur=3;x.lineCap="square";
-  /* horizon line (your sea-level horizon, allowing for altitude) */
-  if(tiltOk){const a=proj(-60,-dip-pitch),b=proj(60,-dip-pitch);x.strokeStyle=ink;x.globalAlpha=.55;x.lineWidth=1.5;x.setLineDash([14,8]);x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke();x.setLineDash([]);x.globalAlpha=1}
-  /* boresight reticle */
-  x.strokeStyle=ink;x.lineWidth=2;x.beginPath();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){x.moveTo(cx+dx*10,cy+dy*10);x.lineTo(cx+dx*30,cy+dy*30)}x.stroke();x.beginPath();x.arc(cx,cy,3,0,7);x.stroke();
+  const bar=$("arBar"),cT=cv.getBoundingClientRect().top,dT=$("arDisc").getBoundingClientRect().top-cT-4,bt=document.body.classList.contains("arMin")?Math.min(H,dT>0?dT:H):Math.min(H,bar.getBoundingClientRect().top-cT,dT>0?dT:H),yB=Math.max(H*0.55,bt-10);
+  if(!camOn){const hp=proj(0,-dip-pitch);x.save();x.translate(hp[0],hp[1]);x.rotate(rad(roll));x.fillStyle=flt==="norm"?"#081420":"#141814";x.fillRect(-2*W,-3*H,4*W,3*H);x.fillStyle=flt==="norm"?"#14180c":"#0a0c0a";x.fillRect(-2*W,0,4*W,3*H);x.restore()}
+  if(flt!=="norm"){const g=x.createRadialGradient(cx,H/2,Math.min(W,H)*0.35,cx,H/2,Math.max(W,H)*0.75);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.55)");x.fillStyle=g;x.fillRect(0,0,W,H)}
+  /* crisp symbology: black outline under every stroke/text */
+  const S2=(fn,lw)=>{x.strokeStyle="rgba(0,0,0,.85)";x.lineWidth=lw+2.2;x.beginPath();fn();x.stroke();x.strokeStyle=SYM;x.lineWidth=lw;x.beginPath();fn();x.stroke()};
+  const T=(s,X,Y,size,al,c)=>{x.font=F(size);x.textAlign=al||"left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";x.strokeText(s,X,Y);x.fillStyle=c||SYM;x.fillText(s,X,Y)};
+  x.lineCap="butt";x.lineJoin="miter";
+  /* FOV gates (wide field) */
+  {const gw=Math.min(W*0.36,H*0.3),gh=gw*0.72,gl=gw*0.16;S2(()=>{for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){const X0=cx+sx*gw,Y0=cy+sy*gh;x.moveTo(X0-sx*gl,Y0);x.lineTo(X0,Y0);x.lineTo(X0,Y0-sy*gl)}},1.5)}
+  /* gun cross / LOS reticle */
+  S2(()=>{x.moveTo(cx-64,cy);x.lineTo(cx-14,cy);x.moveTo(cx+14,cy);x.lineTo(cx+64,cy);x.moveTo(cx,cy-46);x.lineTo(cx,cy-14);x.moveTo(cx,cy+14);x.lineTo(cx,cy+46);
+    for(const d of [-48,-32,32,48]){x.moveTo(cx+d,cy-4);x.lineTo(cx+d,cy+4)}x.moveTo(cx-1.5,cy);x.lineTo(cx+1.5,cy)},2);
+  /* horizon reference */
+  if(tiltOk){const a=proj(-50,-dip-pitch),b=proj(50,-dip-pitch);x.save();x.setLineDash([3,9]);S2(()=>{x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1])},1.2);x.restore()}
   /* heading tape */
-  const tY=Math.max(52,H*0.075)+ (W<500?0:0);x.font=F(11);x.textAlign="center";x.fillStyle=ink;x.strokeStyle=ink;x.lineWidth=1.5;
-  if(az!=null){const span=W/ppd/2;for(let d=Math.ceil((az-span)/5)*5;d<=az+span;d+=5){const px=cx+(d-az)*ppd;if(px<70||px>W-70)continue;const big=d%10===0;x.beginPath();x.moveTo(px,tY+18);x.lineTo(px,tY+(big?6:11));x.stroke();
-      if(d%30===0){const dd=((d%360)+360)%360;x.fillText(({0:"N",90:"E",180:"S",270:"W"})[dd]||String(dd/10).padStart(2,"0"),px,tY+2)}}
-    x.fillStyle="#000";x.fillRect(cx-28,tY+20,56,19);x.strokeRect(cx-28,tY+20,56,19);x.fillStyle=ink;x.font=F(13);x.fillText(p3(az)+"°T",cx,tY+35);
-    if(win!=null&&S.arSrc==="cmp"){const px=cx+w180(win-az)*ppd;if(px>70&&px<W-70){x.fillStyle=cyan;x.beginPath();x.moveTo(px,tY+19);x.lineTo(px-5,tY+27);x.lineTo(px+5,tY+27);x.closePath();x.fill()}}}
-  else{x.font=F(12);x.fillStyle=warn;x.fillText("NO HEADING · ENABLE COMPASS OR GET MOVING",cx,tY+30)}
-  /* side readouts */
-  x.font=F(10);x.textAlign="left";x.fillStyle=ink;const lx=10,ly=tY+56;
-  const rows=[(src||"NO HDG")+(unc!=null?" ±"+Math.round(unc)+"°":""),(tiltOk?"EL "+(pitch>=0?"+":"")+Math.round(pitch)+"°":"EL ---")+" · TRIM "+(S.arTrim>0?"+":"")+S.arTrim+"°"];
-  rows.forEach((t,i)=>x.fillText(t,lx,ly+i*13));
-  if(L){x.textAlign="right";const rr=["ALT "+Math.round(fAlt(L.alt||0)).toLocaleString()+" "+S.alt.toUpperCase()+" · GS "+(L.spd!=null?Math.round(fSpd(L.spd)):"---"),"TRK "+(L.trk!=null?p3(L.trk)+"°":"---")+" · HZN "+Math.round(fDst(Math.sqrt(2*R*Math.max(h,2)/0.87)))+" "+S.dst.toUpperCase()];rr.forEach((t,i)=>x.fillText(t,W-10,ly+i*13))}
-  AR.view=az==null?null:{az:+az.toFixed(1),unc,pitch:+pitch.toFixed(1),roll:+roll.toFixed(1),ppd:+ppd.toFixed(2),src};
+  const tY=Math.max(56,8+46);const tw=Math.min(W*0.62,420),tx0=cx-tw/2,tx1=cx+tw/2;
+  if(az!=null){const sp=tw/2/ppd;S2(()=>{x.moveTo(tx0,tY+22);x.lineTo(tx1,tY+22);for(let d=Math.ceil((az-sp)/5)*5;d<=az+sp;d+=5){const px=cx+w180(d-az)*ppd;if(px<tx0||px>tx1)continue;x.moveTo(px,tY+22);x.lineTo(px,tY+(d%10===0?10:16))}},1.5);
+    for(let d=Math.ceil((az-sp)/10)*10;d<=az+sp;d+=10){const px=cx+w180(d-az)*ppd;if(px<tx0+10||px>tx1-10||Math.abs(px-cx)<26)continue;const dd=((d%360)+360)%360;T(({0:"N",90:"E",180:"S",270:"W"})[dd]||String(dd/10).padStart(2,"0"),px,tY+6,12,"center")}
+    x.fillStyle="rgba(0,0,0,.6)";x.fillRect(cx-26,tY-10,52,20);x.strokeStyle=SYM;x.lineWidth=1.5;x.strokeRect(cx-26,tY-10,52,20);T(p3(az),cx,tY+5,15,"center");
+    S2(()=>{x.moveTo(cx,tY+24);x.lineTo(cx-6,tY+33);x.moveTo(cx,tY+24);x.lineTo(cx+6,tY+33)},1.5);
+    if(so.win!=null&&so.src!=="GPS TRK L"&&so.src!=="GPS TRK R"){const px=cx+w180(so.win-az)*ppd;if(px>tx0&&px<tx1){x.fillStyle=SYM;x.fillRect(px-1,tY+24,2,9)}}}
+  else T("NO HDG",cx,tY+10,14,"center","#ffbf00");
+  /* elevation scale (left) */
+  {const lsc=W>H*1.2,eh=lsc?Math.min(120,H*0.25):120,ex=lsc?Math.round(W*0.2):26,ey0=cy-eh,ey1=cy+eh,k=2*eh/50;/* +20..-30 deg */S2(()=>{x.moveTo(ex,ey0);x.lineTo(ex,ey1);for(let e=20;e>=-30;e-=5){const y=ey0+(20-e)*k;x.moveTo(ex,y);x.lineTo(ex+(e%10===0?10:6),y)}},1.5);
+    for(let e=20;e>=-30;e-=10){T(String(e),ex+14,ey0+(20-e)*k+4,10,"left",DIM)}
+    if(tiltOk){const y=ey0+(20-Math.max(-30,Math.min(20,pitch)))*k;x.fillStyle=SYM;x.beginPath();x.moveTo(ex-2,y);x.lineTo(ex-12,y-6);x.lineTo(ex-12,y+6);x.closePath();x.fill()}T("EL",ex-6,ey0-10,10,"left")}
+  /* corner data blocks */
+  const tl=["ALT "+(L&&L.alt!=null?Math.round(fAlt(L.alt)).toLocaleString():"----")+(S.alt==="ft"?" FT":" M"),"GS  "+(L&&L.spd!=null?Math.round(fSpd(L.spd)):"---")+" "+S.spd.toUpperCase(),"TRK "+(L&&L.trk!=null?p3(L.trk):"---")];
+  tl.forEach((s,i)=>T(s,10,tY+44+i*15,12,"left"));
+  const d=new Date(),tr=[d.toTimeString().slice(0,8)+" L",d.toISOString().slice(11,16)+"Z",({norm:"DAY TV",grn:"FLIR GRN",wht:"FLIR WHT"})[flt]+" · WFOV",(PHN[PH.p]||"").toUpperCase()];
+  tr.forEach((s,i)=>T(s,W-10,tY+44+i*15,12,"right"));
+  AR.view=az==null?null:{az:+az.toFixed(1),unc:+unc.toFixed(1),pitch:+pitch.toFixed(1),roll:+roll.toFixed(1),ppd:+ppd.toFixed(2),src:so.src,bias:+AR.bias.toFixed(1)};
+  const br=[(so.src||"NO HDG")+(unc!=null?" ±"+unc.toFixed(1)+"°":""),(tiltOk?"EL "+(pitch>=0?"+":"")+pitch.toFixed(1)+"°":"EL ---")+" TRIM "+(S.arTrim>0?"+":"")+S.arTrim,"BIAS "+(AR.bias>=0?"+":"")+AR.bias.toFixed(1)+"° VAR "+(so.dec>=0?"E":"W")+Math.abs(so.dec).toFixed(0)];
+  const brX=document.body.classList.contains("arMin")?W-62:W-10;br.forEach((s,i)=>T(s,brX,yB-36+i*15,11,"right",i?DIM:SYM));
   AR.hits=[];
-  if(az==null||!L){x.restore();return}
-  /* project */
+  if(az==null||!L){x.restore&&0;return}
+  /* targets */
   const hf=W/ppd/2,vf=H/ppd/2,on=[],offL=[],offR=[];
-  for(const t of AR.tg){const dAz=w180(t.b-az),dEl=t.el-pitch;if(Math.abs(dAz)<hf+2&&Math.abs(dEl)<vf+2){const [px,py]=proj(dAz,dEl);if(px>-20&&py>-20&&px<W+20&&py<H+20){on.push(Object.assign({px,py,dAz},t));continue}}
-    if(Math.abs(dAz)<=150)(dAz<0?offL:offR).push(Object.assign({dAz},t))}
+  for(const t of AR.tg){const dA=w180(t.b-az),dE=t.el-pitch;if(Math.abs(dA)<hf+1&&Math.abs(dE)<vf+1){const [px,py]=proj(dA,dE);if(px>-10&&py>-10&&px<W+10&&py<H+10){on.push(Object.assign({px,py,dA},t));continue}}
+    if(Math.abs(dA)<=150)(dA<0?offL:offR).push(Object.assign({dA},t))}
   const pri=t=>t.n===AR.lock?-1e9:(t.kind==="dest"?0:t.kind==="mk"?1:t.kind==="wpt"?2:3)*1e7+t.d;
-  on.sort((a,b)=>Math.hypot(a.px-cx,a.py-cy)-Math.hypot(b.px-cx,b.py-cy));
-  let des=on.find(t=>t.n===AR.lock)||on.find(t=>Math.abs(t.dAz)<unc+6&&!t.hid)||null;
-  const kc=t=>t.kind==="dest"||t.kind==="orig"?mag:t.kind==="ap"?cyan:t.kind==="mk"||t.kind==="wpt"?warn:ink;
-  const lst=on.slice().sort((a,b)=>pri(a)-pri(b)).slice(0,10);if(des&&!lst.includes(des))lst.push(des);lst.sort((a,b)=>(a===des)-(b===des)||b.d-a.d);let nLbl=0;
-  /* off-screen arrows: things to your left / right */
-  const arrows=(arr,side)=>{arr.sort((a,b)=>pri(a)-pri(b));const top=tY+100,step=38;arr.filter(t=>Math.abs(t.dAz)<=110||t.kind==="dest"||t.n===AR.lock).slice(0,Math.max(2,Math.min(4,Math.floor((H-tY-330)/38)))).forEach((t,i)=>{const y=Math.min(H-110,top+i*step),xx=side<0?8:W-8,c=t.n===AR.lock?warn:kc(t);
-    x.fillStyle=c;x.beginPath();x.moveTo(xx,y);x.lineTo(xx-side*14,y-9);x.lineTo(xx-side*14,y+9);x.closePath();x.fill();
-    x.font=F(10);x.textAlign=side<0?"left":"right";const nm=(t.n.length>20?t.n.slice(0,19)+"…":t.n).toUpperCase(),l2=Math.round(Math.abs(t.dAz))+"° "+(side<0?"LEFT":"RIGHT")+" · "+Math.round(fDst(t.d))+" "+S.dst.toUpperCase();
-    const tx=xx-side*20,mw=Math.max(x.measureText(nm).width,x.measureText(l2).width);x.globalAlpha=.55;x.fillStyle="#000";x.fillRect(side<0?tx-3:tx-mw-3,y-12,mw+6,26);x.globalAlpha=1;x.fillStyle=c;x.fillText(nm,tx,y-1);x.fillStyle=dim;x.fillText(l2,tx,y+11);
-    AR.hits.push({n:t.n,x0:side<0?0:tx-mw-4,x1:side<0?tx+mw+4:W,y0:y-14,y1:y+16})})};
-  arrows(offL,-1);arrows(offR,1);
-  const lblBoxes=[];
-  for(const t of lst){const ang=Math.max(unc,deg(Math.atan2(t.r,t.d))),hw=Math.max(16,Math.min(W*0.42,ang*ppd)),hh=Math.max(14,Math.min(H*0.3,Math.max(2.5,deg(Math.atan2(t.r,t.d))*0.6)*ppd)),isD=t===des,c=isD?warn:kc(t);
-    x.strokeStyle=c;x.globalAlpha=t.hid?.5:1;x.lineWidth=isD?2.5:1.6;if(t.hid)x.setLineDash([5,4]);const L0=Math.min(hw,hh)*0.45+4;
-    x.beginPath();for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){const X0=t.px+sx*hw,Y0=t.py+sy*hh;x.moveTo(X0-sx*L0,Y0);x.lineTo(X0,Y0);x.lineTo(X0,Y0-sy*L0)}x.stroke();x.setLineDash([]);
-    x.beginPath();x.moveTo(t.px-5,t.py);x.lineTo(t.px+5,t.py);x.moveTo(t.px,t.py-5);x.lineTo(t.px,t.py+5);x.stroke();
-    AR.hits.push({n:t.n,x0:t.px-hw-6,x1:t.px+hw+6,y0:t.py-hh-6,y1:t.py+hh+6});
-    /* label */
-    const nm=(isD?(AR.lock===t.n?"◆ LOCKED · ":"◆ "):"")+(t.n.length>34?t.n.slice(0,33)+"…":t.n),l2=Math.round(fDst(t.d)).toLocaleString()+" "+S.dst.toUpperCase()+" · "+p3(t.b)+"°"+(t.hid?" · BEYOND HORIZON":"");
-    x.font=F(isD?13:11);let lw=Math.max(x.measureText(nm.toUpperCase()).width,(x.font=F(isD?11:10),x.measureText(l2).width));
-    let notes=[];if(isD&&t.note){x.font="11px \"B612\",sans-serif";const words=t.note.split(" ");let cur="";for(const w of words){const tt=cur?cur+" "+w:w;if(x.measureText(tt).width>Math.min(W*0.72,300)){if(notes.length===1){cur=cur.replace(/[,.;:]?$/,"…");break}notes.push(cur);cur=w}else cur=tt}if(notes.length<2&&cur)notes.push(cur);notes=notes.slice(0,2);for(const n2 of notes)lw=Math.max(lw,x.measureText(n2).width)}
-    const lh=(isD?32:27)+notes.length*14;let bx=t.px+hw+8,by=t.py-hh;if(bx+lw+10>W)bx=t.px-hw-8-lw-10;if(bx<4){bx=Math.max(4,Math.min(W-lw-14,t.px-lw/2));by=t.py+hh+8;if(by+lh>H-40)by=t.py-hh-8-lh}if(by<tY+84)by=Math.max(tY+84,by);if(by+lh>H-40)by=Math.max(tY+84,H-40-lh);
-    if(!isD&&(nLbl>=5||lblBoxes.some(b=>bx<b.x+b.w&&bx+lw+10>b.x&&by<b.y+b.h&&by+lh>b.y))){x.globalAlpha=1;continue}if(!isD)nLbl++;lblBoxes.push({x:bx,y:by,w:lw+10,h:lh});
-    x.globalAlpha=isD?.78:.55;x.fillStyle="#000";x.fillRect(bx,by,lw+10,lh);x.globalAlpha=t.hid?.6:1;if(isD){x.strokeStyle=warn;x.lineWidth=1;x.strokeRect(bx+.5,by+.5,lw+9,lh-1)}
-    x.textAlign="left";x.fillStyle=c;x.font=F(isD?13:11);x.fillText(nm.toUpperCase(),bx+5,by+(isD?15:13));x.fillStyle=isD?ink:dim;x.font=F(isD?11:10);x.fillText(l2,bx+5,by+(isD?29:24));
-    if(notes.length){x.fillStyle=ink;x.font="11px \"B612\",sans-serif";notes.forEach((n2,i)=>x.fillText(n2,bx+5,by+43+i*14))}x.globalAlpha=1}
-  x.restore()}
-$("arCv").addEventListener("click",e=>{const r=$("arCv").getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;const h=AR.hits.find(b=>px>=b.x0&&px<=b.x1&&py>=b.y0&&py<=b.y1);AR.lock=h?(AR.lock===h.n?null:h.n):null;hap(10)});
+  const lockT=AR.tg.find(t=>t.n===AR.lock)||null;
+  let des=on.find(t=>t.n===AR.lock)||on.slice().sort((a,b)=>Math.hypot(a.px-cx,a.py-cy)-Math.hypot(b.px-cx,b.py-cy)).find(t=>Math.abs(t.dA)<Math.max(unc*2,4)+3&&!t.hid)||null;
+  /* other targets: small diamond + short tag */
+  const others=on.filter(t=>t!==des).sort((a,b)=>pri(a)-pri(b)).slice(0,9),boxes=[];
+  for(const t of others){const s=Math.max(5,Math.min(40,Math.max(unc,deg(Math.atan2(t.r*0.5,t.d)))*ppd));x.save();x.globalAlpha=t.hid?.45:.9;
+    if(s>9)S2(()=>{x.rect(t.px-s,t.py-s*0.7,2*s,1.4*s)},1.2);else S2(()=>{x.moveTo(t.px,t.py-6);x.lineTo(t.px+6,t.py);x.lineTo(t.px,t.py+6);x.lineTo(t.px-6,t.py);x.closePath()},1.3);
+    const nm=(t.n.length>18?t.n.slice(0,17)+"…":t.n).toUpperCase(),lx=t.px+Math.max(s,6)+4,ly=t.py-Math.max(s*0.7,6)+10;x.font=F(10);const lw=x.measureText(nm).width;
+    if(!boxes.some(b=>lx<b[0]+b[2]&&lx+lw>b[0]&&ly-10<b[1]+b[3]&&ly+4>b[1])&&lx+lw<W-4){boxes.push([lx,ly-10,lw,14]);T(nm,lx,ly,10,"left",DIM)}
+    x.restore();AR.hits.push({n:t.n,x0:t.px-s-8,x1:t.px+s+8,y0:t.py-s-8,y1:t.py+s+8})}
+  /* designated / locked target: track gates sized to the heading uncertainty */
+  if(des){const ang=Math.max(unc,deg(Math.atan2(des.r*0.5,des.d))),hw=Math.max(14,Math.min(W*0.4,ang*ppd)),hh=Math.max(12,Math.min(H*0.3,hw*0.75)),lk=AR.lock===des.n,c=lk?"#ffbf00":SYM;
+    x.save();if(des.hid)x.setLineDash([6,5]);const g=Math.min(hw,hh)*0.5;x.strokeStyle="rgba(0,0,0,.85)";
+    const gates=()=>{for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){const X0=des.px+sx*hw,Y0=des.py+sy*hh;x.moveTo(X0-sx*g,Y0);x.lineTo(X0,Y0);x.lineTo(X0,Y0-sy*g)}};
+    x.lineWidth=lk?5:4.2;x.beginPath();gates();x.stroke();x.strokeStyle=c;x.lineWidth=lk?3:2;x.beginPath();gates();x.stroke();
+    if(lk){x.lineWidth=1.2;x.strokeRect(des.px-hw-5,des.py-hh-5,2*hw+10,2*hh+10)}x.restore();
+    S2(()=>{x.moveTo(des.px-6,des.py);x.lineTo(des.px+6,des.py);x.moveTo(des.px,des.py-6);x.lineTo(des.px,des.py+6)},1.4);
+    T(lk?"TGT LOCK":"TGT",des.px,des.py-hh-9,12,"center",c);
+    AR.hits.push({n:des.n,x0:des.px-hw-8,x1:des.px+hw+8,y0:des.py-hh-8,y1:des.py+hh+8})}
+  /* off-screen cues (caret + name + angle), max 3 a side */
+  const cue=(arr,side)=>{arr.filter(t=>Math.abs(t.dA)<=110||t.kind==="dest"||t.n===AR.lock).sort((a,b)=>pri(a)-pri(b)).slice(0,3).forEach((t,i)=>{const y=cy-30+i*34,xx=side<0?6:W-6,c=t.n===AR.lock?"#ffbf00":SYM;
+    x.fillStyle="rgba(0,0,0,.8)";x.beginPath();x.moveTo(xx,y);x.lineTo(xx-side*13,y-8);x.lineTo(xx-side*13,y+8);x.closePath();x.fill();x.fillStyle=c;x.beginPath();x.moveTo(xx+side*-1,y);x.lineTo(xx-side*12,y-6.5);x.lineTo(xx-side*12,y+6.5);x.closePath();x.fill();
+    const nm=(t.n.length>16?t.n.slice(0,15)+"…":t.n).toUpperCase();T(nm,xx-side*17,y-1,10,side<0?"left":"right",c);T(Math.round(Math.abs(t.dA))+"° "+Math.round(fDst(t.d))+S.dst.toUpperCase(),xx-side*17,y+11,10,side<0?"left":"right",DIM);
+    x.font=F(10);const mw=Math.max(x.measureText(nm).width,60);AR.hits.push({n:t.n,x0:side<0?0:W-mw-30,x1:side<0?mw+30:W,y0:y-14,y1:y+16})})};
+  cue(offL.filter(t=>t.n!==(des&&des.n)),-1);cue(offR.filter(t=>t.n!==(des&&des.n)),1);
+  /* range readout + target data block (bottom left) */
+  const tg=des||lockT;
+  if(tg){const rng=fDst(tg.d);T("RNG",cx,yB-34,10,"center",DIM);T((rng<10?rng.toFixed(1):Math.round(rng).toLocaleString())+" "+S.dst.toUpperCase(),cx,yB-14,22,"center",AR.lock===tg.n?"#ffbf00":SYM);
+    const ls=[(AR.lock===tg.n?"◆ ":"")+tg.n.toUpperCase().slice(0,30),"BRG "+p3(tg.b)+"°T  EL "+(tg.el>=0?"+":"")+tg.el.toFixed(1)+"°"+(tg.hid?"  BEYOND HZN":"")];
+    let notes=[];if(tg.note){x.font="12px \"B612\",sans-serif";const mxw=Math.min(W*0.55,340);let cur="";for(const w of tg.note.split(" ")){const tt=cur?cur+" "+w:w;if(x.measureText(tt).width>mxw){notes.push(cur);cur=w;if(notes.length===2)break}else cur=tt}if(notes.length<2&&cur)notes.push(cur);if(notes.length===2&&tg.note.indexOf(notes[1])+notes[1].length<tg.note.length-1)notes[1]+="…"}
+    const by=yB-(notes.length*15)-38;ls.forEach((s,i)=>T(s,10,by+i*15-(W<500?40:0),i?11:12,"left",i?DIM:(AR.lock===tg.n?"#ffbf00":SYM)));
+    notes.forEach((s,i)=>{x.font="12px \"B612\",sans-serif";x.textAlign="left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";const yy=by+30+i*15-(W<500?40:0);x.strokeText(s,10,yy);x.fillStyle=SYM;x.fillText(s,10,yy)})}
+}
+$("arCv").addEventListener("click",e=>{const r=$("arCv").getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;const h=AR.hits.find(b=>px>=b.x0&&px<=b.x1&&py>=b.y0&&py<=b.y1);AR.lock=h?(AR.lock===h.n?null:h.n):null;if(AR.lock)try{voxPlay("target-locked")}catch(_){}hap(10)});
 arUI();
 document.querySelectorAll("#arBar .seg").forEach(s=>s.addEventListener("click",()=>setTimeout(arUI,0)));
+
+/* ---------- v22: in-flight pack refresh (only when the phone has internet, e.g. aircraft Wi-Fi) ---------- */
+let pkBusy=false;
+async function packRefreshInFlight(force){const pk=packGet(),L=last;if(!pk||pkBusy||!L)return "nopack";const fr=apBy(pk.from),to=apBy(pk.to);if(!fr||!to)return "noroute";
+  const air=["taxi","roll","climb","cruise","descent","approach"].includes(PH.p);
+  if(!force&&(!air||navigator.onLine===false||document.hidden||Date.now()-(pk.upd||pk.at)<15*60000))return "skip";
+  const tot=dist(fr,to),fNow=Math.max(0,Math.min(1,1-dist(L,to)/tot)),idx=pk.smp.map((q,i)=>i).filter(i=>pk.smp[i].f>=fNow-0.03);if(!idx.length)return "done";
+  const spd=Math.max(120,L.spd||230);pkBusy=true;
+  try{const smp=await omSamples(idx.map(i=>pk.smp[i]),p=>Date.now()+Math.max(0,p.f-fNow)*tot/spd*1000);
+    if(!smp.some(q=>q.lv.some(l=>l[2]!=null)))throw new Error("no data");
+    idx.forEach((i,k)=>{pk.smp[i]=smp[k]});pk.upd=Date.now();pk.updN=idx.length;delete pk.updErr;
+    store.set("pack_"+rtKey(pk.from,pk.to),pk);PK.key="";packRender();wxBtn();rtRender();try{drawMap();profAll()}catch(e){}
+    try{packMsg("✓ Weather updated in flight at "+new Date(pk.upd).toTimeString().slice(0,5)+" for the remaining "+idx.length+" points.")}catch(e){}return "ok"}
+  catch(e){pk.updErr=String(e&&e.message||e);return "fail"}finally{pkBusy=false}}
+setInterval(()=>{packRefreshInFlight(false).catch(()=>{})},60000);
+window.addEventListener("online",()=>setTimeout(()=>packRefreshInFlight(false).catch(()=>{}),3000));
+window.cpPackRefresh=f=>packRefreshInFlight(!!f);
+
+/* ================= v22: retro cockpits (F-4 Phantom-style, P-51 Mustang-style) =================
+   Dial faces, bezels and panel textures rendered in Blender (g-*.webp, no needles); needles, cards and
+   balls are drawn here from live GPS data. Engine, fuel and AOA are simulated from the flight phase. */
+const RET={img:{},raf:0,lt:0,v:{},gmax:1,gmin:1,cv:null};
+const RG={p51:["asi","ai","alt","tb","dg","vsi","mp","rpm","fuel","cmp"],f4:["asi","adi","alt","aoa","hsi","vvi","g","clock"]};
+const RL={p51:{p:[["asi","ai","alt"],["tb","dg","vsi"],["mp","rpm","fuel"],[null,"cmp",null]],l:[["asi","ai","alt","mp","rpm"],["tb","dg","vsi","fuel","cmp"]]},
+          f4:{p:[["asi","adi","alt"],["aoa","hsi","vvi"],["g","clock",null]],l:[["aoa","asi","adi","alt"],["g","clock","hsi","vvi"]]}};
+const RA={p51_asi:v=>v*340/700,p51_alt:v=>v*36,p51_vsi:v=>270+v*170/6,p51_mp:v=>-150+(v-10)/65*300,p51_rpm:v=>-150+v/45*300,p51_fuel:v=>-120+v/90*240,
+  f4_asi:v=>v<=250?(v-80)/170*150:150+(v-250)/600*190,f4_alt:v=>v*36,f4_vvi:v=>270+v*170/6,f4_aoa:v=>-135+v/30*270,f4_g:v=>-150+(v+4)/14*300};
+if(!S.cockpit){S.cockpit="modern";saveS()}
+const retroOn=()=>S.cockpit==="p51"||S.cockpit==="f4";
+function retroLoad(ac){const out=[];for(const id of RG[ac].concat(["panel"])){const k=ac+"_"+id;if(RET.img[k])continue;const im=new Image();im.decoding="async";im.src="g-"+ac+"-"+id+".webp";im.onload=()=>{RET.dirty=true};RET.img[k]=im}}
+function retroApply(){const on=retroOn();document.querySelector(".tile.hud").style.display=on?"none":"";$("retroTile").style.display=on?"":"none";
+  if(on){retroLoad(S.cockpit);$("retroName").textContent=S.cockpit==="p51"?"P-51 Mustang-style panel":"F-4 Phantom-style panel"}
+  if(fhOn){const want=on?$("retro"):$("hudwrap");if(want.parentNode!==$("fhSlot")){fhExit();fhEnter(false)}}
+  retroKick()}
+document.querySelectorAll('.seg[data-k="cockpit"]').forEach(s=>s.addEventListener("click",()=>setTimeout(retroApply,0)));
+$("fpBtn").onclick=()=>fhEnter(false);
+function retroVisible(){if(!retroOn()||document.hidden)return false;if(fhOn)return true;const pg=PG.els[PG.i];return !!(pg&&pg.id==="pg-hud")}
+function retroKick(){if(!RET.raf&&retroVisible())RET.raf=requestAnimationFrame(retroFrame)}
+setInterval(retroKick,1000);document.addEventListener("visibilitychange",retroKick);$("pages").addEventListener("scroll",()=>setTimeout(retroKick,120),{passive:true});
+/* live values (GPS ground speed stands in for airspeed) */
+function retroData(dt){const L=viewL()||last,now=Date.now(),V=RET.v,useSen=S.att==="sen"&&sen.on;
+  const kt=L&&L.spd!=null?L.spd*1.94384:0,ft=L&&L.alt!=null?L.alt*FT:0,vs=(L&&vsFpm())||0,trk=L&&L.trk!=null?L.trk:(V.trk||0),dec=L?(cmpDecl(L)||0):0;
+  const pit=useSen?sen.p:att.p,rol=useSen?sen.r:att.r,rate=att.rate||0,p=PH.p,eng=!(p==="parked"&&kt<2&&!(PH.ev&&PH.ev.on==null&&PH.ev.roll));
+  const tbl={parked:[eng?1000:0,eng?18:29.9-ft/1000],taxi:[1150,20],roll:[3000,61],climb:[2700,46],cruise:[2400,34+Math.min(4,ft/10000)],descent:[2100,24],approach:[2300,22],landed:[1200,18]}[p]||[0,29.9];
+  const aoaT={parked:0,taxi:1,roll:4,climb:10,cruise:6.5,descent:5,approach:19,landed:2}[p];
+  const T0=Math.max(216.65,288.15-0.0019812*ft),mach=kt/(38.967854*Math.sqrt(T0));
+  let gg=gOn&&gS!=null?gS:1/Math.cos(rad(Math.max(-70,Math.min(70,rol))));RET.gmax=Math.max(RET.gmax,gg);RET.gmin=Math.min(RET.gmin,gg);
+  const evs=PH.ev?Object.values(PH.ev).filter(v=>typeof v==="number"):[],t0=evs.length?Math.min(...evs):null,eh=t0?(now-t0)/3600000:0;
+  const tgt={kt,mph:kt*1.15078,ft,vs,pit,rol,rate,trk,mag:((trk-dec)%360+360)%360,g:gg,aoa:(aoaT==null?0:aoaT)+(p==="cruise"||p==="climb"?pit*0.3:0),rpm:tbl[0],mp:Math.max(8,tbl[1]),fuel:Math.max(8,88-eh*30),mach,
+    crs:(()=>{const to=apBy(S.to);return L&&to?brg(L,to):trk})(),dme:(()=>{const to=apBy(S.to);return L&&to?dist(L,to)/NMm:0})()};
+  const k=dt?Math.min(1,dt*3.5):1,ang=new Set(["trk","mag","crs"]);
+  for(const n in tgt){if(V[n]==null||!isFinite(V[n])){V[n]=tgt[n];continue}V[n]=ang.has(n)?((V[n]+k*w180(tgt[n]-V[n]))%360+360)%360:V[n]+(n==="mag"?k*0.4:k)*(tgt[n]-V[n])}
+  V.slip=Math.sin(now/2300)*0.6+Math.sin(now/870)*0.3;return V}
+function retroFrame(ts){RET.raf=0;if(!retroVisible())return;if(ts-RET.lt<45){RET.raf=requestAnimationFrame(retroFrame);return}const dt=RET.lt?Math.min(0.5,(ts-RET.lt)/1000):0;RET.lt=ts;
+  try{retroDraw(retroData(dt))}catch(e){console.warn(e)}RET.raf=requestAnimationFrame(retroFrame)}
+window.cpRetro=()=>({on:retroOn(),ac:S.cockpit||"modern",vis:retroVisible(),loaded:Object.values(RET.img).filter(i=>i.complete&&i.naturalWidth).length,v:RET.v,lay:RET.lay});
+function retroDraw(V){const ac=S.cockpit,box=$("retro"),cv=$("retroCv"),dpr=window.devicePixelRatio||1;
+  const full=fhOn&&box.parentNode===$("fhSlot");let W=box.clientWidth,H;const land=full?box.clientWidth/Math.max(1,box.clientHeight)>1.25:false,lay=RL[ac][land?"l":"p"],cols=lay[0].length,rows=lay.length;
+  let cell;if(full){H=box.clientHeight;cell=Math.min(W/cols,H/rows)}else{cell=W/cols;H=Math.round(cell*rows+8);if(cv.style.height!==H+"px")cv.style.height=H+"px"}
+  if(!W||!H)return;if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);RET.lay={land,cols,rows,cell:Math.round(cell)};
+  const pi=RET.img[ac+"_panel"];if(pi&&pi.complete&&pi.naturalWidth){if(!RET.pat||RET.patK!==ac){RET.pat=x.createPattern(pi,"repeat");RET.patK=ac}x.fillStyle=RET.pat}else x.fillStyle=ac==="p51"?"#0b0b0a":"#2a2c2e";x.fillRect(0,0,W,H);
+  const ox=(W-cell*cols)/2,oy=(H-cell*rows)/2;
+  lay.forEach((row,r)=>row.forEach((id,c)=>{const cx=ox+cell*(c+.5),cy=oy+cell*(r+.5);if(id)gauge(x,ac,id,cx,cy,cell*0.97,V);else placard(x,ac,cx,cy,cell)}));}
+function placard(x,ac,cx,cy,cell){const w=cell*0.78,h=cell*0.34;x.save();x.fillStyle=ac==="p51"?"#1a1915":"#3a3d40";x.strokeStyle="rgba(0,0,0,.6)";x.lineWidth=2;x.fillRect(cx-w/2,cy-h/2,w,h);x.strokeRect(cx-w/2,cy-h/2,w,h);
+  x.fillStyle=ac==="p51"?"#d9cfb0":"#e8e8e8";x.textAlign="center";x.font="700 "+Math.round(cell*0.065)+"px \"B612 Mono\",monospace";x.fillText(ac==="p51"?"GPS-DRIVEN DISPLAY":"GPS-DRIVEN DISPLAY",cx,cy-cell*0.03);
+  x.font=Math.round(cell*0.055)+"px \"B612 Mono\",monospace";x.fillText("ENTERTAINMENT ONLY",cx,cy+cell*0.06);x.fillText("NOT FOR NAVIGATION",cx,cy+cell*0.13);x.restore()}
+function needle(x,u,a,len,w,col,tail,style){x.save();x.rotate(rad(a));const L=len*u,Tl=(tail||0.18)*u,W=w*u;
+  for(const pass of [0,1]){x.save();if(!pass){x.translate(u*0.025,u*0.035);x.fillStyle="rgba(0,0,0,.45)"}else x.fillStyle=col;
+    x.beginPath();if(style==="lance"){x.moveTo(0,-L);x.lineTo(W*0.9,-L*0.82);x.lineTo(W*0.5,Tl);x.lineTo(-W*0.5,Tl);x.lineTo(-W*0.9,-L*0.82)}else if(style==="tri"){x.moveTo(0,-L);x.lineTo(W*1.6,-L*0.78);x.lineTo(W*0.35,0);x.lineTo(-W*0.35,0);x.lineTo(-W*1.6,-L*0.78)}else{x.moveTo(0,-L);x.lineTo(W*0.55,-L*0.9);x.lineTo(W*0.6,Tl);x.lineTo(-W*0.6,Tl);x.lineTo(-W*0.55,-L*0.9)}
+    x.closePath();x.fill();if(pass&&tail){x.fillStyle="#111";x.fillRect(-W*0.7,u*0.02,W*1.4,Tl-u*0.02)}x.restore()}x.restore()}
+function hub(x,u,col){const g=x.createRadialGradient(-u*0.02,-u*0.02,0,0,0,u*0.075);g.addColorStop(0,"#666");g.addColorStop(1,"#0a0a0a");x.fillStyle=g;x.beginPath();x.arc(0,0,u*0.07,0,7);x.fill();if(col){x.fillStyle=col;x.beginPath();x.arc(0,0,u*0.022,0,7);x.fill()}}
+function glare(x,u){const g=x.createLinearGradient(-u*0.7,-u*0.8,u*0.3,u*0.4);g.addColorStop(0,"rgba(255,255,255,.10)");g.addColorStop(.45,"rgba(255,255,255,.025)");g.addColorStop(.5,"rgba(255,255,255,0)");x.fillStyle=g;x.beginPath();x.arc(0,0,u*0.95,0,7);x.fill()}
+function strip(x,u,hdg,w,h,y,style){x.save();x.beginPath();x.rect(-w/2*u,-(y+h/2)*u,w*u,h*u);x.clip();x.fillStyle=style==="cmp"?"#d8d0b4":"#121212";x.fillRect(-w/2*u,-(y+h/2)*u,w*u,h*u);
+  const ppd=style==="cmp"?0.03*u:0.032*u,ink=style==="cmp"?"#151515":"#e9e1c6",cy=-y*u;x.strokeStyle=ink;x.fillStyle=ink;x.textAlign="center";x.textBaseline="middle";
+  for(let d=Math.floor(hdg-30);d<=hdg+30;d++){if(d%5)continue;const px=(d-hdg)*ppd,dd=((d%360)+360)%360,big=dd%10===0;x.lineWidth=big?u*0.012:u*0.007;x.beginPath();x.moveTo(px,cy+h/2*u);x.lineTo(px,cy+h/2*u-(big?0.09:0.05)*u);x.stroke();
+    if(dd%30===0){x.font="700 "+Math.round(u*0.14)+"px \"B612\",sans-serif";x.fillText(({0:"N",90:"E",180:"S",270:"W"})[dd]||String(dd/10),px,cy-0.03*u)}}
+  const g=x.createLinearGradient(-w/2*u,0,w/2*u,0);g.addColorStop(0,"rgba(0,0,0,.65)");g.addColorStop(.25,"rgba(0,0,0,0)");g.addColorStop(.75,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.65)");x.fillStyle=g;x.fillRect(-w/2*u,-(y+h/2)*u,w*u,h*u);x.restore()}
+function digits(x,u,s,cx,cy,w,h,col,bg){x.save();x.fillStyle=bg||"#0c0c0c";x.fillRect((cx-w/2)*u,(-cy-h/2)*u,w*u,h*u);x.fillStyle=col||"#f0f0f0";x.font="700 "+Math.round(h*u*0.78)+"px \"B612 Mono\",monospace";x.textAlign="center";x.textBaseline="middle";x.fillText(s,cx*u,-cy*u+u*0.005);x.restore()}
+function gauge(x,ac,id,cx,cy,s,V){const u=s/2.24,img=RET.img[ac+"_"+id],P51=ac==="p51",NC=P51?"#ece4c8":"#f4f4f4";x.save();x.translate(cx,cy);
+  /* layers under the face */
+  if(id==="ai"||id==="adi"){const r=(id==="ai"?0.79:0.82)*u;x.save();x.beginPath();x.arc(0,0,r,0,7);x.clip();x.rotate(rad(-V.rol));const py=V.pit*(id==="ai"?0.028:0.024)*u;
+    x.fillStyle=id==="ai"?"#2d5f86":"#bfc2c4";x.fillRect(-2*r,-2*r+py,4*r,2*r);x.fillStyle=id==="ai"?"#4a3218":"#161616";x.fillRect(-2*r,py,4*r,2*r);
+    x.strokeStyle=id==="ai"?"#f2f2f2":"#ffffff";x.lineWidth=u*0.018;x.beginPath();x.moveTo(-2*r,py);x.lineTo(2*r,py);x.stroke();
+    x.lineWidth=u*0.008;x.fillStyle=id==="ai"?"#f2f2f2":"#ffffff";x.font="700 "+Math.round(u*0.08)+"px \"B612 Mono\",monospace";x.textAlign="center";x.textBaseline="middle";
+    for(let p=-30;p<=30;p+=(id==="ai"?10:5)){if(!p)continue;const y=py-p*(id==="ai"?0.028:0.024)*u,ww=(p%10?0.12:0.24)*u;x.strokeStyle=id==="adi"&&p<0?"#e8e8e8":(id==="adi"?"#111":"#f2f2f2");x.beginPath();x.moveTo(-ww,y);x.lineTo(ww,y);x.stroke();if(p%10===0&&id==="adi"){x.fillStyle=p<0?"#e8e8e8":"#111";x.fillText(String(Math.abs(p)),-ww-0.08*u,y);x.fillText(String(Math.abs(p)),ww+0.08*u,y)}}
+    /* bank pointer on the card */
+    x.fillStyle=id==="ai"?"#f2f2f2":"#ff8c1a";x.beginPath();x.moveTo(0,-r+0.02*u);x.lineTo(-0.05*u,-r+0.12*u);x.lineTo(0.05*u,-r+0.12*u);x.closePath();x.fill();
+    const sh=x.createRadialGradient(0,0,r*0.5,0,0,r);sh.addColorStop(0,"rgba(0,0,0,0)");sh.addColorStop(1,"rgba(0,0,0,.45)");x.fillStyle=sh;x.beginPath();x.arc(0,0,r*2,0,7);x.fill();x.restore()}
+  if(id==="dg")strip(x,u,V.trk,1.25,0.36,0.03,"dg");
+  if(id==="cmp")strip(x,u,V.mag,1.1,0.4,0.03,"cmp");
+  if(id==="hsi"){const r=0.85*u;x.save();x.beginPath();x.arc(0,0,r,0,7);x.clip();x.fillStyle="#0b0b0b";x.fillRect(-r,-r,2*r,2*r);x.save();x.rotate(rad(-V.trk));x.strokeStyle="#f2f2f2";x.fillStyle="#f2f2f2";x.textAlign="center";x.textBaseline="middle";
+    for(let d=0;d<360;d+=5){x.save();x.rotate(rad(d));x.lineWidth=d%10?u*0.008:u*0.014;x.beginPath();x.moveTo(0,-r);x.lineTo(0,-r+(d%10?0.06:0.11)*u);x.stroke();if(d%30===0){x.font="700 "+Math.round(u*0.12)+"px \"B612\",sans-serif";x.fillText(({0:"N",90:"E",180:"S",270:"W"})[d]||String(d/10),0,-r+0.22*u)}x.restore()}
+    x.restore();x.save();x.rotate(rad(V.crs-V.trk));x.fillStyle="#ffd21a";x.strokeStyle="#000";x.lineWidth=1;x.beginPath();x.moveTo(0,-0.62*u);x.lineTo(-0.07*u,-0.46*u);x.lineTo(-0.025*u,-0.46*u);x.lineTo(-0.025*u,0.6*u);x.lineTo(0.025*u,0.6*u);x.lineTo(0.025*u,-0.46*u);x.lineTo(0.07*u,-0.46*u);x.closePath();x.fill();x.stroke();x.restore();
+    x.fillStyle="#f2f2f2";x.font="700 "+Math.round(u*0.075)+"px \"B612 Mono\",monospace";x.textAlign="left";x.fillText("DME "+String(Math.round(V.dme)).padStart(4," "),-0.5*u,-0.5*u);x.textAlign="right";x.fillText("CRS "+p3(V.crs),0.5*u,-0.5*u);x.restore()}
+  if(id==="alt"&&P51)digits(x,u,"29.92",0.5,-0.02,0.3,0.13,"#e9e1c6","#141414");
+  if(id==="alt"&&!P51){const f=Math.max(0,Math.round(V.ft/20)*20);digits(x,u,String(Math.floor(f/1000)).padStart(2,"0")+" "+String(Math.floor(f%1000/100))+"00",0,0.25,0.62,0.19);digits(x,u,"29.92",0,-0.46,0.4,0.12)}
+  if(id==="asi"&&!P51)digits(x,u,V.mach.toFixed(2).replace(/^0/,""),0,-0.36,0.46,0.15);
+  /* face (Blender) */
+  if(img&&img.complete&&img.naturalWidth)x.drawImage(img,-s/2,-s/2,s,s);else{x.fillStyle="#111";x.beginPath();x.arc(0,0,u,0,7);x.fill()}
+  /* needles / fixed symbols over the face */
+  const NS=P51?"lance":"bar";
+  switch(id){
+    case "asi":needle(x,u,P51?RA.p51_asi(Math.max(0,Math.min(700,V.mph))):RA.f4_asi(Math.max(80,Math.min(850,V.kt))),0.86,0.035,NC,0.2,NS);hub(x,u);break;
+    case "alt":{const ft=Math.max(0,V.ft);needle(x,u,(ft/100000)*360,0.9,0.012,NC,0.05,"tri");needle(x,u,(ft%10000)/10000*360,0.55,0.05,NC,0.12,P51?"lance":"bar");needle(x,u,(ft%1000)/1000*360,0.84,0.03,NC,0.2,NS);hub(x,u);break}
+    case "vsi":case "vvi":needle(x,u,RA.p51_vsi(Math.max(-6,Math.min(6,V.vs/1000))),0.84,0.035,NC,0.2,NS);hub(x,u);break;
+    case "mp":needle(x,u,RA.p51_mp(Math.max(10,Math.min(75,V.mp))),0.84,0.035,NC,0.2,NS);hub(x,u);break;
+    case "rpm":needle(x,u,RA.p51_rpm(Math.max(0,Math.min(45,V.rpm/100))),0.84,0.035,NC,0.2,NS);hub(x,u);break;
+    case "fuel":needle(x,u,RA.p51_fuel(Math.max(0,Math.min(90,V.fuel))),0.8,0.035,NC,0.18,NS);hub(x,u);break;
+    case "aoa":needle(x,u,RA.f4_aoa(Math.max(0,Math.min(30,V.aoa))),0.8,0.035,NC,0.2,NS);hub(x,u);break;
+    case "g":needle(x,u,RA.f4_g(Math.max(-4,Math.min(10,RET.gmax))),0.78,0.022,"#ff9a3c",0.05,"bar");needle(x,u,RA.f4_g(Math.max(-4,Math.min(10,RET.gmin))),0.78,0.022,"#ff9a3c",0.05,"bar");needle(x,u,RA.f4_g(Math.max(-4,Math.min(10,V.g))),0.84,0.035,NC,0.2,NS);hub(x,u);break;
+    case "clock":{const d=new Date(),sec=d.getSeconds()+d.getMilliseconds()/1000,mi=d.getMinutes()+sec/60,hr=d.getHours()%12+mi/60;needle(x,u,hr*30,0.5,0.045,NC,0.1,"bar");needle(x,u,mi*6,0.78,0.032,NC,0.12,"bar");needle(x,u,sec*6,0.84,0.012,"#ff8c1a",0.2,"bar");hub(x,u);break}
+    case "tb":{needle(x,u,Math.max(-45,Math.min(45,V.rate/3*22)),0.72,0.04,NC,0.0,"lance");hub(x,u);
+      /* inclinometer: glass tube with ball */
+      x.save();x.lineCap="round";x.strokeStyle="#cfc7a9";x.lineWidth=u*0.13;x.beginPath();x.arc(0,0,0.58*u,rad(90-30+180)-Math.PI,rad(90+30+180)-Math.PI,false);x.stroke();
+      x.strokeStyle="#151515";x.lineWidth=u*0.012;for(const a of [-7,7]){const t=rad(90+a);x.beginPath();x.moveTo(Math.cos(t)*0.5*u,Math.sin(t)*0.5*u);x.lineTo(Math.cos(t)*0.66*u,Math.sin(t)*0.66*u);x.stroke()}
+      const bt=rad(90-V.slip*6);const bx=Math.cos(bt)*0.58*u,by=Math.sin(bt)*0.58*u,g=x.createRadialGradient(bx-u*0.015,by-u*0.015,0,bx,by,u*0.055);g.addColorStop(0,"#666");g.addColorStop(1,"#050505");x.fillStyle=g;x.beginPath();x.arc(bx,by,u*0.05,0,7);x.fill();x.restore();break}
+    case "ai":{x.strokeStyle="#ff9a1f";x.lineWidth=u*0.03;x.lineCap="round";x.beginPath();x.moveTo(-0.42*u,0);x.lineTo(-0.12*u,0);x.lineTo(-0.06*u,0.06*u);x.moveTo(0.42*u,0);x.lineTo(0.12*u,0);x.lineTo(0.06*u,0.06*u);x.stroke();x.fillStyle="#ff9a1f";x.beginPath();x.arc(0,0,u*0.025,0,7);x.fill();break}
+    case "adi":{x.strokeStyle="#000";x.lineWidth=u*0.05;x.lineCap="round";const sym=()=>{x.beginPath();x.moveTo(-0.5*u,0);x.lineTo(-0.16*u,0);x.lineTo(-0.08*u,0.08*u);x.lineTo(0,0);x.lineTo(0.08*u,0.08*u);x.lineTo(0.16*u,0);x.lineTo(0.5*u,0);x.stroke()};sym();x.strokeStyle="#ff8c1a";x.lineWidth=u*0.028;sym();break}
+    case "hsi":{x.fillStyle="#f4f4f4";x.strokeStyle="#000";x.lineWidth=1;x.beginPath();x.moveTo(0,-0.16*u);x.lineTo(0.03*u,-0.05*u);x.lineTo(0.16*u,0.02*u);x.lineTo(0.16*u,0.05*u);x.lineTo(0.03*u,0.03*u);x.lineTo(0.02*u,0.12*u);x.lineTo(0.06*u,0.15*u);x.lineTo(-0.06*u,0.15*u);x.lineTo(-0.02*u,0.12*u);x.lineTo(-0.03*u,0.03*u);x.lineTo(-0.16*u,0.05*u);x.lineTo(-0.16*u,0.02*u);x.lineTo(-0.03*u,-0.05*u);x.closePath();x.fill();x.stroke();
+      x.fillStyle="#ff8c1a";x.beginPath();x.moveTo(0,-0.85*u);x.lineTo(-0.035*u,-0.95*u);x.lineTo(0.035*u,-0.95*u);x.closePath();x.fill();break}
+  }
+  glare(x,u);x.restore()}
+applySeg();retroApply();
+
+/* ================= v22: female voice callout pack =================
+   Short recorded callouts (v-*.mp3 in the app folder, ElevenLabs premade female voice) for the key moments;
+   everything else, and any clip that is missing or fails to play, falls back to the phone's own voice.
+   Settings → Voice: Female callouts / System / Off. */
+const VOX={"v1":"V one","rotate":"Rotate","positive-climb":"Positive climb","top-of-descent":"Top of descent","approaching":"Approaching destination",
+  "fifty-above":"Fifty above","minimums":"Minimums","50":"Fifty","40":"Forty","30":"Thirty","20":"Twenty","10":"Ten",
+  "landed":"Landed","parked":"Parked","target-locked":"Target locked","altitude":"Altitude, altitude","bingo":"Bingo"};
+const VOXQ={q:[],cur:null,bad:{},el:{},n:0};
+if(!S.vox){S.vox="female";saveS()}
+function voxFemale(v){try{const en=v.filter(x=>/^en/i.test(x.lang)),f=/female|karen|catherine|samantha|serena|moira|tessa|fiona|victoria|allison|ava|susan|zira|hazel|libby|natasha|sonia|aria|jenny/i;
+  return en.find(x=>/en-AU/i.test(x.lang)&&f.test(x.name))||en.find(x=>f.test(x.name))||null}catch(e){return null}}
+function voxTTS(text){try{const u=new SpeechSynthesisUtterance(text);if(auVoice)u.voice=auVoice;u.rate=1.05;speechSynthesis.speak(u)}catch(e){}}
+function voxNext(){if(VOXQ.cur||!VOXQ.q.length)return;const it=VOXQ.q.shift();
+  if(it.tts){VOXQ.cur=it;voxTTS(it.tts);VOXQ.cur=null;voxNext();return}
+  const k=it.k;if(VOXQ.bad[k]){VOXQ.q.unshift({tts:VOX[k]});voxNext();return}
+  let a=VOXQ.el[k];if(!a){a=new Audio("v-"+k+".mp3");a.preload="auto";VOXQ.el[k]=a}
+  VOXQ.cur=it;VOXQ.n++;const done=()=>{a.onended=a.onerror=null;VOXQ.cur=null;setTimeout(voxNext,it.gap||60)};
+  a.onended=done;a.onerror=()=>{VOXQ.bad[k]=1;VOXQ.cur=null;VOXQ.q.unshift({tts:VOX[k]});voxNext()};
+  try{a.currentTime=0;const p=a.play();if(p&&p.catch)p.catch(()=>{if(VOXQ.cur===it){VOXQ.bad[k]=1;VOXQ.cur=null;VOXQ.q.unshift({tts:VOX[k]});voxNext()}})}catch(e){a.onerror()}
+  setTimeout(()=>{if(VOXQ.cur===it)done()},4000)}
+/* play one callout now (heights cut the queue so they stay on time) */
+function voxPlay(k,urgent){if(!voiceOn||S.vox==="off"||!VOX[k])return false;
+  if(S.vox!=="female"){try{if(urgent)speechSynthesis.cancel()}catch(e){}voxTTS(VOX[k]);return true}
+  if(urgent){VOXQ.q=VOXQ.q.filter(x=>!x.h);}VOXQ.q.push({k,h:!!urgent});voxNext();return true}
+/* the app's spoken lines that have a recorded clip: play the clip, then speak any extra detail */
+const VOXMAP=[[/^Airborne at /,"positive-climb",false],[/^Top of descent\. /,"top-of-descent",false],[/^On approach,/,"approaching",false],
+  [/touchdown/i,"landed",true],[/^Parked\./,"parked",true]];
+function voxSay(text,low){if(S.vox!=="female"||!voiceOn)return false;const m=VOXMAP.find(r=>r[0].test(text));if(!m)return false;
+  VOXQ.q.push({k:m[1]});if(m[2]){const rest=m[1]==="parked"?text.replace(/^Parked\.\s*/,""):text.replace(/^.*?touchdown[^.]*\.\s*/i,"");if(rest)VOXQ.q.push({tts:rest})}voxNext();return true}
+/* callouts the older app never made: V1 / rotate on the roll, height calls on short final, altitude, bingo */
+const VXS={said:{},lastAlt:0,tm:[]};
+function voxTick(){const L=last;if(!L||!voiceOn||S.vox==="off")return;const p=PH.p,kt=(L.spd||0)*1.94384,now=Date.now();
+  if(p==="taxi"||p==="parked"){VXS.said={};VXS.tm.forEach(clearTimeout);VXS.tm=[]}
+  if(p==="roll"){if(kt>=125&&!VXS.said.v1){VXS.said.v1=1;voxPlay("v1")}if(kt>=140&&!VXS.said.vr){VXS.said.vr=1;voxPlay("rotate")}}
+  if(p==="approach"||p==="descent"){const to=apBy(S.to),ai=to?apInfo(to.c):null,fe=ai&&ai[4]!=null?ai[4]:null;if(fe==null||L.alt==null)return;
+    const agl=L.alt*FT-fe,vs=vsFpm()||0,rate=Math.max(4,-vs/60);/* ft/s down */
+    const steps=[[250,"fifty-above"],[200,"minimums"],[50,"50"],[40,"40"],[30,"30"],[20,"20"],[10,"10"]];
+    for(const [h,k] of steps){if(VXS.said["h"+h])continue;if(agl<h-60){VXS.said["h"+h]=1;continue}
+      const dt=(agl-h)/rate;if(agl<=h+2||dt<1.15){VXS.said["h"+h]=1;VXS.tm.push(setTimeout(()=>voxPlay(k,true),Math.max(0,dt)*1000))}}}
+  if(p==="cruise"&&PH.ev&&PH.ev.cr!=null&&L.alt!=null&&Math.abs(L.alt-PH.ev.cr)*FT>300&&now-VXS.lastAlt>300000&&!(vsFpm()<-700)){VXS.lastAlt=now;voxPlay("altitude")}
+  if((S.cockpit==="p51"||S.cockpit==="f4")&&RET.v&&RET.v.fuel!=null&&RET.v.fuel<20&&!VXS.said.bingo&&["climb","cruise","descent"].includes(p)){VXS.said.bingo=1;voxPlay("bingo")}}
+setInterval(()=>{try{voxTick()}catch(e){}},500);
+document.querySelectorAll('.seg[data-k="vox"]').forEach(s=>s.addEventListener("click",()=>setTimeout(()=>{pickVoice();if(S.vox!=="off"&&voiceOn)voxPlay("minimums")},0)));
+window.cpVox=k=>k?voxPlay(k):({mode:S.vox,played:VOXQ.n,bad:Object.keys(VOXQ.bad),voice:auVoice?auVoice.name:null});
+applySeg();
 }
 </script>
 </body>

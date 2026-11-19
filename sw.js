@@ -3,6 +3,7 @@ const C='cabin-panel-v22';
 const F=['./','index.html','manifest.webmanifest','icon-180.png','icon-512.png','icon-512-maskable.png',
   'bg-day.webp','bg-ocean.webp','bg-sunset.webp','bg-night.webp','bg-appday.webp','bg-appnight.webp',
   'bg-apron.webp','bg-apronnight.webp','rwy.json','twy.json','lmk.json',
+  'g-f4-adi.webp','g-f4-alt.webp','g-f4-aoa.webp','g-f4-asi.webp','g-f4-clock.webp','g-f4-g.webp','g-f4-hsi.webp','g-f4-panel.webp','g-f4-vvi.webp','g-p51-ai.webp','g-p51-alt.webp','g-p51-asi.webp','g-p51-cmp.webp','g-p51-dg.webp','g-p51-fuel.webp','g-p51-mp.webp','g-p51-panel.webp','g-p51-rpm.webp','g-p51-tb.webp','g-p51-vsi.webp',
   'plane.webp','bezel.webp','splash-1290x2796.jpg','splash-1179x2556.jpg','splash-1170x2532.jpg'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
