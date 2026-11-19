@@ -188,6 +188,18 @@ body.arf-wht #arVid{filter:grayscale(1) contrast(1.35) brightness(1.05)}
 body.fhr #fhOv{justify-content:center}body.fhr #fhSlot{flex:1;align-items:stretch}
 body.fhr #fhSlot{position:relative;width:100%;min-height:0}body.fhr #fhSlot #retro{position:absolute;inset:0;width:auto;height:auto;border-radius:0}body.fhr #fhSlot #retroCv{height:100%!important}
 body.fhr #fhPhase{display:none}
+/* v22c: no wasted space. "Fill" pages stretch their main element to the bottom of the screen */
+.page.fill>.wrap{min-height:100%;display:flex;flex-direction:column}
+.page.fill>.wrap>*{flex:0 0 auto}
+#pg-map #mapFig.big{flex:1 1 auto;height:auto;min-height:300px}
+#pg-prof #profFig{flex:1 1 auto;height:auto!important;min-height:230px;max-height:none}
+#pg-ar .wrap>.tile{flex:1 1 auto;display:flex;flex-direction:column}
+#arBtn.arBig{flex:1 1 auto;min-height:180px;margin:4px 0 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:17px;letter-spacing:.06em;background:radial-gradient(ellipse at 50% 40%,rgba(141,255,158,.10),rgba(0,0,0,.35) 70%),#0b1410;color:#8dff9e;border:1px solid rgba(141,255,158,.45)}
+#arBtn.arBig svg{width:min(70%,320px);height:auto;max-height:55%}
+#pg-book .wrap>.tile{flex:1 1 auto;display:flex;flex-direction:column}
+#pg-book #bookList{flex:1 1 auto}
+#pg-nav .wrap>.grid{flex:1 1 auto;align-content:start}
+#pg-hud #retroTile{display:flex;flex-direction:column}
 </style>
 </head>
 <body>
@@ -202,7 +214,7 @@ body.fhr #fhPhase{display:none}
   <nav id="pgNav" aria-label="Screens"><button id="pgPrev" aria-label="Previous screen">‹</button><span id="pgTitle">HUD</span><div id="pgDots"></div><button id="pgNext" aria-label="Next screen">›</button></nav>
 </div></header>
 <main id="pages">
-<section class="page" id="pg-hud" data-t="HUD"><div class="wrap">
+<section class="page fill" id="pg-hud" data-t="HUD"><div class="wrap">
   <div class="row" id="startRow" style="margin-bottom:10px">
     <button class="pri" id="hfBtn">Hands-free</button>
     <button id="gpsBtn">Start GPS</button>
@@ -227,6 +239,7 @@ body.fhr #fhPhase{display:none}
   </div>
   <div class="row" id="ckRow"><span class="sub">Cockpit</span><span class="seg" data-k="cockpit"><button data-v="modern">Modern</button><button data-v="f4">F-4</button><button data-v="p51">P-51</button></span></div>
   <div class="grid">
+    <div class="tile wide" id="retroTile" style="display:none"><div class="lab"><span id="retroName">Retro panel</span><button id="fpBtn">Full panel</button></div><div id="retroHome"><div id="retro"><canvas id="retroCv" aria-label="Retro instrument panel driven by GPS"></canvas></div></div><div class="note" style="margin:6px 0 0">Classic-style gauges driven by your phone's GPS. Airspeed is groundspeed; engine, fuel and AOA are simulated from the flight phase. Generic designs, not real aircraft instruments. Entertainment only.</div></div>
     <div class="tile wide hud">
       <div class="hudwrap" id="hudwrap"><svg id="hud" viewBox="0 0 360 300" aria-label="Head-up display"><defs><clipPath id="hbg"><rect x="0" y="0" width="360" height="300" rx="4"/></clipPath><filter id="nvgF"><feColorMatrix type="matrix" values="0 0 0 0 0  .30 .59 .11 0 0  0 0 0 0 0  0 0 0 1 0"/></filter><filter id="glow" x="-8%" y="-8%" width="116%" height="116%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.3" result="b"/><feDropShadow in="SourceGraphic" dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".9" result="s"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="s"/></feMerge></filter><filter id="sh" x="-5%" y="-5%" width="110%" height="110%"><feDropShadow dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".95"/></filter></defs><g clip-path="url(#hbg)"><g id="bgG"><image id="bgA" class="bgI" href="" x="-180" y="-390" width="720" height="1080" preserveAspectRatio="none" opacity="1"/><image id="bgB" class="bgI" href="" x="-180" y="-390" width="720" height="1080" preserveAspectRatio="none" opacity="0"/><rect id="skyF" x="-420" y="-1150" width="1200" height="1300" fill="#2a6fc0" opacity=".1"/><rect id="gndF" x="-420" y="150" width="1200" height="1300" fill="#6b4220" opacity=".1"/></g><rect id="bgDim" width="360" height="300" fill="#000" opacity=".34"/><rect x="0" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="302" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="60" y="0" width="240" height="34" fill="#000" opacity=".45"/><rect x="0" y="0" width="58" height="34" fill="#000" opacity=".5"/><rect x="302" y="0" width="58" height="34" fill="#000" opacity=".5"/><rect x="0" y="270" width="360" height="30" fill="#000" opacity=".45"/></g><g id="hudSym" filter="url(#glow)"></g></svg></div>
       <div class="hudkv">
@@ -241,17 +254,16 @@ body.fhr #fhPhase{display:none}
     <div class="tile"><div class="lab"><span>Track</span></div><div class="val" id="trk">---<small>°T</small></div><div class="sub" id="trk2">&nbsp;</div></div>
     <div class="tile"><div class="lab"><span>Vertical speed</span></div><div class="val" id="vs">---<small>fpm</small></div><div class="sub" id="vs2">&nbsp;</div></div>
 
-    <div class="tile wide" id="retroTile" style="display:none"><div class="lab"><span id="retroName">Retro panel</span><button id="fpBtn">Full panel</button></div><div id="retroHome"><div id="retro"><canvas id="retroCv" aria-label="Retro instrument panel driven by GPS"></canvas></div></div><div class="note" style="margin:6px 0 0">Classic-style gauges driven by your phone's GPS. Airspeed is groundspeed; engine, fuel and AOA are simulated from the flight phase. Generic designs, not real aircraft instruments. Entertainment only.</div></div>
   </div>
 </div></section>
-<section class="page" id="pg-map" data-t="Map"><div class="wrap">
+<section class="page fill" id="pg-map" data-t="Map"><div class="wrap">
   <h2>Map</h2>
   <div class="fig big" id="mapFig"><canvas id="map"></canvas><div class="mz"><button id="mzAuto" class="on" aria-label="Auto zoom">AUTO</button><button id="mzWx" class="on" aria-label="Weather overlay">WX</button><button id="mzIn" aria-label="Zoom in">+</button><button id="mzOut" aria-label="Zoom out">−</button></div></div>
   <div class="prog"><i id="progBar"></i></div>
   <div class="note" id="progTxt">Pick your departure and destination airports.</div>
   <div class="note" id="wxNote"></div>
 </div></section>
-<section class="page" id="pg-nav" data-t="Nav"><div class="wrap">
+<section class="page fill" id="pg-nav" data-t="Nav"><div class="wrap">
   <div class="grid">
     <div class="tile wide" id="arrTile" style="display:none"><div class="lab"><span id="arrHead">Arrival</span></div><div class="kv3" id="arrKv"></div></div>
     <div class="tile wide"><div class="lab"><span>Position</span></div>
@@ -281,7 +293,7 @@ body.fhr #fhPhase{display:none}
     </div>
   </div>
 </div></section>
-<section class="page" id="pg-prof" data-t="Profile"><div class="wrap">
+<section class="page fill" id="pg-prof" data-t="Profile"><div class="wrap">
   <h2>Flight profile</h2>
   <div class="fig" id="profFig" style="height:230px"><canvas id="prof"></canvas></div>
   <div class="note" id="profTxt">Altitude flown (solid) against a typical profile for this route (dashed).</div>
@@ -302,11 +314,11 @@ body.fhr #fhPhase{display:none}
     <ul id="skyList" class="lm"></ul>
   </div>
 </div></section>
-<section class="page" id="pg-ar" data-t="AR"><div class="wrap">
+<section class="page fill" id="pg-ar" data-t="AR"><div class="wrap">
   <h2>AR window</h2>
   <div class="tile">
     <p class="note" style="margin:0 0 10px">Hold the phone up to the window. The rear camera shows the view with targeting-pod boxes on landmarks, airports, your destination, top of descent and your marks, each with distance, bearing and a short note. Arrows at the edges point to things off to the left or right. Tap a box to lock it.</p>
-    <div class="row"><button id="arBtn" class="pri">Open AR window</button></div>
+    <button id="arBtn" class="pri arBig" aria-label="Open AR window"><svg viewBox="-100 -70 200 140" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2"><path d="M-62-44h-16v16M62-44h16v16M-62 44h-16v-16M62 44h16v-16"/><path d="M-40 0h-26M40 0h26M0-26v-18M0 26v18M-30-4v8M30-4v8"/><path d="M-50-58h100" stroke-width="1.4"/><path d="M-40-58v6M-20-58v4M0-58v8M20-58v4M40-58v6" stroke-width="1.4"/><rect x="18" y="-22" width="28" height="18" stroke-dasharray="0" stroke-width="1.6"/></g><text x="32" y="-26" fill="currentColor" font-size="9" text-anchor="middle" font-family="B612 Mono,monospace" font-weight="700">TGT</text></svg><span>Open AR window</span></button>
     <div class="note">A box shows where something should be, sized by how sure the phone is of its heading. Fused (default) uses the compass for where the phone points and your GPS track to correct its drift, so boxes stay tight (about ±1.5°) and widen by themselves if the compass reports trouble or drifts away from the GPS. If boxes sit off, tap Align while looking square out of the window, or fine-tune with Trim. TV, GRN and WHT switch the camera look. Things beyond your horizon get dashed boxes. Entertainment only, not for navigation.</div>
   </div>
 </div></section>
@@ -349,7 +361,7 @@ body.fhr #fhPhase{display:none}
   </div>
 
 </div></section>
-<section class="page" id="pg-book" data-t="Logbook"><div class="wrap">
+<section class="page fill" id="pg-book" data-t="Logbook"><div class="wrap">
   <h2>Logbook</h2>
   <div class="tile"><div class="row" style="margin-bottom:10px"><button id="expBtn">Export logbook</button><button id="impBtn">Import</button><input type="file" id="impFile" accept=".json,application/json" style="display:none"></div>
     <div class="note" id="bookTxt" style="margin:0 0 10px">Back up your flights to Files or iCloud Drive. The logbook lives only on this phone.</div>
@@ -1666,8 +1678,9 @@ const LV=[850,700,500,300,250,200];
 function packMsg(t){$("packTxt").textContent=t}
 /* Open-Meteo forecast for route points at the hour each point is overflown */
 const OMV=(()=>{const hv=["temperature_2m","precipitation","weather_code","cloud_cover","cape","wind_speed_10m","wind_gusts_10m"];for(const p of LV)hv.push("wind_speed_"+p+"hPa","wind_direction_"+p+"hPa","temperature_"+p+"hPa","geopotential_height_"+p+"hPa");return hv})();
-async function omSamples(pts,timeOf){const url="https://api.open-meteo.com/v1/forecast?latitude="+pts.map(p=>p.lat).join(",")+"&longitude="+pts.map(p=>p.lon).join(",")+"&hourly="+OMV.join(",")+"&wind_speed_unit=kn&timeformat=unixtime&forecast_days=3&timezone=GMT";
-  const r=await fetchT(url,25000);if(!r.ok)throw new Error("weather service answered "+r.status);let j=await r.json();if(!Array.isArray(j))j=[j];
+async function omSamples(pts,timeOf){if(pts.length>8){let out=[];for(let i=0;i<pts.length;i+=8)out=out.concat(await omSamples(pts.slice(i,i+8),timeOf));return out}
+  const url="https://api.open-meteo.com/v1/forecast?latitude="+pts.map(p=>p.lat).join(",")+"&longitude="+pts.map(p=>p.lon).join(",")+"&hourly="+OMV.join(",")+"&wind_speed_unit=kn&timeformat=unixtime&forecast_days=3&timezone=GMT";
+  let r;try{r=await fetchT(url,20000)}catch(e){r=await fetchT(url,25000)}if(!r.ok)throw new Error("weather service answered "+r.status);let j=await r.json();if(!Array.isArray(j))j=[j];
   return pts.map((p,i)=>{const h=(j[i]||{}).hourly||{},tt=timeOf(p);let bi=0,bd=1e15;(h.time||[]).forEach((t,k)=>{const d=Math.abs(t*1000-tt);if(d<bd){bd=d;bi=k}});
       const g=k=>{const a=h[k];const v=a?a[bi]:null;return typeof v==="number"&&isFinite(v)?+v.toFixed(1):null};
       return {f:+p.f.toFixed(4),lat:p.lat,lon:p.lon,t:h.time&&h.time[bi]?h.time[bi]*1000:tt,T:g("temperature_2m"),pr:g("precipitation"),wc:g("weather_code"),cc:g("cloud_cover"),cape:g("cape"),w10:g("wind_speed_10m"),g10:g("wind_gusts_10m"),
@@ -1850,7 +1863,7 @@ function arFrame(ts){AR.raf=0;if(!arOn)return;const dt=AR.lt?Math.min(0.5,(ts-AR
   if(ts-AR.tgAt>1000){AR.tgAt=ts;try{AR.tg=arTargets()}catch(e){AR.tg=[]}const m=arStatus(),el=$("arMsg");if(m!==AR.msgShown){AR.msgShown=m;el.textContent=m;el.style.display=m?"":"none"}if(AR.sen==="wait"&&AR.ot)AR.sen="ok";$("arSen").style.display=AR.listen&&AR.ot?"none":"";$("arPhase").textContent=PHN[PH.p]||""}
   try{arDraw(dt)}catch(e){console.warn(e)}
   AR.raf=requestAnimationFrame(arFrame)}
-window.cpAR=()=>({bias:AR.bias,flt:S.arFlt,on:arOn,cam:AR.cam,sen:AR.sen,src:AR.src,hdg:AR.hs,pitch:AR.ps,roll:AR.rs,targets:AR.tg.length,view:AR.view||null,lock:AR.lock,hits:(AR.hits||[]).slice(0,12)});
+window.cpAR=()=>({bias:AR.bias,flt:S.arFlt,on:arOn,cam:AR.cam,sen:AR.sen,src:AR.src,hdg:AR.hs,pitch:AR.ps,roll:AR.rs,targets:AR.tg.length,view:AR.view||null,lock:AR.lock,hits:(AR.hits||[]).slice(0,12),lay:AR.lay||null});
 /* heading solution: FUSED (default) = phone compass for orientation (+WMM variation) with a slow GPS-track drift/bias
    correction learned while you look out of the chosen window; COMPASS = compass only; GPS = track ±90°.
    Box size = heading uncertainty: ~1° compass (measured in flight) + 0.5° lens/FOV + GPS terms, widened if iOS reports
@@ -1897,20 +1910,33 @@ function arDraw(dt){
     S2(()=>{x.moveTo(cx,tY+24);x.lineTo(cx-6,tY+33);x.moveTo(cx,tY+24);x.lineTo(cx+6,tY+33)},1.5);
     if(so.win!=null&&so.src!=="GPS TRK L"&&so.src!=="GPS TRK R"){const px=cx+w180(so.win-az)*ppd;if(px>tx0&&px<tx1){x.fillStyle=SYM;x.fillRect(px-1,tY+24,2,9)}}}
   else T("NO HDG",cx,tY+10,14,"center","#ffbf00");
-  /* elevation scale (left) */
-  {const lsc=W>H*1.2,eh=lsc?Math.min(120,H*0.25):120,ex=lsc?Math.round(W*0.2):26,ey0=cy-eh,ey1=cy+eh,k=2*eh/50;/* +20..-30 deg */S2(()=>{x.moveTo(ex,ey0);x.lineTo(ex,ey1);for(let e=20;e>=-30;e-=5){const y=ey0+(20-e)*k;x.moveTo(ex,y);x.lineTo(ex+(e%10===0?10:6),y)}},1.5);
+  /* ---- layout with collision avoidance: reserved areas first, then labels in priority order ---- */
+  const RS=[],hitR=r=>RS.some(q=>r[0]<q[0]+q[2]&&r[0]+r[2]>q[0]&&r[1]<q[1]+q[3]&&r[1]+r[3]>q[1]),res=r=>{RS.push(r);return r};
+  const narrow=W<560,lsc=W>H*1.2,arMin=document.body.classList.contains("arMin");
+  res([tx0-4,tY-12,tw+8,48]);            /* heading tape */
+  res([0,tY+26,172,66]);                 /* top-left data */
+  res([W-172,tY+26,172,80]);             /* top-right data */
+  res([cx-72,cy-52,144,104]);            /* gun cross: never draw labels through it */
+  /* elevation scale: left edge in portrait (edge cues go below it), inboard in landscape (cues stay at the edge) */
+  {const eh=lsc?Math.min(110,H*0.24):Math.min(95,H*0.12),ex=lsc?Math.round(Math.min(W*0.2,cx-190)):26,ey0=cy-eh,ey1=cy+eh,k=2*eh/50;
+    S2(()=>{x.moveTo(ex,ey0);x.lineTo(ex,ey1);for(let e=20;e>=-30;e-=5){const y=ey0+(20-e)*k;x.moveTo(ex,y);x.lineTo(ex+(e%10===0?10:6),y)}},1.5);
     for(let e=20;e>=-30;e-=10){T(String(e),ex+14,ey0+(20-e)*k+4,10,"left",DIM)}
-    if(tiltOk){const y=ey0+(20-Math.max(-30,Math.min(20,pitch)))*k;x.fillStyle=SYM;x.beginPath();x.moveTo(ex-2,y);x.lineTo(ex-12,y-6);x.lineTo(ex-12,y+6);x.closePath();x.fill()}T("EL",ex-6,ey0-10,10,"left")}
+    if(tiltOk){const y=ey0+(20-Math.max(-30,Math.min(20,pitch)))*k;x.fillStyle=SYM;x.beginPath();x.moveTo(ex-2,y);x.lineTo(ex-12,y-6);x.lineTo(ex-12,y+6);x.closePath();x.fill()}
+    T("EL",ex-6,ey0-10,10,"left");res([ex-16,ey0-22,58,ey1-ey0+32])}
   /* corner data blocks */
   const tl=["ALT "+(L&&L.alt!=null?Math.round(fAlt(L.alt)).toLocaleString():"----")+(S.alt==="ft"?" FT":" M"),"GS  "+(L&&L.spd!=null?Math.round(fSpd(L.spd)):"---")+" "+S.spd.toUpperCase(),"TRK "+(L&&L.trk!=null?p3(L.trk):"---")];
+  x.font=F(12);{const w1=Math.max(...tl.map(s=>x.measureText(s).width))+12;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(4,tY+30,w1,48)}
   tl.forEach((s,i)=>T(s,10,tY+44+i*15,12,"left"));
   const d=new Date(),tr=[d.toTimeString().slice(0,8)+" L",d.toISOString().slice(11,16)+"Z",({norm:"DAY TV",grn:"FLIR GRN",wht:"FLIR WHT"})[flt]+" · WFOV",(PHN[PH.p]||"").toUpperCase()];
+  x.font=F(12);{const w2=Math.max(...tr.map(s=>x.measureText(s).width))+12;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(W-4-w2,tY+30,w2,63)}
   tr.forEach((s,i)=>T(s,W-10,tY+44+i*15,12,"right"));
   AR.view=az==null?null:{az:+az.toFixed(1),unc:+unc.toFixed(1),pitch:+pitch.toFixed(1),roll:+roll.toFixed(1),ppd:+ppd.toFixed(2),src:so.src,bias:+AR.bias.toFixed(1)};
-  const br=[(so.src||"NO HDG")+(unc!=null?" ±"+unc.toFixed(1)+"°":""),(tiltOk?"EL "+(pitch>=0?"+":"")+pitch.toFixed(1)+"°":"EL ---")+" TRIM "+(S.arTrim>0?"+":"")+S.arTrim,"BIAS "+(AR.bias>=0?"+":"")+AR.bias.toFixed(1)+"° VAR "+(so.dec>=0?"E":"W")+Math.abs(so.dec).toFixed(0)];
-  const brX=document.body.classList.contains("arMin")?W-62:W-10;br.forEach((s,i)=>T(s,brX,yB-36+i*15,11,"right",i?DIM:SYM));
-  AR.hits=[];
-  if(az==null||!L){x.restore&&0;return}
+  /* bottom-right sensor block: kept above the ⚙ button so nothing is clipped */
+  const br=[(so.src||"NO HDG")+(unc!=null?" ±"+unc.toFixed(1)+"°":""),(tiltOk?"EL "+(pitch>=0?"+":"")+pitch.toFixed(1)+"°":"EL ---")+"  TRIM "+(S.arTrim>0?"+":"")+S.arTrim,"BIAS "+(AR.bias>=0?"+":"")+AR.bias.toFixed(1)+"°  VAR "+(so.dec>=0?"E":"W")+Math.abs(so.dec).toFixed(0)];
+  let brB=yB;if(arMin){const gr=$("arShow").getBoundingClientRect();if(gr.height)brB=Math.min(yB,gr.top-cT-8)}
+  x.font=F(11);const brW=Math.max(...br.map(s=>x.measureText(s).width));br.forEach((s,i)=>T(s,W-10,brB-30+i*15,11,"right",i?DIM:SYM));res([W-brW-16,brB-44,brW+16,48]);
+  AR.hits=[];AR.lay={labels:0,hidden:0,cues:0};
+  if(az==null||!L)return;
   /* targets */
   const hf=W/ppd/2,vf=H/ppd/2,on=[],offL=[],offR=[];
   for(const t of AR.tg){const dA=w180(t.b-az),dE=t.el-pitch;if(Math.abs(dA)<hf+1&&Math.abs(dE)<vf+1){const [px,py]=proj(dA,dE);if(px>-10&&py>-10&&px<W+10&&py<H+10){on.push(Object.assign({px,py,dA},t));continue}}
@@ -1918,35 +1944,48 @@ function arDraw(dt){
   const pri=t=>t.n===AR.lock?-1e9:(t.kind==="dest"?0:t.kind==="mk"?1:t.kind==="wpt"?2:3)*1e7+t.d;
   const lockT=AR.tg.find(t=>t.n===AR.lock)||null;
   let des=on.find(t=>t.n===AR.lock)||on.slice().sort((a,b)=>Math.hypot(a.px-cx,a.py-cy)-Math.hypot(b.px-cx,b.py-cy)).find(t=>Math.abs(t.dA)<Math.max(unc*2,4)+3&&!t.hid)||null;
-  /* other targets: small diamond + short tag */
-  const others=on.filter(t=>t!==des).sort((a,b)=>pri(a)-pri(b)).slice(0,9),boxes=[];
-  for(const t of others){const s=Math.max(5,Math.min(40,Math.max(unc,deg(Math.atan2(t.r*0.5,t.d)))*ppd));x.save();x.globalAlpha=t.hid?.45:.9;
-    if(s>9)S2(()=>{x.rect(t.px-s,t.py-s*0.7,2*s,1.4*s)},1.2);else S2(()=>{x.moveTo(t.px,t.py-6);x.lineTo(t.px+6,t.py);x.lineTo(t.px,t.py+6);x.lineTo(t.px-6,t.py);x.closePath()},1.3);
-    const nm=(t.n.length>18?t.n.slice(0,17)+"…":t.n).toUpperCase(),lx=t.px+Math.max(s,6)+4,ly=t.py-Math.max(s*0.7,6)+10;x.font=F(10);const lw=x.measureText(nm).width;
-    if(!boxes.some(b=>lx<b[0]+b[2]&&lx+lw>b[0]&&ly-10<b[1]+b[3]&&ly+4>b[1])&&lx+lw<W-4){boxes.push([lx,ly-10,lw,14]);T(nm,lx,ly,10,"left",DIM)}
-    x.restore();AR.hits.push({n:t.n,x0:t.px-s-8,x1:t.px+s+8,y0:t.py-s-8,y1:t.py+s+8})}
-  /* designated / locked target: track gates sized to the heading uncertainty */
+  /* range readout + target data block (bottom left; in portrait RNG sits above the block) */
+  const tg=des||lockT;
+  if(tg){const ls=[(AR.lock===tg.n?"◆ ":"")+tg.n.toUpperCase().slice(0,30),"BRG "+p3(tg.b)+"°T  EL "+(tg.el>=0?"+":"")+tg.el.toFixed(1)+"°"+(tg.hid?"  BEYOND HZN":"")];
+    const mxw=narrow?Math.min(W-brW-40,W*0.62):Math.min(W*0.4,340);let notes=[];
+    if(tg.note){x.font="12px \"B612\",sans-serif";let cur="";for(const w of tg.note.split(" ")){const tt=cur?cur+" "+w:w;if(x.measureText(tt).width>mxw){notes.push(cur);cur=w;if(notes.length===2)break}else cur=tt}if(notes.length<2&&cur)notes.push(cur);if(notes.length===2&&tg.note.indexOf(notes[1])+notes[1].length<tg.note.length-1)notes[1]+="…"}
+    const nL=ls.length+notes.length,by=yB-6-(nL-1)*15;
+    ls.forEach((s,i)=>T(s,10,by+i*15,i?11:12,"left",i?DIM:(AR.lock===tg.n?"#ffbf00":SYM)));
+    notes.forEach((s,i)=>{x.font="12px \"B612\",sans-serif";x.textAlign="left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";const yy=by+(ls.length+i)*15;x.strokeText(s,10,yy);x.fillStyle=SYM;x.fillText(s,10,yy)});
+    res([0,by-14,mxw+20,yB-by+20]);
+    const rng=fDst(tg.d),rs=(rng<10?rng.toFixed(1):Math.round(rng).toLocaleString())+" "+S.dst.toUpperCase(),ry=narrow?by-24:yB-14;
+    T("RNG",cx,ry-20,10,"center",DIM);T(rs,cx,ry,22,"center",AR.lock===tg.n?"#ffbf00":SYM);res([cx-80,ry-32,160,38])}
+  /* designated / locked target: track gates sized to the heading uncertainty; TGT / TGT LOCK above the box */
   if(des){const ang=Math.max(unc,deg(Math.atan2(des.r*0.5,des.d))),hw=Math.max(14,Math.min(W*0.4,ang*ppd)),hh=Math.max(12,Math.min(H*0.3,hw*0.75)),lk=AR.lock===des.n,c=lk?"#ffbf00":SYM;
     x.save();if(des.hid)x.setLineDash([6,5]);const g=Math.min(hw,hh)*0.5;x.strokeStyle="rgba(0,0,0,.85)";
     const gates=()=>{for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){const X0=des.px+sx*hw,Y0=des.py+sy*hh;x.moveTo(X0-sx*g,Y0);x.lineTo(X0,Y0);x.lineTo(X0,Y0-sy*g)}};
     x.lineWidth=lk?5:4.2;x.beginPath();gates();x.stroke();x.strokeStyle=c;x.lineWidth=lk?3:2;x.beginPath();gates();x.stroke();
     if(lk){x.lineWidth=1.2;x.strokeRect(des.px-hw-5,des.py-hh-5,2*hw+10,2*hh+10)}x.restore();
     S2(()=>{x.moveTo(des.px-6,des.py);x.lineTo(des.px+6,des.py);x.moveTo(des.px,des.py-6);x.lineTo(des.px,des.py+6)},1.4);
-    T(lk?"TGT LOCK":"TGT",des.px,des.py-hh-9,12,"center",c);
+    const tt=lk?"TGT LOCK":"TGT";x.font=F(12);const tw2=x.measureText(tt).width;let ty=des.py-hh-(lk?12:9);if(ty<tY+40)ty=des.py+hh+(lk?22:19);
+    T(tt,des.px,ty,12,"center",c);res([des.px-tw2/2-4,ty-13,tw2+8,17]);res([des.px-hw-6,des.py-hh-6,2*hw+12,2*hh+12]);
     AR.hits.push({n:des.n,x0:des.px-hw-8,x1:des.px+hw+8,y0:des.py-hh-8,y1:des.py+hh+8})}
-  /* off-screen cues (caret + name + angle), max 3 a side */
-  const cue=(arr,side)=>{arr.filter(t=>Math.abs(t.dA)<=110||t.kind==="dest"||t.n===AR.lock).sort((a,b)=>pri(a)-pri(b)).slice(0,3).forEach((t,i)=>{const y=cy-30+i*34,xx=side<0?6:W-6,c=t.n===AR.lock?"#ffbf00":SYM;
+  /* off-screen cues: max 3 a side, stacked into free slots, lower priority dropped if no room */
+  const yTop=tY+84,yBot=yB-4;
+  const cue=(arr,side)=>{let n=0;for(const t of arr.filter(t=>Math.abs(t.dA)<=110||t.kind==="dest"||t.n===AR.lock).sort((a,b)=>pri(a)-pri(b))){if(n>=3)break;
+    const nm=(t.n.length>16?t.n.slice(0,15)+"…":t.n).toUpperCase(),sub=Math.round(Math.abs(t.dA))+"° "+Math.round(fDst(t.d))+S.dst.toUpperCase();x.font=F(10);const mw=Math.max(x.measureText(nm).width,x.measureText(sub).width);
+    let y=null;const order=[];for(let yy=cy-30;yy<=yBot-14;yy+=17)order.push(yy);for(let yy=cy-47;yy>=yTop;yy-=17)order.push(yy);
+    for(const yy of order){const r=side<0?[0,yy-14,mw+26,30]:[W-mw-26,yy-14,mw+26,30];if(!hitR(r)){y=yy;res(r);break}}
+    if(y==null){AR.lay.hidden++;continue}n++;AR.lay.cues++;
+    const xx=side<0?6:W-6,c=t.n===AR.lock?"#ffbf00":SYM;
     x.fillStyle="rgba(0,0,0,.8)";x.beginPath();x.moveTo(xx,y);x.lineTo(xx-side*13,y-8);x.lineTo(xx-side*13,y+8);x.closePath();x.fill();x.fillStyle=c;x.beginPath();x.moveTo(xx+side*-1,y);x.lineTo(xx-side*12,y-6.5);x.lineTo(xx-side*12,y+6.5);x.closePath();x.fill();
-    const nm=(t.n.length>16?t.n.slice(0,15)+"…":t.n).toUpperCase();T(nm,xx-side*17,y-1,10,side<0?"left":"right",c);T(Math.round(Math.abs(t.dA))+"° "+Math.round(fDst(t.d))+S.dst.toUpperCase(),xx-side*17,y+11,10,side<0?"left":"right",DIM);
-    x.font=F(10);const mw=Math.max(x.measureText(nm).width,60);AR.hits.push({n:t.n,x0:side<0?0:W-mw-30,x1:side<0?mw+30:W,y0:y-14,y1:y+16})})};
+    T(nm,xx-side*17,y-1,10,side<0?"left":"right",c);T(sub,xx-side*17,y+11,10,side<0?"left":"right",DIM);
+    AR.hits.push({n:t.n,x0:side<0?0:W-mw-30,x1:side<0?mw+30:W,y0:y-14,y1:y+16})}};
   cue(offL.filter(t=>t.n!==(des&&des.n)),-1);cue(offR.filter(t=>t.n!==(des&&des.n)),1);
-  /* range readout + target data block (bottom left) */
-  const tg=des||lockT;
-  if(tg){const rng=fDst(tg.d);T("RNG",cx,yB-34,10,"center",DIM);T((rng<10?rng.toFixed(1):Math.round(rng).toLocaleString())+" "+S.dst.toUpperCase(),cx,yB-14,22,"center",AR.lock===tg.n?"#ffbf00":SYM);
-    const ls=[(AR.lock===tg.n?"◆ ":"")+tg.n.toUpperCase().slice(0,30),"BRG "+p3(tg.b)+"°T  EL "+(tg.el>=0?"+":"")+tg.el.toFixed(1)+"°"+(tg.hid?"  BEYOND HZN":"")];
-    let notes=[];if(tg.note){x.font="12px \"B612\",sans-serif";const mxw=Math.min(W*0.55,340);let cur="";for(const w of tg.note.split(" ")){const tt=cur?cur+" "+w:w;if(x.measureText(tt).width>mxw){notes.push(cur);cur=w;if(notes.length===2)break}else cur=tt}if(notes.length<2&&cur)notes.push(cur);if(notes.length===2&&tg.note.indexOf(notes[1])+notes[1].length<tg.note.length-1)notes[1]+="…"}
-    const by=yB-(notes.length*15)-38;ls.forEach((s,i)=>T(s,10,by+i*15-(W<500?40:0),i?11:12,"left",i?DIM:(AR.lock===tg.n?"#ffbf00":SYM)));
-    notes.forEach((s,i)=>{x.font="12px \"B612\",sans-serif";x.textAlign="left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";const yy=by+30+i*15-(W<500?40:0);x.strokeText(s,10,yy);x.fillStyle=SYM;x.fillText(s,10,yy)})}
+  /* other targets in view: box or diamond always; name only where it fits (right, then left), else hidden */
+  const others=on.filter(t=>t!==des).sort((a,b)=>pri(a)-pri(b)).slice(0,9);
+  for(const t of others){const s=Math.max(5,Math.min(40,Math.max(unc,deg(Math.atan2(t.r*0.5,t.d)))*ppd));x.save();const bR=[t.px-s,t.py-s,2*s,2*s],undr=[RS[1],RS[2]].some(q=>bR[0]<q[0]+q[2]&&bR[0]+bR[2]>q[0]&&bR[1]<q[1]+q[3]&&bR[1]+bR[3]>q[1]);x.globalAlpha=undr?.22:t.hid?.45:.9;
+    if(s>9)S2(()=>{x.rect(t.px-s,t.py-s*0.7,2*s,1.4*s)},1.2);else S2(()=>{x.moveTo(t.px,t.py-6);x.lineTo(t.px+6,t.py);x.lineTo(t.px,t.py+6);x.lineTo(t.px-6,t.py);x.closePath()},1.3);
+    const nm=(t.n.length>18?t.n.slice(0,17)+"…":t.n).toUpperCase();x.font=F(10);const lw=x.measureText(nm).width,ly=t.py-Math.max(s*0.7,6)+10;
+    const cands=[[t.px+Math.max(s,6)+4,"left"],[t.px-Math.max(s,6)-4,"right"]];let done=false;
+    for(const [lx,al] of cands){const r=al==="left"?[lx-2,ly-11,lw+4,15]:[lx-lw-2,ly-11,lw+4,15];if(r[0]<2||r[0]+r[2]>W-2||hitR(r))continue;res(r);T(nm,lx,ly,10,al,DIM);done=true;AR.lay.labels++;break}
+    if(!done)AR.lay.hidden++;
+    x.restore();AR.hits.push({n:t.n,x0:t.px-s-8,x1:t.px+s+8,y0:t.py-s-8,y1:t.py+s+8})}
 }
 $("arCv").addEventListener("click",e=>{const r=$("arCv").getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;const h=AR.hits.find(b=>px>=b.x0&&px<=b.x1&&py>=b.y0&&py<=b.y1);AR.lock=h?(AR.lock===h.n?null:h.n):null;if(AR.lock)try{voxPlay("target-locked")}catch(_){}hap(10)});
 arUI();
@@ -2007,14 +2046,22 @@ function retroData(dt){const L=viewL()||last,now=Date.now(),V=RET.v,useSen=S.att
 function retroFrame(ts){RET.raf=0;if(!retroVisible())return;if(ts-RET.lt<45){RET.raf=requestAnimationFrame(retroFrame);return}const dt=RET.lt?Math.min(0.5,(ts-RET.lt)/1000):0;RET.lt=ts;
   try{retroDraw(retroData(dt))}catch(e){console.warn(e)}RET.raf=requestAnimationFrame(retroFrame)}
 window.cpRetro=()=>({on:retroOn(),ac:S.cockpit||"modern",vis:retroVisible(),loaded:Object.values(RET.img).filter(i=>i.complete&&i.naturalWidth).length,v:RET.v,lay:RET.lay});
+const RO={p51:["asi","ai","alt","tb","dg","vsi","mp","rpm","fuel","cmp"],f4:["aoa","asi","adi","alt","g","clock","hsi","vvi"]};
 function retroDraw(V){const ac=S.cockpit,box=$("retro"),cv=$("retroCv"),dpr=window.devicePixelRatio||1;
-  const full=fhOn&&box.parentNode===$("fhSlot");let W=box.clientWidth,H;const land=full?box.clientWidth/Math.max(1,box.clientHeight)>1.25:false,lay=RL[ac][land?"l":"p"],cols=lay[0].length,rows=lay.length;
-  let cell;if(full){H=box.clientHeight;cell=Math.min(W/cols,H/rows)}else{cell=W/cols;H=Math.round(cell*rows+8);if(cv.style.height!==H+"px")cv.style.height=H+"px"}
+  const full=fhOn&&box.parentNode===$("fhSlot");let W=box.clientWidth,H;const land=full?box.clientWidth/Math.max(1,box.clientHeight)>1.25:false;
+  let lay,cols,rows,cw,ch;
+  let avail=0;if(!full){const pg=$("pg-hud"),nt=$("retroTile").querySelector(".note");avail=Math.floor(pg.getBoundingClientRect().bottom-box.getBoundingClientRect().top-(nt?nt.offsetHeight+8:0)-34)}
+  if(full||avail>W*1.25){H=full?box.clientHeight:avail;const ids=RO[ac],n=ids.length,top=full?Math.max(52,parseFloat(getComputedStyle($("fhOv")).paddingTop)||0):0,AH=Math.max(50,H-top-18);if(!full&&cv.style.height!==H+"px")cv.style.height=H+"px";let best=null;
+    for(let c=2;c<=6;c++){const r=Math.ceil(n/c),cell=Math.min(W/c,AH/r);if(r*c-n>2)continue;if(!best||cell>best.cell+0.5)best={c,r,cell}}
+    cols=best.c;rows=best.r;lay=[];for(let r=0;r<rows;r++)lay.push(ids.slice(r*cols,r*cols+cols).concat(Array(cols).fill(null)).slice(0,cols));
+    cw=W/cols;ch=AH/rows;RET.top=top;RET.fillMode=full?"full":"tile"}
+  else{lay=RL[ac].p;cols=lay[0].length;rows=lay.length;cw=ch=W/cols;H=Math.round(ch*rows+8);if(cv.style.height!==H+"px")cv.style.height=H+"px";RET.top=0;RET.fillMode=""}
   if(!W||!H)return;if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
-  const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);RET.lay={land,cols,rows,cell:Math.round(cell)};
+  const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);const cell=Math.min(cw,ch);RET.lay={land,cols,rows,cell:Math.round(cell),fill:+((cell*cols*cell*rows)/(W*H)).toFixed(2)};
   const pi=RET.img[ac+"_panel"];if(pi&&pi.complete&&pi.naturalWidth){if(!RET.pat||RET.patK!==ac){RET.pat=x.createPattern(pi,"repeat");RET.patK=ac}x.fillStyle=RET.pat}else x.fillStyle=ac==="p51"?"#0b0b0a":"#2a2c2e";x.fillRect(0,0,W,H);
-  const ox=(W-cell*cols)/2,oy=(H-cell*rows)/2;
-  lay.forEach((row,r)=>row.forEach((id,c)=>{const cx=ox+cell*(c+.5),cy=oy+cell*(r+.5);if(id)gauge(x,ac,id,cx,cy,cell*0.97,V);else placard(x,ac,cx,cy,cell)}));}
+  const oy=RET.top||(full?0:(H-ch*rows)/2);
+  lay.forEach((row,r)=>row.forEach((id,c)=>{const cx=cw*(c+.5),cy=oy+ch*(r+.5);if(id)gauge(x,ac,id,cx,cy,cell*0.97,V);else placard(x,ac,cx,cy,cell)}));
+  if(full||RET.fillMode==="tile"&&avail>W*1.25){x.save();x.font="700 10px \"B612 Mono\",monospace";x.textAlign="center";x.fillStyle=ac==="p51"?"#d9cfb0":"#e8e8e8";x.globalAlpha=.7;x.fillText("GPS-DRIVEN · ENTERTAINMENT ONLY · NOT FOR NAVIGATION",W/2,H-6);x.restore()}}
 function placard(x,ac,cx,cy,cell){const w=cell*0.78,h=cell*0.34;x.save();x.fillStyle=ac==="p51"?"#1a1915":"#3a3d40";x.strokeStyle="rgba(0,0,0,.6)";x.lineWidth=2;x.fillRect(cx-w/2,cy-h/2,w,h);x.strokeRect(cx-w/2,cy-h/2,w,h);
   x.fillStyle=ac==="p51"?"#d9cfb0":"#e8e8e8";x.textAlign="center";x.font="700 "+Math.round(cell*0.065)+"px \"B612 Mono\",monospace";x.fillText(ac==="p51"?"GPS-DRIVEN DISPLAY":"GPS-DRIVEN DISPLAY",cx,cy-cell*0.03);
   x.font=Math.round(cell*0.055)+"px \"B612 Mono\",monospace";x.fillText("ENTERTAINMENT ONLY",cx,cy+cell*0.06);x.fillText("NOT FOR NAVIGATION",cx,cy+cell*0.13);x.restore()}
