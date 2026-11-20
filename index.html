@@ -202,6 +202,15 @@ body.fhr #fhPhase{display:none}
 #pg-hud #retroTile{display:flex;flex-direction:column}
 /* v22d: full retro panel keeps a bottom strip for the callout banner and the disclaimer, so no gauge is covered */
 body.fhr #fhToast{bottom:calc(22px + env(safe-area-inset-bottom));max-width:min(92%,640px);max-height:52px;overflow:hidden;font-size:11px;line-height:1.3}
+/* v22g inbound aircraft */
+#tkBan{margin-top:8px;padding:6px 8px;background:#000;border:1px solid #ff8a1f;color:#ff8a1f;font:700 12px var(--mono);display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+#tkBan span{flex:1 1 60%;text-transform:uppercase}#tkBan small{flex:1 1 100%;order:3;font:400 11px var(--mono);color:#ffb873}
+#tkBan button{padding:4px 9px;font-size:12px;border-color:#ff8a1f;color:#ff8a1f}
+body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--ink)}body.m-nvg #tkBan small{color:var(--dim)}
+#tkTile input[type=text],#tkTile input[type=url]{flex:1 1 120px;min-width:0}#tkTile #tkAp{flex:0 0 92px;text-transform:uppercase}#tkTile #tkTurn{flex:0 0 64px}#tkTile #tkReg{text-transform:uppercase}
+#tkOut li.ok b{color:var(--ok)}#tkOut li.warn b{color:var(--warn)}#tkOut li.bad b{color:var(--bad)}#tkOut li b{text-align:right;font-weight:600}
+#tkTile details{margin-top:8px;font-size:12px;color:var(--dim)}#tkTile summary{cursor:pointer;color:var(--ink)}
+#tkOut li span{flex:0 0 34%;max-width:34%;text-align:left;color:var(--dim)}#tkOut li b{text-transform:none;flex:1;font:600 12px/1.45 var(--mono)}
 </style>
 </head>
 <body>
@@ -213,6 +222,7 @@ body.fhr #fhToast{bottom:calc(22px + env(safe-area-inset-bottom));max-width:min(
   <button id="updBtn" class="upd" style="display:none">New version installed · tap to reload</button>
   <div id="resumeNote" style="display:none"></div>
   <div id="endNote" style="display:none"><span id="endNoteTxt"></span><div class="row"><button id="endNoteBtn" class="pri">End flight</button><button id="endNoteX">Not now</button></div></div>
+  <div id="tkBan" style="display:none" role="status"></div>
   <nav id="pgNav" aria-label="Screens"><button id="pgPrev" aria-label="Previous screen">‹</button><span id="pgTitle">HUD</span><div id="pgDots"></div><button id="pgNext" aria-label="Next screen">›</button></nav>
 </div></header>
 <main id="pages">
@@ -340,6 +350,23 @@ body.fhr #fhToast{bottom:calc(22px + env(safe-area-inset-bottom));max-width:min(
   <h2>Common routes</h2>
   <div class="tile"><div class="row"><button id="rtSave">Save this route</button></div><ul class="lm" id="rtList"></ul></div>
   <div class="note">Saved routes keep their pack on this phone, so the weather, turbulence guide and extra places are there offline. Tap Update before each flight for fresh weather.</div>
+  <h2 id="tkH">Inbound aircraft</h2>
+  <div class="tile" id="tkTile">
+    <div class="lab"><span>Track your aircraft by tail number</span><span>Ground mode</span></div>
+    <p class="note" style="margin:6px 0 4px">Waiting at the airport? Follow the aircraft that will fly your flight before it changes flight numbers: where it is, when it should get here, a rough delay estimate and the weather it has flown through.</p>
+    <div class="row" style="margin-top:6px"><input type="text" id="tkReg" placeholder="Tail number, e.g. VH-YIA" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Aircraft registration (tail number)"><input type="text" id="tkFlt" placeholder="Its flight (optional)" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="9" aria-label="The aircraft's current flight number (optional)"></div>
+    <div class="row"><span class="sub">Your departure</span><input type="time" id="tkDep" aria-label="Your scheduled departure, local time at your airport"><span class="sub">from</span><input type="text" id="tkAp" list="tkApL" placeholder="SYD" maxlength="4" autocapitalize="characters" autocomplete="off" aria-label="Your airport (IATA code)"><datalist id="tkApL"></datalist></div>
+    <div class="row"><span class="sub">Minimum turnaround</span><input type="number" id="tkTurn" min="10" max="240" step="5" value="30" inputmode="numeric" aria-label="Minimum turnaround, minutes"><span class="sub">min</span><button id="tkGo" class="pri">Track</button><button id="tkStop" style="display:none">Stop</button></div>
+    <label class="chk"><input type="checkbox" id="tkShow" checked> Show it on the HUD, Map and Nav while I'm on the ground</label>
+    <div class="note" id="tkSt" style="margin:4px 0 0"></div>
+    <ul class="lm" id="tkOut"></ul>
+    <details><summary>Data source</summary>
+      <label class="chk"><input type="checkbox" id="tkRelay" checked> Allow the public cors.dev relay</label>
+      <div class="row"><input type="url" id="tkProxy" placeholder="Your own proxy URL (optional), https://…" autocomplete="off" spellcheck="false" aria-label="Your own adsb.lol proxy URL"></div>
+      <div class="note" style="margin:4px 0 0">Live positions come from adsb.lol, a free community ADS-B network. Its API doesn't allow requests straight from a web page, so Cabin Panel asks your own proxy if you set one (it should take a full URL after it, like https://your-proxy/https://api.adsb.lol/…; with a proxy, adsb.fi open data is also tried when adsb.lol hasn't seen the aircraft), otherwise the free public cors.dev relay (which can see which aircraft you look up). adsb.lol allows about 500 lookups a day per connection; checks slow down when the aircraft is far away and stop while the app is in the background.</div>
+    </details>
+  </div>
+  <div class="note">Display only: tracking never changes your own flight, phases or logbook. ETA, delay and weather are estimates, not airline information. Aircraft with ADS-B off, outside receiver coverage or hidden from public feeds can't be shown. Your departure time is local time at your airport. ADS-B data: adsb.lol (ODbL)<span id="tkFiCred">; adsb.fi when used through your proxy</span>. Aircraft lookups: adsbdb.com, hexdb.io. Weather data by Open-Meteo.com.</div>
 </div></section>
 <section class="page" id="pg-log" data-t="Log"><div class="wrap">
   <h2>G-meter</h2>
@@ -395,6 +422,7 @@ body.fhr #fhToast{bottom:calc(22px + env(safe-area-inset-bottom));max-width:min(
   Taxiways and aprons: © OpenStreetMap contributors, Open Database Licence (ODbL 1.0), openstreetmap.org/copyright. Simplified extract, November 2026.<br>
   Runways and airport positions: OurAirports (public domain).<br>
   Pre-flight weather: Weather data by Open-Meteo.com (CC BY 4.0), downloaded on request.<br>
+  Inbound aircraft: ADS-B data: adsb.lol (Open Database Licence, ODbL 1.0), live on request; with your own proxy also ADS-B data: adsb.fi open data (personal, non-commercial use); registration lookups by adsbdb.com and hexdb.io.<br>
   Extra places: Wikipedia (CC BY-SA 4.0), downloaded on request. Built-in landmark notes were written for Cabin Panel. Positions are approximate and this is not official aeronautical data.<br>
   Magnetic variation: World Magnetic Model 2025 (NOAA/BGS). HUD scenes were rendered in Blender. Font: B612 (SIL Open Font License).</div></div>
 </div></section>
@@ -485,14 +513,14 @@ $("from").onchange=e=>{prof=[];S.from=e.target.value;saveS();render();drawMap();
 $("to").onchange=e=>{prof=[];S.to=e.target.value;saveS();render();drawMap();profAll()};
 
 /* ---------- vertical speed by regression ---------- */
-function vsFpm(){if(hist.length<3)return null;const t0=hist[0].t,span=(hist[hist.length-1].t-t0)/1000;if(span<4)return null;let n=hist.length,sx=0,sy=0,sxx=0,sxy=0;for(const p of hist){const x=(p.t-t0)/1000;sx+=x;sy+=p.a;sxx+=x*x;sxy+=x*p.a}const den=n*sxx-sx*sx;if(!den)return null;return (n*sxy-sx*sy)/den*FT*60}
+function vsFpm(){if(tkOn())return tkVs();if(hist.length<3)return null;const t0=hist[0].t,span=(hist[hist.length-1].t-t0)/1000;if(span<4)return null;let n=hist.length,sx=0,sy=0,sxx=0,sxy=0;for(const p of hist){const x=(p.t-t0)/1000;sx+=x;sy+=p.a;sxx+=x*x;sxy+=x*p.a}const den=n*sxx-sx*sx;if(!den)return null;return (n*sxy-sx*sy)/den*FT*60}
 
 /* ---------- position handler ---------- */
 /* v18: after a gap (app in background, signal loss or a picked-up flight) bridge the track with a great-circle line */
 function bridgeGap(a,b,t){const gap=(t-a.t)/1000;if(!(gap>20&&gap<8*3600))return;const d=dist(a,b);if(d/gap>400||d<200)return;const n=Math.min(240,Math.floor(gap/15));const sp=+(d/gap).toFixed(1);
   for(let i=1;i<n;i++){const f=i/n,q=gcPoint(a,b,f),al=a.alt!=null&&b.alt!=null?Math.round(a.alt+(b.alt-a.alt)*f):null,tt=Math.round(a.t+f*(t-a.t));
     if(LOG.on)LOG.pts.push([+q.lat.toFixed(6),+q.lon.toFixed(6),al,tt,sp]);const lt=trail[trail.length-1];if(!lt||dist(lt,q)>80)trail.push(q)}if(LOG.on)logDirty=true}
-function viewL(){const L=last;if(!L||demo||REPLAY||L.spd==null||L.spd<25||L.trk==null)return L;const age=(Date.now()-L.t)/1000;if(!(age>8&&age<4*3600))return L;if(!["climb","cruise","descent"].includes(PH.p))return L;const q=dPt(L,L.trk,L.spd*age);return Object.assign({},L,{lat:q.lat,lon:q.lon,dr:age})}
+function viewL(){if(tkOn())return TKS.L;const L=last;if(!L||demo||REPLAY||L.spd==null||L.spd<25||L.trk==null)return L;const age=(Date.now()-L.t)/1000;if(!(age>8&&age<4*3600))return L;if(!["climb","cruise","descent"].includes(PH.p))return L;const q=dPt(L,L.trk,L.spd*age);return Object.assign({},L,{lat:q.lat,lon:q.lon,dr:age})}
 /* ---------- v22e: ground GPS filter (gate and taxi wander fix). Spec by Claude, 20 Nov 2026; built into v22 by Grok Bot ----------
    Runs on real GPS fixes before onPos (demo and replay bypass it). Stopped: one steady, accuracy-weighted position, speed 0, no heading.
    Moving only on real evidence. Speed never from a single 1 s jump. Taxi positions smoothed and snapped to OSM taxiway centrelines.
@@ -626,7 +654,7 @@ function render(){
     if(v!=null){const r=Math.round(v/50)*50;setVal("vs",(r>0?"+":"")+r,"fpm");$("vs2").textContent=Math.abs(r)<200?"Level":r>0?"Climbing ▲":"Descending ▼"}else vsClear();
     if(L.trk!=null){roseRot=unwrap(roseRot,-L.trk);$("rose").setAttribute("transform",`rotate(${roseRot} 150 150)`)}
   }
-  const to=apBy(S.to),fr=apBy(S.from);
+  const tkd=tkOn(),to=tkd?tkAp():apBy(S.to),fr=tkd?null:apBy(S.from);
   $("toCode").textContent=to?to.c:"—";
   if(to&&L){
     const d=dist(L,to),b=brg(L,to);
@@ -713,7 +741,7 @@ setInterval(pickScene,5000);
 let adiR=0,adiP=0,dispS=null,dispA=null,hudKey="",hudLast=0,bootT0=performance.now(),bootDone=false;
 const reduceMo=matchMedia("(prefers-reduced-motion: reduce)").matches;
 function hudDraw(p,r,fpa,live,now){
-  const L=last,cx=180,cy=150,g="var(--hud)",T=(x,y,t,a,sz,w)=>`<text x="${x}" y="${y}" fill="${g}" stroke="none" font-size="${sz||12}" font-weight="${w||400}"${a?` text-anchor="${a}"`:""}>${t}</text>`;
+  const L=tkOn()?TKS.L:last,cx=180,cy=150,g="var(--hud)",T=(x,y,t,a,sz,w)=>`<text x="${x}" y="${y}" fill="${g}" stroke="none" font-size="${sz||12}" font-weight="${w||400}"${a?` text-anchor="${a}"`:""}>${t}</text>`;
   const symG=$("hudSym");
   /* power-on HUD align (skipped with reduced motion) */
   const bt=Math.max(0,now-bootT0);
@@ -742,7 +770,7 @@ function hudDraw(p,r,fpa,live,now){
   /* heading tape (labels kept clear of the box) */
   const hd=L&&L.trk!=null?L.trk:0;let ht="";
   for(let d=Math.floor((hd-45)/5)*5;d<=hd+45;d+=5){const x=cx+(d-hd)*3,n=((d%360)+360)%360;ht+=`<line x1="${x}" y1="32" x2="${x}" y2="${n%10?27:23}"/>`;if(n%10===0&&Math.abs(x-cx)>38&&x>=70&&x<=290)ht+=T(x,17,String(n/10).padStart(2,"0"),"middle",11)}
-  const to=apBy(S.to);if(to&&L){const rel=((brg(L,to)-hd)%360+540)%360-180,x=cx+Math.max(-39,Math.min(39,rel))*3;ht+=`<path d="M${x} 27l5 6h-10z" fill="var(--mag)" stroke="var(--mag)"/>`}
+  const to=tkOn()?tkAp():apBy(S.to);if(to&&L){const rel=((brg(L,to)-hd)%360+540)%360-180,x=cx+Math.max(-39,Math.min(39,rel))*3;ht+=`<path d="M${x} 27l5 6h-10z" fill="var(--mag)" stroke="var(--mag)"/>`}
   const box=d=>`<path d="${d}" fill="#000" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="${d}" fill="#000" stroke="${g}" stroke-width="1.7" stroke-linejoin="round"/>`;
   h+=`<g clip-path="url(#ht)" stroke-width="1.6">${ht}</g>`+box(`M${cx-25} 1H${cx+25}V21H${cx+5}L${cx} 27L${cx-5} 21H${cx-25}Z`)+T(cx,16,L&&L.trk!=null?String(Math.round(hd)%360).padStart(3,"0"):"---","middle",14,700);
   /* rolling-drum readout */
@@ -761,24 +789,25 @@ function hudDraw(p,r,fpa,live,now){
   {const nt=hudNav();if(nt)h+=T(3,14,nt[0],null,10,700)+T(357,14,nt[1],"end",10,700)}
   /* bottom readouts */
   const v=vsFpm();h+=T(4,292,"VS "+(v==null?"---":(v>0?"+":"")+Math.round(v/50)*50),null,12,700)+T(cx,292,gOn&&gS!=null?"G "+gS.toFixed(1):(curScn?"SVS "+SCNN[curScn]+(typeof wxLab==="string"&&wxLab?" · "+wxLab:""):""),"middle",gOn&&gS!=null?12:10,700)+T(356,292,(S.att==="sen"&&sen.on?"GYRO":"GPS")+" ATT","end",12,700);
+  if(tkOn())h+=tkHudBan(cx,T);
   if(!L)h+=`<rect x="${cx-62}" y="${cy-62}" width="124" height="22" fill="#000" stroke="var(--warn)"/><text x="${cx}" y="${cy-46}" fill="var(--warn)" stroke="none" font-size="12" font-weight="700" text-anchor="middle">NO GPS</text>`;
   h+="</g>";symG.innerHTML=h;
 }
 /* battery: one rAF loop at ~15 fps that skips frames when nothing on the HUD has changed */
-function hudNav(){const to=apBy(S.to);if(!to)return null;const n=navT(viewL(),to);return n?["ETA "+n.eta,"REM "+remS(n.sec)]:["ETA --:--","REM --"]}
+function hudNav(){const to=tkOn()?tkAp():apBy(S.to);if(!to)return null;const n=navT(viewL(),to);return n?["ETA "+n.eta,"REM "+remS(n.sec)]:["ETA --:--","REM --"]}
 let bgXf="";
 function hudLoop(now){
   requestAnimationFrame(hudLoop);
-  if(document.hidden||now-hudLast<66)return;hudLast=now;
+  if(document.hidden||now-hudLast<66)return;hudLast=now;const LL=tkOn()?TKS.L:last;
   const useSen=S.att==="sen"&&sen.on,p=useSen?sen.p:att.p,r=useSen?sen.r:att.r;
   adiR+=(r-adiR)*0.35;adiP+=(p-adiP)*0.35;
-  const live=useSen||(last&&last.spd!=null&&last.spd>=30);
-  const v=vsFpm(),fpa=last&&last.spd>30&&v!=null?deg(Math.atan2(v/196.85,last.spd)):null;
-  const tS=last&&last.spd!=null?fSpd(last.spd):null,tA=last&&last.alt!=null?fAlt(last.alt):null;
+  const live=useSen||(LL&&LL.spd!=null&&LL.spd>=30);
+  const v=vsFpm(),fpa=LL&&LL.spd>30&&v!=null?deg(Math.atan2(v/196.85,LL.spd)):null;
+  const tS=LL&&LL.spd!=null?fSpd(LL.spd):null,tA=LL&&LL.alt!=null?fAlt(LL.alt):null;
   dispS=tS==null?null:(dispS==null||Math.abs(tS-dispS)>60?tS:dispS+(tS-dispS)*0.18);
   dispA=tA==null?null:(dispA==null||Math.abs(tA-dispA)>3000?tA:dispA+(tA-dispA)*0.18);
   const booting=!bootDone||(now-bootT0<500);
-  const key=[booting?Math.round(now/66):0,adiP.toFixed(1),adiR.toFixed(1),last&&last.trk!=null?Math.round(last.trk):"-",dispS==null?"-":dispS.toFixed(2),dispA==null?"-":dispA.toFixed(1),v==null?"-":Math.round(v/50),fpa==null?"-":fpa.toFixed(1),live?1:0,last?1:0,curScn,S.spd,S.alt,S.att,sen.on?1:0,gOn&&gS!=null?gS.toFixed(1):"",S.to].join("|");
+  const key=[booting?Math.round(now/66):0,adiP.toFixed(1),adiR.toFixed(1),LL&&LL.trk!=null?Math.round(LL.trk):"-",dispS==null?"-":dispS.toFixed(2),dispA==null?"-":dispA.toFixed(1),v==null?"-":Math.round(v/50),fpa==null?"-":fpa.toFixed(1),live?1:0,LL?1:0,curScn,S.spd,S.alt,S.att,sen.on?1:0,gOn&&gS!=null?gS.toFixed(1):"",S.to].join("|");
   const nt=hudNav();
   const k2=key+"|"+(nt?nt.join(""):"");if(k2!==hudKey){hudKey=k2;hudDraw(Math.max(-60,Math.min(60,adiP)),adiR,fpa,live,now)}
   /* v18: backdrop pitches and banks with the horizon (same scale as the ladder), capped; static with reduced motion */
@@ -841,7 +870,7 @@ function windowInfo(){
 }
 /* v18: what passes your window next, filtered to your seat side */
 function comingUp(L0,range){
-  const L=viewL()||L0,el=$("cuList"),to=apBy(S.to),seat=S.seat==="left"||S.seat==="right"?S.seat:null;
+  const L=(tkOn()?last:viewL())||L0,el=$("cuList"),to=apBy(S.to),seat=S.seat==="left"||S.seat==="right"?S.seat:null;
   if(!L||L.spd==null||L.spd<25||(!to&&L.trk==null)){el.innerHTML='<li><span>Shows what will pass your window once you are moving.</span></li>';$("cuHead").textContent="Coming up";return}
   const crs=to?brg(L,to):L.trk,lim=to?dist(L,to):L.spd*3600,near=5*NMm,hft=Math.max(30000,(L.alt||0)*FT),vr=Math.min(150,Math.max(40,1.17*Math.sqrt(hft)))*NMm;
   const cands=lmAll().map(l=>({n:l.n,lat:l.lat,lon:l.lon,k:"lm"})).concat(AP.filter(a=>!to||a.c!==to.c).map(a=>({n:a.n+" airport ("+a.c+")",lat:a.lat,lon:a.lon,k:"ap"})));
@@ -1351,6 +1380,7 @@ function zoomTarget(fitV,W,H,fr,to){
   const L=last,p=PH.p,fitSpan=spanOf(fitV,W,H);ZM.why="";
   if(ZM.paused&&ZM.man){ZM.mode="manual";return ZM.man}
   if((S.mapAuto||"on")!=="on"){ZM.mode="fit";return fitV}
+  {const z=tkZoom(W,H);if(z)return z}
   const ground=(c)=>{const ap=rwyNear(c,6000);if(ap){const apc={lat:ap[2],lon:ap[3]},far=L&&dist(L,apc)>2500;ZM.mode="airport";return vOf(far?L:apc,7,W,H)}ZM.mode="area";return vOf(c,40,W,H)};
   const after=p==="landed"||(p==="parked"&&PH.ev&&PH.ev.td);
   if(p==="parked"||p==="taxi"||p==="roll"||p==="landed"){const c=L||(after?to:fr);if(!c){ZM.mode="fit";return fitV}return ground(L||c)}
@@ -1463,6 +1493,7 @@ function drawMapCore(){
   if(last){const [px,py]=P(last);x.save();x.translate(px,py);x.rotate(rad(last.trk||0));
     if(planeImg.complete&&planeImg.naturalWidth){if(glow){x.shadowColor="rgba(0,0,0,.8)";x.shadowBlur=6}x.drawImage(planeImg,-17,-17,34,34)}
     else{x.fillStyle=col("--ink");x.strokeStyle=col("--bg");x.lineWidth=2;x.beginPath();x.moveTo(0,-12);x.lineTo(8,9);x.lineTo(0,5);x.lineTo(-8,9);x.closePath();x.stroke();x.fill()}x.restore()}
+  try{tkMapDraw(x,P,sc,W,H,col,glow)}catch(e){}
   if(twyOn){x.save();x.font="10px \"B612 Mono\",monospace";x.textAlign="right";x.fillStyle="rgba(0,0,0,.6)";const aw=x.measureText("© OpenStreetMap contributors").width;x.fillRect(W-aw-10,H-17,aw+8,14);x.fillStyle=col("--dim");x.fillText("© OpenStreetMap contributors",W-6,H-6);x.restore()}
   if(!fr&&!to&&!last){x.fillStyle=col("--dim");x.font="14px \"B612 Mono\",monospace";x.textAlign="center";x.fillText("Pick a route to plot it",W/2,H-14);x.textAlign="start"}
 }
@@ -1773,8 +1804,8 @@ const LV=[850,700,500,300,250,200];
 function packMsg(t){$("packTxt").textContent=t}
 /* Open-Meteo forecast for route points at the hour each point is overflown */
 const OMV=(()=>{const hv=["temperature_2m","precipitation","weather_code","cloud_cover","cape","wind_speed_10m","wind_gusts_10m","visibility","cloud_cover_low"];for(const p of LV)hv.push("wind_speed_"+p+"hPa","wind_direction_"+p+"hPa","temperature_"+p+"hPa","geopotential_height_"+p+"hPa");return hv})();
-async function omSamples(pts,timeOf){if(pts.length>8){let out=[];for(let i=0;i<pts.length;i+=8)out=out.concat(await omSamples(pts.slice(i,i+8),timeOf));return out}
-  const url="https://api.open-meteo.com/v1/forecast?latitude="+pts.map(p=>p.lat).join(",")+"&longitude="+pts.map(p=>p.lon).join(",")+"&hourly="+OMV.join(",")+"&wind_speed_unit=kn&timeformat=unixtime&forecast_days=3&timezone=GMT";
+async function omSamples(pts,timeOf,q){if(pts.length>8){let out=[];for(let i=0;i<pts.length;i+=8)out=out.concat(await omSamples(pts.slice(i,i+8),timeOf,q));return out}
+  const url="https://api.open-meteo.com/v1/forecast?latitude="+pts.map(p=>p.lat).join(",")+"&longitude="+pts.map(p=>p.lon).join(",")+"&hourly="+OMV.join(",")+"&wind_speed_unit=kn&timeformat=unixtime"+(q||"&forecast_days=3")+"&timezone=GMT";
   let r;try{r=await fetchT(url,20000)}catch(e){r=await fetchT(url,25000)}if(!r.ok)throw new Error("weather service answered "+r.status);let j=await r.json();if(!Array.isArray(j))j=[j];
   return pts.map((p,i)=>{const h=(j[i]||{}).hourly||{},tt=timeOf(p);let bi=0,bd=1e15;(h.time||[]).forEach((t,k)=>{const d=Math.abs(t*1000-tt);if(d<bd){bd=d;bi=k}});
       const g=k=>{const a=h[k];const v=a?a[bi]:null;return typeof v==="number"&&isFinite(v)?+v.toFixed(1):null};
@@ -2322,6 +2353,207 @@ window.cpWx=()=>Object.assign({},wxCur,{scn:curScn,href:($(bgTop)||{getAttribute
 window.cpWxForce=(q,o)=>{WXF=q||null;WXO=o||null;pickScene();return window.cpWx()};
 window.cpWxClass=q=>wxClass(q);
 setTimeout(pickScene,0);
+/* ---------- v22g: Inbound aircraft (ground mode). Track the aircraft you are waiting for by tail number. ----------
+   Display only: never feeds phaseStep, the logbook, the GPS trail or own-flight state. Live positions: adsb.lol (ODbL).
+   adsb.lol sends no CORS headers, so a browser can't call it directly: requests go to your own proxy if set,
+   then direct (in case CORS is ever enabled), then the public cors.dev relay. Registration lookups: adsbdb.com / hexdb.io. */
+var TKS=null,TKT=0,TKX={busy:false,lastPoll:0,next:0,back:0,directBad:false,err:"",wxAt:0,wxBusy:false,wxKm:0,apWxAt:0};
+const TK_ADSB="https://api.adsb.lol",TK_RELAY="https://proxy.cors.dev/";
+function tkNormReg(s){s=String(s||"").toUpperCase().replace(/[^A-Z0-9-]/g,"");if(!s)return "";
+  if(s.includes("-"))return s;let m=s.match(/^(VH|ZK|9V|9M|PK|RP|A6|A7|HS|VT|PH|EI|OE|HB|OO|SE|LN|OY|OH|EC|CS|SP|OK|TC|P2|DQ|YJ|H4|F-?O)([A-Z0-9]{3})$/);if(m)return m[1]+"-"+m[2];
+  m=s.match(/^(G|F|D|C|I)([A-Z]{4})$/);if(m)return m[1]+"-"+m[2];return s}
+function tkSave(){if(!TKS)return;const c=Object.assign({},TKS);if(c.trail&&c.trail.length>1500)c.trail=c.trail.slice(-1500);store.set("tk",c)}
+function tkOwnGround(){return !last||GROUND.includes(PH.p)||(Date.now()-last.t)>180000}
+function tkOn(){return !!(TKS&&TKS.on&&TKS.L&&S.tkShow!=="off"&&!demo&&!REPLAY&&tkOwnGround()&&Date.now()-TKS.L.t<6*3600000)}
+function tkVs(){const L=TKS&&TKS.L;return L&&L.vs!=null?L.vs:null}
+function tkTz(lat,lon,c){const a=c&&apBy(c);if(a&&a.tz)return a.tz;try{return "Australia/"+STZ[stateAt(lat,lon)]}catch(e){return "Australia/Sydney"}}
+function tkAp(){const c=(TKS&&TKS.ap)||S.from||"SYD";const a=apBy(c);if(a)return {c:a.c,n:a.n,lat:a.lat,lon:a.lon,tz:a.tz||tkTz(a.lat,a.lon,a.c),el:(apInfo(a.c)||[])[4]||0};
+  const r=AP2.find(x=>x[0]===c||x[5]===c);if(r)return {c:r[0],n:r[1],lat:r[2],lon:r[3],tz:tkTz(r[2],r[3]),el:r[4]||0};const s=apBy("SYD");return {c:"SYD",n:s.n,lat:s.lat,lon:s.lon,tz:"Australia/Sydney",el:21}}
+const tkApName=a=>String(a||"").replace(/\s*\(.*$/,"").replace(/\s+(International\s+)?Airport.*$/i,"").trim();
+function tkNear(p){const n=nearestAp(p);if(!n)return "";const nm=tkApName(n.a[1]);return n.d<15000?nm:nm+" ("+Math.round(fDst(n.d))+" "+S.dst+" "+card(brg({lat:n.a[2],lon:n.a[3]},p))+")"}
+function tkTime(ms,tz){if(ms==null||!isFinite(ms))return "--:--";try{return new Date(ms).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:tz||"Australia/Sydney"})}catch(e){return new Date(ms).toTimeString().slice(0,5)}}
+function tkOffMin(tz,ms){try{const s=new Intl.DateTimeFormat("en-AU",{timeZone:tz,timeZoneName:"longOffset"}).formatToParts(new Date(ms)).find(p=>p.type==="timeZoneName").value;const m=s.match(/([+-])(\d{1,2}):?(\d{2})?/);return m?(m[1]==="-"?-1:1)*(+m[2]*60+(+m[3]||0)):0}catch(e){return 0}}
+/* HH:MM in the airport's local time -> epoch ms (today, or tomorrow if it is more than 3 h in the past) */
+function tkLocalMs(hhmm,tz,now){now=now||Date.now();const m=String(hhmm||"").match(/^(\d{1,2}):(\d{2})/);if(!m)return null;
+  let p;try{p=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(now)).map(x=>[x.type,x.value]))}catch(e){return null}
+  const g=Date.UTC(+p.year,+p.month-1,+p.day,+m[1],+m[2]);let ms=g-tkOffMin(tz,g)*60000;if(ms<now-3*3600000)ms+=86400000;return ms}
+/* one adsb.lol aircraft record -> display fix (metres, m/s, fpm) */
+function tkFix(a,tms){if(!a||typeof a.lat!=="number"||typeof a.lon!=="number")return null;const gnd=a.alt_baro==="ground";
+  const ft=gnd?null:(typeof a.alt_baro==="number"?a.alt_baro:typeof a.alt_geom==="number"?a.alt_geom:null);
+  let alt=ft==null?null:ft/FT;if(gnd){const n=nearestAp({lat:a.lat,lon:a.lon});alt=n&&n.d<8000?(n.a[4]||0)/FT:0}
+  const seen=typeof a.seen_pos==="number"?a.seen_pos:typeof a.seen==="number"?a.seen:0;
+  return {lat:a.lat,lon:a.lon,alt,ft,gnd,spd:typeof a.gs==="number"?a.gs*NMm/3600:null,trk:typeof a.track==="number"?a.track:(typeof a.true_heading==="number"?a.true_heading:null),
+    vs:typeof a.baro_rate==="number"?a.baro_rate:typeof a.geom_rate==="number"?a.geom_rate:null,sq:a.squawk||"",cs:String(a.flight||"").trim(),em:a.emergency&&a.emergency!=="none"?a.emergency:"",
+    t:Math.round((tms||Date.now())-seen*1000),acc:null,altAcc:null,tk:true}}
+function tkNoteCs(cs,t){if(!cs||!TKS)return;const l=TKS.cs||(TKS.cs=[]);const z=l[l.length-1];if(z&&z.cs===cs){z.t1=Math.max(z.t1||t,t);return}
+  if(z&&z.cs!==cs)TKS.csNew={from:z.cs,to:cs,at:t};l.push({cs,t0:t,t1:t});if(l.length>12)l.splice(0,l.length-12)}
+function tkPush(f){if(!f||!TKS)return;const tr=TKS.trail||(TKS.trail=[]),z=tr[tr.length-1];
+  if(z&&f.t<=z[0])return;if(z&&f.t-z[0]<50000&&dist({lat:z[1],lon:z[2]},f)<1500&&!!(z[3]<0)===!!f.gnd)return;
+  tr.push([f.t,+f.lat.toFixed(5),+f.lon.toFixed(5),f.gnd?-1:(f.ft==null?null:Math.round(f.ft)),f.spd==null?null:Math.round(f.spd*3600/NMm)]);if(tr.length>2400)tr.splice(0,tr.length-2000)}
+/* arrival / departure at the user's airport */
+function tkLegState(){if(!TKS||!TKS.L)return;const A=tkAp(),L=TKS.L,d=dist(L,A),kt=L.spd==null?0:L.spd*3600/NMm;
+  const onGnd=L.gnd||(L.ft!=null&&L.ft<A.el+300&&kt<60);
+  if(onGnd&&d<7000){if(!TKS.arrAt||TKS.depAt){TKS.arrAt=TKS.arrAt&&!TKS.depAt?TKS.arrAt:L.t;TKS.depAt=null;TKS.arrAp=A.c}}
+  else if(TKS.arrAt&&!TKS.depAt&&!onGnd&&d>4000&&kt>100){TKS.depAt=L.t}}
+/* if history shows it already landed at the user's airport, take the touchdown time from it */
+function tkArrFromTrail(){if(!TKS||!TKS.trail)return;const A=tkAp(),tr=TKS.trail;let air=-1;for(let i=tr.length-1;i>=0;i--){if(tr[i][3]!=null&&tr[i][3]>=0&&tr[i][3]>A.el+800){air=i;break}}
+  if(air<0||air===tr.length-1)return;for(let i=air+1;i<tr.length;i++){const q=tr[i];if((q[3]===-1||(q[4]!=null&&q[4]<60))&&dist({lat:q[1],lon:q[2]},A)<7000){if(!TKS.arrAt||TKS.arrAt>q[0])TKS.arrAt=q[0];TKS.arrAp=A.c;return}}}
+/* ETA to the user's airport: great circle at groundspeed, slower for the last 150 km (descent and approach) */
+function tkEta(){if(!TKS||!TKS.L)return null;const L=TKS.L,A=tkAp();if(L.gnd||L.spd==null||L.spd<40)return null;const d=dist(L,A);if(d<2000)return null;
+  const gs=L.spd,D=Math.min(d,150000),vD=Math.min(gs,Math.max(72,gs*0.62));const s=(d-D)/gs+D/vD+(d>25000?120:0);return {d,sec:s,at:L.t+s*1000}}
+/* turnaround estimate vs the user's departure. Rough: on-blocks 5 min after touchdown, then the minimum turn. */
+function tkDelay(){if(!TKS||!TKS.dep)return null;const A=tkAp(),dep=tkLocalMs(TKS.dep,A.tz);if(dep==null)return null;const turn=Math.max(10,Math.min(240,+TKS.turn||30))*60000;let land=null,how="";
+  if(TKS.arrAt&&!TKS.depAt){land=TKS.arrAt;how="landed "+tkTime(TKS.arrAt,A.tz)}
+  else if(TKS.depAt){return {dep,txt:"It has left "+A.c+" again at "+tkTime(TKS.depAt,A.tz)+". Check you are tracking the right aircraft.",min:null}}
+  else{const e=tkEta();if(e){land=e.at;how="ETA "+tkTime(e.at,A.tz)}
+    else if(TKS.L&&(TKS.L.gnd||TKS.L.spd!=null&&TKS.L.spd<40)){const d=dist(TKS.L,A);if(d>15000){land=Math.max(Date.now(),TKS.L.t)+(25*60+d/220)*1000;how="still on the ground at "+tkNear(TKS.L)+"; if it left now it would land about "+tkTime(land,A.tz)}}}
+  if(land==null)return {dep,txt:"Not enough data yet for a delay estimate.",min:null};
+  const ready=land+5*60000+turn,late=Math.round((ready-dep)/60000);
+  return {dep,ready,min:late,how,txt:late<=5?"On time (estimate)":"Likely delay ~"+late+" min (estimate)"}}
+/* ---------- network ---------- */
+function tkQuota(add){const day=new Date().toISOString().slice(0,10);let q=store.get("tkq",{d:day,n:0});if(q.d!==day)q={d:day,n:0};if(add){q.n+=add;store.set("tkq",q)}return q.n}
+function tkPx(){const px=String(S.tkProxy||"").trim();return /^https:\/\/|^http:\/\/(127\.0\.0\.1|localhost)[:\/]/.test(px)?px.replace(/\/*$/,"/"):""}
+/* adsb.fi open data has the same v2 answer shape; it blocks the public relay, so it's only used through your own proxy */
+function tkFiUrl(path){const m=/^\/v2\/(reg|hex|callsign)\/(.+)$/.exec(path);return m?"https://opendata.adsb.fi/api/v2/"+(m[1]==="reg"?"registration":m[1])+"/"+m[2]:null}
+async function tkLive(path){let j=null,e0=null;try{j=await tkGet(path)}catch(e){if(e.rl!=null)throw e;e0=e}
+  const has=j&&Array.isArray(j.ac)&&j.ac.some(a=>a&&typeof a.lat==="number"),px=tkPx(),fi=tkFiUrl(path);
+  if(!has&&px&&fi){try{tkQuota(1);const r=await fetchT(px+fi,12000);if(r.ok){const k=await r.json();if(k&&Array.isArray(k.ac)&&k.ac.some(a=>a&&typeof a.lat==="number")){TKS&&(TKS.via="proxy-fi");return k}if(!j)j=k}}catch(e){if(!e0&&!j)e0=e}}
+  if(j)return j;throw e0||new Error("no answer")}
+async function tkGet(path,ms){const src=[];const px=tkPx();
+  if(px)src.push(["proxy",px+TK_ADSB+path]);
+  if(!TKX.directBad&&S.tkVia!=="relay")src.push(["direct",TK_ADSB+path]);
+  if(S.tkRelay!=="off")src.push(["relay",TK_RELAY+TK_ADSB+path]);
+  if(!src.length)throw new Error("no data route allowed (Settings)");let lastE=null;
+  for(const [k,u] of src){try{tkQuota(1);const r=await fetchT(u,ms||12000);
+      if(r.status===429){const ra=+(r.headers.get("retry-after")||0);const e=new Error("rate limited");e.rl=ra;throw e}
+      if(r.status===404){const e=new Error("not found");e.nf=true;throw e}
+      if(!r.ok)throw new Error("answered "+r.status);const j=await r.json();TKS&&(TKS.via=k);return j}
+    catch(e){lastE=e;if(k==="direct"&&e instanceof TypeError)TKX.directBad=true;if(e.rl!=null||e.nf)throw e}}
+  throw lastE||new Error("no answer")}
+async function tkHexOf(reg){try{const r=await fetchT("https://api.adsbdb.com/v0/aircraft/"+encodeURIComponent(reg),9000);if(r.ok){const j=await r.json(),a=j&&j.response&&j.response.aircraft;
+    if(a&&a.mode_s)return {hex:String(a.mode_s).toLowerCase(),type:a.icao_type||"",desc:[a.manufacturer,a.type].filter(Boolean).join(" "),op:a.registered_owner||""}}}catch(e){}
+  try{const r=await fetchT("https://hexdb.io/reg-hex?reg="+encodeURIComponent(reg),9000);if(r.ok){const t=(await r.text()).trim();if(/^[0-9A-Fa-f]{6}$/.test(t))return {hex:t.toLowerCase()}}}catch(e){}
+  return null}
+/* today's history from the adsb.lol trace (readsb trace format) */
+async function tkTrace(){if(!TKS||!TKS.hex)return;let j;try{j=await tkGet("/1/trace/full/"+TKS.hex,20000)}catch(e){TKS.traceErr=e.nf?"no history today":String(e.message||e);return}
+  const ts=+j.timestamp||0,pts=Array.isArray(j.trace)?j.trace:[],from=Date.now()-14*3600000,out=[];
+  for(const q of pts){const t=Math.round((ts+(+q[0]||0))*1000);if(t<from||typeof q[1]!=="number")continue;const det=q[8]&&typeof q[8]==="object"?q[8]:null;if(det&&det.flight)tkNoteCs(String(det.flight).trim(),t);
+    const gnd=q[3]==="ground",ft=typeof q[3]==="number"?q[3]:null;out.push([t,+q[1].toFixed(5),+q[2].toFixed(5),gnd?-1:ft,typeof q[4]==="number"?Math.round(q[4]):null])}
+  if(j.r&&!TKS.reg)TKS.reg=j.r;if(j.t&&!TKS.type)TKS.type=j.t;if(j.desc&&!TKS.desc)TKS.desc=j.desc;
+  const thin=[];for(const q of out){const z=thin[thin.length-1];if(!z||q[0]-z[0]>=60000||dist({lat:z[1],lon:z[2]},{lat:q[1],lon:q[2]})>3000||(z[3]===-1)!==(q[3]===-1))thin.push(q)}
+  const keep=(TKS.trail||[]).filter(q=>!thin.length||q[0]>thin[thin.length-1][0]);TKS.trail=thin.concat(keep).slice(-2000);TKS.traceAt=Date.now();
+  if(!TKS.L&&thin.length){const z=thin[thin.length-1];TKS.L={lat:z[1],lon:z[2],alt:z[3]>0?z[3]/FT:0,ft:z[3]>=0?z[3]:null,gnd:z[3]===-1,spd:z[4]==null?null:z[4]*NMm/3600,trk:null,vs:null,sq:"",cs:(TKS.cs&&TKS.cs.length?TKS.cs[TKS.cs.length-1].cs:""),t:z[0],acc:null,altAcc:null,tk:true,old:true}}
+  tkArrFromTrail()}
+async function tkPoll(){if(!TKS||!TKS.on||TKX.busy)return;TKX.busy=true;TKX.lastPoll=Date.now();let gap=null;
+  try{if(navigator.onLine===false)throw Object.assign(new Error("offline"),{off:true});
+    const q=tkQuota(0);if(q>=470){TKX.err="Daily free ADS-B allowance nearly used on this phone ("+q+" lookups today; adsb.lol allows about 500 a day). Polling paused until tomorrow or until you set your own proxy key.";gap=30*60000;return}
+    let j=null;if(TKS.hex)j=await tkLive("/v2/hex/"+TKS.hex);else if(TKS.reg)j=await tkLive("/v2/reg/"+encodeURIComponent(TKS.reg));
+    let ac=(j&&Array.isArray(j.ac)?j.ac:[]).filter(a=>a&&typeof a.lat==="number");
+    if(!ac.length&&!TKS.hex&&TKS.flt){const cs=toCallsign(TKS.flt);if(cs&&cs.cs){const k=await tkLive("/v2/callsign/"+cs.cs);ac=(k&&Array.isArray(k.ac)?k.ac:[]).filter(a=>a&&typeof a.lat==="number")}}
+    const a=ac.find(x=>TKS.hex&&x.hex===TKS.hex)||ac.find(x=>tkNormReg(x.r)===TKS.reg)||ac[0];
+    if(a){if(a.hex&&!TKS.hex){TKS.hex=String(a.hex).toLowerCase();if(!TKS.traceAt)await tkTrace()}if(a.r&&!TKS.reg)TKS.reg=tkNormReg(a.r);
+      if(a.t)TKS.type=TKS.type||a.t;if(a.desc)TKS.desc=TKS.desc||a.desc;const f=tkFix(a,j&&j.now||Date.now());if(f){TKS.L=f;TKS.seen=Date.now();tkNoteCs(f.cs,f.t);tkPush(f);tkLegState()}TKX.err="";TKX.back=0}
+    else{TKX.err="Not seen right now by "+(tkPx()?"adsb.lol or adsb.fi":"adsb.lol")+" receivers: it may be parked with the transponder off, outside receiver coverage (common over remote areas and the ocean) or hidden from public feeds."+(TKS.L?" Showing the last known position.":"");if(TKS.L)TKS.L.old=true}
+  }catch(e){if(e.off){TKX.err="Offline: showing the last known position"+(TKS&&TKS.L?" from "+tkTime(TKS.L.t,tkAp().tz):"")+". Tracking needs internet.";gap=60000}
+    else if(e.rl!=null){TKX.back=Math.min(600000,Math.max(60000,(TKX.back||30000)*2,e.rl*1000));gap=TKX.back;TKX.err="adsb.lol is limiting requests right now; trying again in "+Math.round(gap/60000)+" min."}
+    else{TKX.back=Math.min(300000,Math.max(30000,(TKX.back||15000)*2));gap=TKX.back;TKX.err="Couldn't reach the live ADS-B data ("+(e&&e.name==="AbortError"?"timed out":(e&&e.message)||e)+"). Retrying.";if(TKS&&TKS.L)TKS.L.old=true}}
+  finally{TKX.busy=false;tkSave();tkSched(gap);tkRender();try{render();drawMap()}catch(e){}tkWxMaybe()}}
+function tkInterval(){if(!TKS||!TKS.L)return 30000;const L=TKS.L,A=tkAp(),d=dist(L,A),e=tkEta();
+  if(TKS.arrAt&&!TKS.depAt)return 60000;if(L.gnd||L.spd==null||L.spd<40)return d<7000?30000:90000;if((e&&e.sec<45*60)||d<200000)return 15000;return 30000}
+function tkSched(gap){clearTimeout(TKT);TKT=0;if(!TKS||!TKS.on)return;let ms=gap!=null?gap:tkInterval();if(document.hidden)ms=Math.max(ms,300000);TKX.next=Date.now()+ms;TKT=setTimeout(tkPoll,ms)}
+document.addEventListener("visibilitychange",()=>{if(!TKS||!TKS.on)return;if(document.hidden)tkSched(Math.max(300000,TKX.next-Date.now()));else if(Date.now()-TKX.lastPoll>tkInterval())tkPoll();else tkSched(Math.max(1000,TKX.lastPoll+tkInterval()-Date.now()))});
+window.addEventListener("online",()=>{if(TKS&&TKS.on)tkPoll()});
+/* ---------- weather it has flown through (Open-Meteo model weather at the times it passed, not reports from the aircraft) ---------- */
+const TKWW=c=>c==null?"":c>=95?"thunderstorms":c>=85?"snow showers":c>=80?"showers":c>=71?"snow":c>=61?"rain":c>=51?"drizzle":c>=45?"fog":c>=3?"overcast":c>=2?"cloudy":c>=1?"mostly clear":"clear";
+function tkWxOf(s,ft){const h=ft==null?0:Math.max(0,ft/FT);let tv=null;try{tv=turbAt({smp:[s]},0,h)}catch(e){}
+  const storm=s.wc>=95||(s.cape>=1500&&s.wc>=80),heavy=(s.pr||0)>=2.5||[65,67,82].includes(s.wc),rain=heavy||(s.pr||0)>=0.2||(s.wc>=51&&s.wc<=67)||(s.wc>=80&&s.wc<=82);
+  let wk=null;{const lv=(s.lv||[]).filter(l=>l[1]!=null&&l[2]!=null);if(lv.length){const n=lv.reduce((m,l)=>Math.abs(l[1]-h)<Math.abs(m[1]-h)?l:m,lv[0]);wk=h<1500&&s.w10!=null?[s.w10,null]:[n[2],n[3]]}}
+  return {storm,heavy,rain,tc:tv?tcat(tv.v):0,why:tv&&tv.why||"",wk,cape:s.cape||0,wc:s.wc,pr:s.pr}}
+function tkWxPts(){const tr=(TKS&&TKS.trail||[]).filter(q=>q[3]!==-1);if(tr.length<2)return [];let tot=0;const cum=[0];for(let i=1;i<tr.length;i++){tot+=dist({lat:tr[i-1][1],lon:tr[i-1][2]},{lat:tr[i][1],lon:tr[i][2]});cum.push(tot)}
+  const n=Math.max(2,Math.min(12,Math.round(tot/120000)+2)),out=[];let j=0;for(let i=0;i<n;i++){const want=tot*i/(n-1);while(j<cum.length-1&&cum[j]<want)j++;const q=tr[j];out.push({f:i/(n-1),lat:+q[1].toFixed(3),lon:+q[2].toFixed(3),t:q[0],ft:q[3]})}
+  return out.filter((p,i,a)=>i===0||p.t!==a[i-1].t)}
+async function tkWxMaybe(force){if(!TKS||!TKS.on||TKX.wxBusy||navigator.onLine===false)return;const tr=TKS.trail||[],now=Date.now();
+  let km=0;for(let i=1;i<tr.length;i++)km+=dist({lat:tr[i-1][1],lon:tr[i-1][2]},{lat:tr[i][1],lon:tr[i][2]})/1000;
+  const due=force||!TKS.wx||now-(TKS.wx.at||0)>20*60000||km-(TKS.wx.km||0)>120;if(!due)return;TKX.wxBusy=true;
+  try{const A=tkAp(),pts=tkWxPts(),e=tkEta(),dep=TKS.dep?tkLocalMs(TKS.dep,A.tz):null,all=pts.slice();
+    if(TKS.L&&e&&e.d>100000){for(const f of [0.5,0.85]){const q=gcPoint(TKS.L,A,f);all.push({f:1,lat:+q.lat.toFixed(3),lon:+q.lon.toFixed(3),t:TKS.L.t+e.sec*1000*f,ft:null,ahead:true})}}
+    all.push({f:1,lat:+A.lat.toFixed(3),lon:+A.lon.toFixed(3),t:now,ap:"now"});if(dep&&dep>now-3600000)all.push({f:1,lat:+A.lat.toFixed(3),lon:+A.lon.toFixed(3),t:dep,ap:"dep"});
+    if(e)all.push({f:1,lat:+A.lat.toFixed(3),lon:+A.lon.toFixed(3),t:e.at,ap:"arr"});
+    const smp=await omSamples(all,p=>p.t,"&past_days=1&forecast_days=2");
+    const W={at:now,km,trail:[],ahead:[],ap:{}};smp.forEach((s,i)=>{const p=all[i],w=tkWxOf(s,p.ap?0:p.ft==null?null:p.ft<0?0:p.ft);w.t=p.t;w.lat=p.lat;w.lon=p.lon;w.ft=p.ft;w.T=s.T;w.g10=s.g10;w.w10=s.w10;
+      if(p.ap)W.ap[p.ap]=w;else if(p.ahead)W.ahead.push(w);else W.trail.push(w)});
+    TKS.wx=W;tkSave()}catch(e){if(TKS)TKS.wxErr=String(e&&e.message||e)}finally{TKX.wxBusy=false;tkRender()}}
+function tkWxText(){const W=TKS&&TKS.wx;if(!W)return "";const A=tkAp(),parts=[];let prev="";
+  for(const w of W.trail){const hi=w.ft!=null&&w.ft>15000,bits=[];if(w.storm)bits.push(hi?"near thunderstorms":"through thunderstorm activity");else if(w.rain)bits.push((hi?"over ":"through ")+(w.heavy?"heavy rain":"rain"));
+    if(w.tc>=2)bits.push(TCAT[w.tc][0].toLowerCase()+" turbulence"+(w.why?" ("+w.why+")":""));if(!bits.length)continue;const txt=bits.join(" and ");if(txt===prev)continue;prev=txt;parts.push(txt+" near "+tkNear(w)+" ("+tkTime(w.t,A.tz)+")")}
+  let s=parts.length?"Passed "+parts.slice(0,4).join("; ")+".":W.trail.length?"No rain, storms or more than light turbulence along its track so far.":"Not enough track yet for its weather.";
+  const ah=W.ahead.filter(w=>w.storm||w.rain||w.tc>=2);if(ah.length){const w=ah[0];s+=" Ahead: "+(w.storm?"thunderstorms possible":w.rain?"rain":"")+(w.tc>=2?(w.storm||w.rain?" and ":"")+TCAT[w.tc][0].toLowerCase()+" turbulence":"")+" near "+tkNear(w)+"."}
+  return s}
+function tkApWx(w){if(!w)return "";const k=v=>v==null?"--":Math.round(v);return (w.T!=null?Math.round(w.T)+"°C, ":"")+(TKWW(w.wc)||"")+(w.storm&&w.wc<95?", storms possible":"")+(w.pr?", "+w.pr+" mm/h":"")+", wind "+k(w.w10)+" kt"+(w.g10&&w.g10>(w.w10||0)+8?" gusting "+k(w.g10):"")}
+/* ---------- UI ---------- */
+function tkRender(){const ban=$("tkBan"),box=$("tkOut"),st=$("tkSt");const on=TKS&&TKS.on;$("tkGo").textContent=on?"Update":"Track";$("tkStop").style.display=on?"":"none";
+  if(!on){ban.style.display="none";box.innerHTML="";st.textContent=TKX.err||"Needs internet. Enter the registration painted on the aircraft (for example VH-YIA). Display only: it never changes your own flight, phases or logbook.";document.body.classList.remove("tking");return}
+  const A=tkAp(),L=TKS.L,age=L?Math.max(0,(Date.now()-L.t)/1000):null,cs=L&&L.cs||(TKS.cs&&TKS.cs.length?TKS.cs[TKS.cs.length-1].cs:"");
+  const ageT=age==null?"":age<90?Math.round(age)+" s ago":age<5400?Math.round(age/60)+" min ago":(age/3600).toFixed(1)+" h ago";
+  const shown=tkOn();document.body.classList.toggle("tking",shown);
+  ban.style.display="";ban.innerHTML=`<span>${shown?"TRACKING ":"WATCHING "}${esc(TKS.reg)}${cs?" · "+esc(cs):""}${L&&L.sq?" · SQK "+esc(L.sq):""}${L?" · "+(L.gnd?"ON GROUND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")):""}${age!=null&&age>60?" · LAST SEEN "+esc(ageT.toUpperCase()):""}</span><small>${shown?"Gauges, HUD and map show this aircraft, not your GPS":"Your own GPS is in use (you are not on the ground)"}</small><button id="tkBanGo">Open</button><button id="tkBanStop">Stop</button>`;
+  $("tkBanGo").onclick=()=>{try{pgGo(PG.els.findIndex(e=>e.id==="pg-route"))}catch(e){}setTimeout(()=>$("tkTile").scrollIntoView({block:"start"}),400)};$("tkBanStop").onclick=tkStop;
+  st.textContent=TKX.err||(L?(TKS.via==="proxy-fi"?"Live from adsb.fi via your proxy":"Live from adsb.lol"+(TKS.via==="relay"?" via the public cors.dev relay":TKS.via==="proxy"?" via your proxy":""))+" · updated "+ageT+(TKX.next?" · next check "+tkTime(TKX.next,A.tz):""):"Looking for "+TKS.reg+"…");
+  const rows=[];const li=(k,v,c)=>rows.push(`<li${c?` class="${c}"`:""}><span>${k}</span><b>${v}</b></li>`);
+  li("Aircraft",esc(TKS.reg)+(TKS.type?" · "+esc(TKS.type):"")+(TKS.hex?" · "+esc(TKS.hex.toUpperCase()):""));
+  if(L){li("Now",(L.gnd?"On the ground":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")+" · "+Math.round(fSpd(L.spd)||0)+" "+S.spd+" · track "+(L.trk==null?"---":String(Math.round(L.trk)%360).padStart(3,"0")+"°")+(L.vs!=null&&Math.abs(L.vs)>300?" · "+(L.vs>0?"climbing ":"descending ")+Math.abs(Math.round(L.vs/100)*100)+" fpm":""))+" near "+esc(tkNear(L)));
+    li("Distance to "+esc(A.c),Math.round(fDst(dist(L,A))).toLocaleString()+" "+S.dst)}
+  if(L&&L.em)li("Emergency",esc(L.em),"bad");
+  const e=tkEta();if(TKS.arrAt&&!TKS.depAt)li("Arrived "+esc(A.c),tkTime(TKS.arrAt,A.tz)+" local","ok");else if(e)li("ETA "+esc(A.c),"~"+tkTime(e.at,A.tz)+" local ("+hm(e.sec)+", estimate)");
+  const dl=tkDelay();if(dl){li("Your departure",tkTime(dl.dep,A.tz)+" local · turnaround "+(+TKS.turn||30)+" min");li("Outlook",esc(dl.txt)+(dl.how?" · "+esc(dl.how):"")+(dl.ready?" · ready ~"+tkTime(dl.ready,A.tz):""),dl.min==null?"":dl.min<=5?"ok":dl.min<=30?"warn":"bad")}
+  if(TKS.cs&&TKS.cs.length)li("Callsigns seen",TKS.cs.map(c=>esc(c.cs)+" "+tkTime(c.t0,A.tz)).join(" → "));
+  if(TKS.csNew&&Date.now()-TKS.csNew.at<3*3600000)li("Callsign change",esc(TKS.csNew.from)+" → "+esc(TKS.csNew.to)+" at "+tkTime(TKS.csNew.at,A.tz),"warn");
+  const W=TKS.wx;if(W){li("Weather it flew through",esc(tkWxText()));if(W.ap.now)li(esc(A.c)+" now",esc(tkApWx(W.ap.now)));if(W.ap.arr)li(esc(A.c)+" at its arrival",esc(tkApWx(W.ap.arr)));if(W.ap.dep)li(esc(A.c)+" at your departure",esc(tkApWx(W.ap.dep)))}
+  else if(TKS.wxErr)li("Weather","couldn't download ("+esc(TKS.wxErr)+")");
+  box.innerHTML=rows.join("")}
+async function tkStart(){const reg=tkNormReg($("tkReg").value),flt=String($("tkFlt").value||"").toUpperCase().replace(/\s+/g,""),dep=$("tkDep").value,ap=String($("tkAp").value||"").toUpperCase().trim(),turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));
+  if(!reg&&!flt){TKX.err="Enter a registration (tail number), for example VH-YIA.";tkRender();return}
+  const same=TKS&&TKS.reg===reg&&TKS.on;
+  if(!same)TKS={on:true,reg:reg||"",flt,dep,ap:ap||null,turn,hex:null,type:"",desc:"",cs:[],trail:[],L:null,at:Date.now()};else Object.assign(TKS,{flt,dep,ap:ap||TKS.ap,turn});
+  if(!TKS.ap){const n=last&&nearestAp(last);TKS.ap=n&&n.d<20000?n.a[0]:(S.from||"SYD")}$("tkAp").value=TKS.ap;$("tkReg").value=TKS.reg;
+  TKX.err="";TKX.back=0;TKX.directBad=false;tkSave();tkRender();hap(15);
+  if(!same&&TKS.reg){const h=await tkHexOf(TKS.reg);if(h&&TKS){TKS.hex=h.hex;TKS.type=h.type||TKS.type;TKS.desc=h.desc||"";TKS.op=h.op||""}if(TKS&&TKS.hex)await tkTrace()}
+  if(TKS&&TKS.wx)TKS.wx.at=0;await tkPoll()}
+function tkStop(){clearTimeout(TKT);TKT=0;TKS=null;store.set("tk",null);TKX.err="";document.body.classList.remove("tking");tkRender();try{render();drawMap()}catch(e){};hap(10)}
+$("tkGo").onclick=tkStart;$("tkStop").onclick=tkStop;$("tkReg").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();tkStart()}});
+$("tkReg").addEventListener("blur",()=>{const v=tkNormReg($("tkReg").value);if(v)$("tkReg").value=v});
+for(const id of ["tkDep","tkTurn","tkAp"])$(id).addEventListener("change",()=>{if(!TKS||!TKS.on)return;TKS.dep=$("tkDep").value;TKS.turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));const v=String($("tkAp").value||"").toUpperCase().trim();if(v)TKS.ap=v;TKS.arrAt=null;TKS.depAt=null;tkArrFromTrail();tkLegState();tkSave();tkRender();tkWxMaybe(true)});
+$("tkShow").checked=S.tkShow!=="off";$("tkShow").onchange=()=>{S.tkShow=$("tkShow").checked?"on":"off";saveS();tkRender();render();drawMap()};
+$("tkRelay").checked=S.tkRelay!=="off";$("tkRelay").onchange=()=>{S.tkRelay=$("tkRelay").checked?"on":"off";saveS()};
+$("tkProxy").value=S.tkProxy||"";$("tkProxy").onchange=()=>{const v=$("tkProxy").value.trim();S.tkProxy=/^https:\/\/|^http:\/\/(127\.0\.0\.1|localhost)[:\/]/.test(v)?v:"";$("tkProxy").value=S.tkProxy;saveS()};
+/* airport list for "your airport" */
+{const dl=$("tkApL");if(dl){dl.innerHTML=AP.map(a=>`<option value="${esc(a.c)}">${esc(a.n)}</option>`).join("")}}
+/* ---------- HUD + map ---------- */
+function tkHudBan(cx,T){const L=TKS.L,age=(Date.now()-L.t)/1000,cs=L.cs||"";
+  return `<rect x="${cx-92}" y="38" width="184" height="30" fill="#000" fill-opacity=".72" stroke="#ff8a1f" stroke-width="1.4"/>`+
+    `<text x="${cx}" y="51" fill="#ff8a1f" stroke="none" font-size="11" font-weight="700" text-anchor="middle">TRACKING ${esc(TKS.reg)}${cs?" "+esc(cs):""}</text>`+
+    `<text x="${cx}" y="63" fill="#ff8a1f" stroke="none" font-size="9" font-weight="700" text-anchor="middle">NOT YOUR GPS${L.sq?" · SQK "+esc(L.sq):""}${age>60?" · "+(age<5400?Math.round(age/60)+"M":Math.round(age/3600)+"H")+" OLD":""}${L.gnd?" · ON GND":""}</text>`}
+function tkZoom(W,H){if(!tkOn())return null;const L=TKS.L,A=tkAp(),d=dist(L,A)/1000;ZM.why="track";
+  if(d<6){ZM.mode="track";return vOf(L.gnd||d<3?A:L,7,W,H)}ZM.mode="track";const m=gcPoint(L,A,0.5);return vOf(m,Math.max(20,Math.min(4500,d*1.35+15)),W,H)}
+function tkMapDraw(x,P,sc,W,H,col,glow){if(!TKS||!TKS.on||!TKS.L)return;const nvg=S.disp==="nvg",c=nvg?col("--ink"):"#ff8a1f",L=TKS.L,A=tkAp();
+  x.save();const tr=TKS.trail||[];if(tr.length>1){x.strokeStyle=c;x.lineWidth=2.6;x.lineJoin="round";if(glow){x.shadowColor=c;x.shadowBlur=7}x.globalAlpha=.9;x.beginPath();let pen=false,pt=0;
+    for(const q of tr){const [px,py]=P({lat:q[1],lon:q[2]});if(pen&&q[0]-pt>45*60000){x.moveTo(px,py)}else if(pen)x.lineTo(px,py);else{x.moveTo(px,py);pen=true}pt=q[0]}
+    const [lx,ly]=P(L);x.lineTo(lx,ly);x.stroke()}
+  if(!(TKS.arrAt&&!TKS.depAt)&&!L.gnd){x.setLineDash([5,6]);x.lineWidth=1.6;x.globalAlpha=.7;x.beginPath();for(let i=0;i<=30;i++){const [px,py]=P(gcPoint(L,A,i/30));i?x.lineTo(px,py):x.moveTo(px,py)}x.stroke();x.setLineDash([])}
+  x.globalAlpha=1;{const [ax,ay]=P(A);x.strokeStyle=c;x.lineWidth=2;x.beginPath();x.arc(ax,ay,9,0,7);x.stroke()}
+  const [px,py]=P(L);x.translate(px,py);x.rotate(rad(L.trk||0));x.fillStyle=c;x.strokeStyle="#000";x.lineWidth=2;x.beginPath();x.moveTo(0,-13);x.lineTo(3,-4);x.lineTo(12,3);x.lineTo(12,6);x.lineTo(3,3);x.lineTo(2,9);x.lineTo(5,12);x.lineTo(-5,12);x.lineTo(-2,9);x.lineTo(-3,3);x.lineTo(-12,6);x.lineTo(-12,3);x.lineTo(-3,-4);x.closePath();x.stroke();x.fill();
+  x.setTransform(1,0,0,1,0,0);const dpr=window.devicePixelRatio||1;x.setTransform(dpr,0,0,dpr,0,0);
+  const t1=TKS.reg+(L.cs?" "+L.cs:""),t2=L.gnd?"ON GROUND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")+" "+Math.round(fSpd(L.spd)||0)+(S.spd==="kmh"?"KMH":S.spd.toUpperCase());
+  x.font="700 12px \"B612 Mono\",monospace";const w=Math.max(x.measureText(t1).width,x.measureText(t2).width)+10,bx=Math.min(W-w-4,Math.max(4,px+16)),by=Math.min(H-34,Math.max(4,py-36));
+  x.fillStyle="rgba(0,0,0,.72)";x.fillRect(bx,by,w,30);x.strokeStyle=c;x.lineWidth=1.2;x.strokeRect(bx,by,w,30);x.fillStyle=c;x.fillText(t1,bx+5,by+13);x.font="700 11px \"B612 Mono\",monospace";x.fillText(t2,bx+5,by+26);
+  x.font="700 11px \"B612 Mono\",monospace";const tag="TRACKING "+TKS.reg+" · ADS-B data: "+(TKS.via==="proxy-fi"?"adsb.fi":"adsb.lol (ODbL)"),tw=x.measureText(tag).width;x.fillStyle="rgba(0,0,0,.7)";x.fillRect(6,H-44,tw+10,17);x.fillStyle=c;x.fillText(tag,11,H-31);x.restore()}
+/* test hooks */
+window.cpTk=()=>TKS?{on:TKS.on,reg:TKS.reg,hex:TKS.hex,via:TKS.via,cs:(TKS.cs||[]).map(c=>c.cs),L:TKS.L&&{lat:TKS.L.lat,lon:TKS.L.lon,ft:TKS.L.ft,gnd:TKS.L.gnd,cs:TKS.L.cs,sq:TKS.L.sq,old:!!TKS.L.old},trail:(TKS.trail||[]).length,arrAt:TKS.arrAt||null,shown:tkOn(),eta:tkEta(),delay:tkDelay(),wx:TKS.wx?tkWxText():null,err:TKX.err,next:TKX.next,quota:tkQuota(0),ap:tkAp().c,own:{phase:PH.p,last:last&&{lat:last.lat,lon:last.lon},log:LOG.pts.length}}:{on:false,err:TKX.err};
+window.cpTkPoll=()=>tkPoll();window.cpTkNorm=tkNormReg;window.cpTkLocal=(h,tz,n)=>tkLocalMs(h,tz,n);window.cpTkWx=()=>tkWxMaybe(true);
+/* restore after reload */
+{const s=store.get("tk",null);if(s&&s.on&&(s.reg||s.flt)&&Date.now()-(s.at||0)<36*3600000){TKS=s;$("tkReg").value=s.reg||"";$("tkFlt").value=s.flt||"";$("tkDep").value=s.dep||"";$("tkAp").value=s.ap||"";$("tkTurn").value=s.turn||30;setTimeout(tkPoll,1500)}
+  else if(s)store.set("tk",null);tkRender()}
+setInterval(()=>{if(TKS&&TKS.on&&!document.hidden){tkRender()}},15000);
 }
 </script>
 </body>
