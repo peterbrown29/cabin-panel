@@ -363,7 +363,7 @@ body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--i
     <div class="note" id="tkSt" style="margin:4px 0 0"></div>
     <ul class="lm" id="tkOut"></ul>
     <details><summary>Data source</summary>
-      <label class="chk"><input type="checkbox" id="tkRelay" checked> If Cabin Panel's private proxy fails, use the public cors.dev relay</label>
+      <label class="chk"><input type="checkbox" id="tkRelay"> If Cabin Panel's private proxy fails, use the public cors.dev relay</label>
       <div class="row"><input type="url" id="tkProxy" placeholder="Override proxy URL (optional; blank = built-in)" autocomplete="off" spellcheck="false" aria-label="Override the private ADS-B proxy URL"></div>
       <div class="note" style="margin:4px 0 0">Live positions come from adsb.lol, a free community ADS-B network. Its API doesn't allow requests straight from a web page, so Cabin Panel asks its own private proxy, so your lookups aren't shared with other people's. adsb.lol still allows about 500 lookups a day per proxy address. Only if the private proxy fails does it use the free public cors.dev relay, which is shared with other users and can see which aircraft you look up; untick above to never use it. An override URL must take the full adsb.lol address after it (https://your-proxy/https://api.adsb.lol/…). Checks slow down when the aircraft is far away and drop to every 5 minutes while the app is in the background.</div>
     </details>

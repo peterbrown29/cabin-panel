@@ -1953,7 +1953,7 @@ function tkPxOk(v){return /^https:\/\/|^http:\/\/(127\.0\.0\.1|localhost)[:\/]/.
 /* private proxy: your override if set, otherwise the built-in Worker. It takes the full upstream URL after it. */
 function tkPx(){const px=String(S.tkProxy||"").trim();return (tkPxOk(px)?px:TK_PROXY).replace(/\/*$/,"/")}
 async function tkGet(path,ms){const src=[["proxy",tkPx()+TK_ADSB+path]];
-  if(S.tkRelay!=="off")src.push(["relay",TK_RELAY+TK_ADSB+path]);
+  if(S.tkRelay==="on")src.push(["relay",TK_RELAY+TK_ADSB+path]);
   let lastE=null,rl=null;
   for(const [k,u] of src){try{tkQuota(1);const r=await fetchT(u,ms||12000);
       if(r.status===429){const e=new Error("rate limited");e.rl=+(r.headers.get("retry-after")||0);throw e}
@@ -2055,7 +2055,7 @@ $("tkGo").onclick=tkStart;$("tkStop").onclick=tkStop;$("tkReg").addEventListener
 $("tkReg").addEventListener("blur",()=>{const v=tkNormReg($("tkReg").value);if(v)$("tkReg").value=v});
 for(const id of ["tkDep","tkTurn","tkAp"])$(id).addEventListener("change",()=>{if(!TKS||!TKS.on)return;TKS.dep=$("tkDep").value;TKS.turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));const v=String($("tkAp").value||"").toUpperCase().trim();if(v)TKS.ap=v;TKS.arrAt=null;TKS.depAt=null;tkArrFromTrail();tkLegState();tkSave();tkRender();tkWxMaybe(true)});
 $("tkShow").checked=S.tkShow!=="off";$("tkShow").onchange=()=>{S.tkShow=$("tkShow").checked?"on":"off";saveS();tkRender();render();drawMap()};
-$("tkRelay").checked=S.tkRelay!=="off";$("tkRelay").onchange=()=>{S.tkRelay=$("tkRelay").checked?"on":"off";saveS()};
+$("tkRelay").checked=S.tkRelay==="on";$("tkRelay").onchange=()=>{S.tkRelay=$("tkRelay").checked?"on":"off";saveS()};
 $("tkProxy").value=S.tkProxy||"";$("tkProxy").onchange=()=>{const v=$("tkProxy").value.trim();S.tkProxy=tkPxOk(v)?v:"";$("tkProxy").value=S.tkProxy;saveS()};
 /* airport list for "your airport" */
 {const dl=$("tkApL");if(dl){dl.innerHTML=AP.map(a=>`<option value="${esc(a.c)}">${esc(a.n)}</option>`).join("")}}
