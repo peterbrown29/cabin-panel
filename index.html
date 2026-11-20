@@ -267,6 +267,31 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
 .bdgs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.bdg{border:1px solid var(--line);border-radius:8px;padding:4px 7px;opacity:.5;max-width:48%}.bdg.got{opacity:1;border-color:#ffd400}.bdg b{display:block;font:700 11px "B612 Mono",monospace}.bdg.got b{color:#ffd400}.bdg small{font-size:10px;color:var(--dim)}
 .bigv{font:700 26px "B612 Mono",monospace;color:var(--ink)}#wsBest b{color:#ffd400}li.bch b{color:var(--cyan)}
 #shLink{flex:1;min-width:0;font:11px "B612 Mono",monospace}
+/* v23 16-22 */
+#arIdBtn{left:auto;right:max(10px,env(safe-area-inset-right));transform:none;bottom:auto;top:calc(env(safe-area-inset-top,0px) + 84px)}
+#glOv{position:fixed;inset:0;z-index:9500;background:#000;color:#fff;display:none;flex-direction:column;justify-content:space-evenly;padding:calc(env(safe-area-inset-top,0px) + 6px) max(14px,env(safe-area-inset-right)) calc(env(safe-area-inset-bottom,0px) + 10px) max(14px,env(safe-area-inset-left));font-family:"B612 Mono",monospace}
+#glHead{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#9aa}
+#glHead button{min-height:40px;margin-left:6px;background:#111;color:#fff;border:1px solid #555;border-radius:8px;padding:4px 14px}
+.glc{text-align:center}.gll{font-size:13px;letter-spacing:.2em;color:#9cf}.glv{font:700 clamp(54px,17vw,120px)/1 "B612 Mono",monospace;color:#fff}.glu{font-size:14px;color:#cde;margin-top:2px}
+#glOv.on{display:flex}
+@media (orientation:landscape){#glOv.on{display:grid;}#glOv{grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr 1fr;align-items:center}#glHead{grid-column:1/3}.glv{font-size:clamp(44px,11vh,110px)}}
+#glOv.dim{background:#000}#glOv.dim .glv{color:#a33}#glOv.dim .gll,#glOv.dim .glu,#glOv.dim #glHead{color:#622}#glOv.dim button{color:#a33;border-color:#422;background:#000}
+#cueBar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);z-index:8000;background:rgba(10,24,40,.94);color:#cfe8ff;border:1px solid #3b82c4;border-radius:10px;padding:8px 12px;font:13px "B612",sans-serif;box-shadow:0 3px 12px rgba(0,0,0,.5)}
+#cueBar::before{content:"\1F4BA  ";}
+.cn-ok{color:var(--ok)}.cn-tight{color:var(--warn)}.cn-risk,.cn-departed{color:var(--bad)}
+li.poi.yours b{color:var(--cyan)}li.poi.yours b::after{content:" · your side";font-weight:400;font-size:11px;color:var(--dim)}
+body.saver::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.38);pointer-events:none;z-index:99999}
+/* v23 24-26 */
+#bpOv{display:none;position:fixed;inset:0;z-index:9600;background:#000}#bpOv.on{display:block}
+#bpVid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#bpFrame{position:absolute;left:8%;right:8%;top:30%;height:30%;border:3px solid #8dff9e;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)}
+#bpBar{position:absolute;left:0;right:0;bottom:0;padding:12px max(12px,env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));display:flex;gap:10px;align-items:center;justify-content:space-between;color:#fff;font:14px "B612",sans-serif;background:linear-gradient(transparent,rgba(0,0,0,.8))}
+#aiCard .aiReg{font:700 22px "B612 Mono",monospace;margin:6px 0 2px;color:var(--cyan)}
+body.arf-nvg #arVid{filter:grayscale(1) brightness(1.7) contrast(1.35) sepia(1) hue-rotate(65deg) saturate(5)}
+body.arf-nvg #arCv{background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(circle at 50% 50%,transparent 55%,rgba(0,0,0,.75) 75%)}
+body.arf-ir #arVid{filter:grayscale(1) contrast(1.7) brightness(1.15)}
+body.arf-flir #arVid{filter:url(#fIron) contrast(1.2)}
+body.arf-ir #arCv,body.arf-flir #arCv{background:radial-gradient(circle at 50% 50%,transparent 60%,rgba(0,0,0,.6) 80%)}
 </style>
 </head>
 <body>
@@ -277,6 +302,7 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
   <button id="mcBtn" class="mc" style="display:none">MASTER CAUTION</button>
   <div id="tbBan" style="display:none" role="alert"><span id="tbTxt">TURBULENCE MASTER WARNING</span><span id="tbSub"></span><div class="row"><button id="tbAck" class="pri">Acknowledge</button><button id="tbDis">Dismiss</button></div></div>
   <div id="spBan" style="display:none" role="status"></div>
+  <div id="cueBar" style="display:none" role="status" aria-live="polite"></div>
   <button id="updBtn" class="upd" style="display:none">New version installed · tap to reload</button>
   <div id="resumeNote" style="display:none"></div>
   <div id="endNote" style="display:none"><span id="endNoteTxt"></span><div class="row"><button id="endNoteBtn" class="pri">End flight</button><button id="endNoteX">Not now</button></div></div>
@@ -289,7 +315,7 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
     <button class="pri" id="hfBtn">Hands-free</button>
     <button id="gpsBtn">Start GPS</button>
     <button id="voiceBtn">Voice off</button>
-    <button id="wakeBtn">Keep screen on</button>
+    <button id="wakeBtn">Keep screen on</button><button id="glBtn" aria-label="Glance mode: big numbers for a propped-up phone">Glance</button>
     <button id="demoBtn">Demo flight</button>
     <button id="markBtn" class="pri">MARK</button>
     <button id="pickBtn">Pick up current flight</button>
@@ -335,6 +361,7 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
 </div></section>
 <section class="page fill" id="pg-nav" data-t="Nav"><div class="wrap">
   <div class="grid">
+    <div class="tile wide" id="twNow" style="display:none"><div class="lab"><span>Tailwind boost</span><span>Estimate</span></div><div class="bigv" id="twBig">---</div><div class="sub" id="twSub" style="white-space:normal"></div></div>
     <div class="tile wide" id="todTile" style="display:none"><div class="lab"><span>Top of descent</span><span>3:1 rule</span></div><div class="bigv" id="todBig">---</div><div class="sub" id="todSub" style="white-space:normal"></div></div>
     <div class="tile wide" id="arrTile" style="display:none"><div class="lab"><span id="arrHead">Arrival</span></div><div class="kv3" id="arrKv"></div></div>
     <div class="tile wide"><div class="lab"><span>Position</span></div>
@@ -379,6 +406,7 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
     <button id="svBtn" class="pri arBig" aria-label="Open 3D window view"><svg viewBox="0 0 200 90" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M4 70 L44 34 L64 50 L98 16 L132 52 L150 40 L196 70"/><path d="M4 82 H196" stroke-width="1.6"/><path d="M78 82 L94 62 H106 L122 82" stroke-width="1.6"/><path d="M100 64 V82" stroke-dasharray="3 3" stroke-width="1.4"/><circle cx="160" cy="16" r="7"/></g></svg><span>Open 3D window view</span></button>
     <div class="note" id="svNote" style="margin:0">An offline 3D view from your position: terrain, satellite imagery, runways, sun, haze and pack weather, with NVG, FLIR and CRT looks. Download a 3D route pack on the Route page while you have internet. Works in Demo flight too. Entertainment only, not for navigation.</div>
   </div>
+  <div class="tile" id="poiTile"><div class="lab"><span id="poiHead">Coming up</span><span>Window seat guide</span></div><ul class="lm" id="poiOut"></ul><div class="note" style="margin:4px 0 0">From the built-in landmarks and the pack's places. Highlighted: your side (Settings &gt; Seat).</div></div>
   <div class="tile" id="saTile"><div class="lab"><span>Sunrise and sunset at altitude</span><span class="seg" data-k="sunAlert"><button data-v="on">Alert</button><button data-v="off">Off</button></span></div><ul class="lm" id="saOut"></ul><div class="note" style="margin:4px 0 0">From height you see over the curve of the earth (horizon dip), so the sun rises earlier and sets later than on the ground below. The alert comes about 10 minutes before.</div></div>
   <div class="tile">
     <div class="sunrow"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="#ffd400"/><g stroke="#ffd400" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></g></svg><p id="sunTxt">Waiting for a GPS fix.</p></div>
@@ -409,6 +437,13 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
   <h2>Route</h2>
   <div class="row" style="margin-bottom:6px"><input type="text" id="fltIn" placeholder="Flight number, e.g. QF812" autocapitalize="characters" autocomplete="off" maxlength="9" aria-label="Flight number"><button id="fltBtn" data-net class="pri">Look up</button><button id="fltClr" aria-label="Clear flight number">✕</button></div>
   <div class="note" id="fltTxt">Look up your flight before boarding (needs internet). The route is saved on the phone for offline use.</div>
+  <div class="tile" id="bpTile">
+    <div class="lab"><span>Boarding pass</span><button id="bpClr">Clear</button></div>
+    <div class="row"><button id="bpScan" class="pri">📷 Scan boarding pass</button><button id="bpUp">Upload image or Wallet pass</button></div>
+    <input type="file" id="bpFile" accept="image/*,.pkpass,application/vnd.apple.pkpass" hidden>
+    <ul class="lm" id="bpOut"></ul>
+    <div class="note" id="bpTxt" style="margin:4px 0 0">Reads the barcode on the phone (works offline) and fills in your flight, date, seat and route, then shows the window seat guide. Nothing is uploaded; your name and booking code are not kept.</div>
+  </div>
   <div class="row"><select id="from" aria-label="From"></select><select id="to" aria-label="To"></select></div>
   <div class="row"><span class="sub">Aircraft type</span><input type="text" id="acType" placeholder="e.g. B738 (optional)" maxlength="12" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Aircraft type (optional, for your logbook stats)"></div>
   <h2>Window seat guide</h2>
@@ -424,6 +459,14 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
     <div class="lab"><span id="bcHead">Jet lag and sleep</span><span>Before · during · after</span></div>
     <ul class="lm" id="bcOut"></ul>
     <div class="note" style="margin:4px 0 0">Uses the time-zone change, your departure time (Departs, in the pre-flight pack) and an estimated flight time. General tips, not medical advice.</div>
+  </div>
+  <h2>Connection</h2>
+  <div class="tile" id="cnTile">
+    <div class="lab"><span>Next flight (multi-leg trips)</span><button id="cnClr">Clear</button></div>
+    <div class="row"><input type="time" id="cnTime" aria-label="Next flight departs (local time at your destination)"><input type="text" id="cnFlt" placeholder="Flight (optional)" maxlength="8" autocomplete="off" aria-label="Next flight number (optional)"></div>
+    <div class="row"><span class="seg" id="cnKind"><button data-v="same">Same terminal</button><button data-v="term">Change terminal</button><button data-v="intl">International</button></span></div>
+    <div class="bigv" id="cnBig" style="font-size:20px;margin:6px 0">—</div><ul class="lm" id="cnOut"></ul>
+    <div class="note" style="margin:4px 0 0">Rough guide only: taxi and walking times are typical estimates. Check the airline app and airport screens.</div>
   </div>
   <h2>Pre-flight pack</h2>
   <div class="tile" id="packTile">
@@ -466,6 +509,14 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
     </details>
   </div>
   <div class="note">Display only: tracking never changes your own flight, phases or logbook. ETA, delay and weather are estimates, not airline information. Aircraft with ADS-B off, outside receiver coverage or hidden from public feeds can't be shown. Your departure time is local time at your airport. ADS-B data: adsb.lol (ODbL). Aircraft lookups: adsbdb.com, hexdb.io. Weather data by Open-Meteo.com.</div>
+  <h2>Aircraft info</h2>
+  <div class="tile" id="aiTile">
+    <div class="lab"><span>Type, operator and owner</span><span id="aiN"></span></div>
+    <div class="row"><input type="text" id="aiIn" placeholder="Registration, e.g. VH-YIA" maxlength="10" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Aircraft registration or Mode S code"><button id="aiGo" class="pri">Look up</button><span class="cfWhy" id="aiWhy" style="display:none"></span></div>
+    <div class="row"><button id="aiTk" style="display:none"></button></div>
+    <div id="aiCard"></div>
+    <div class="note" id="aiTxt" style="margin:4px 0 0">Needs internet the first time; saved on this phone afterwards so it works offline. Sources: adsbdb.com, hexdb.io.</div>
+  </div>
   <h2>Share live flight</h2>
   <div class="tile" id="shTile">
     <div class="lab"><span>Let family follow along</span><span>Opt-in</span></div>
@@ -515,6 +566,8 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
     <div class="note" id="bookTxt" style="margin:0 0 10px">Back up your flights to Files or iCloud Drive. The logbook lives only on this phone.</div>
     <div class="kv3" id="statKv"></div><div class="lab" style="margin-top:14px"><span>Flights</span></div><ul class="lm" id="bookList"></ul></div>
   <div class="tile" id="bdgTile"><div class="lab"><span>Trip stats and records</span></div><div class="kv3" id="totKv"></div><div class="lab" style="margin-top:12px"><span id="bdgHead">Badges</span></div><div class="bdgs" id="bdgOut"></div></div>
+  <div class="tile" id="recTile"><div class="lab"><span>Personal bests</span><span>Your flights</span></div><ul class="lm" id="recOut"></ul><div class="note" style="margin:4px 0 0">From your logbook and live GPS (demo flights don't count). Tailwind boost = groundspeed minus estimated true airspeed, using the pre-flight pack's winds.</div></div>
+  <div class="tile" id="exTile"><div class="lab"><span>Export</span><span>All flights</span></div><div class="row" style="flex-wrap:wrap"><button id="ex_csv">Logbook CSV</button><button id="ex_trk">Tracks CSV</button><button id="ex_gpx">GPX</button><button id="ex_kml">KML</button></div><div class="note" id="exTxt" style="margin:4px 0 0">Opens in Excel/Numbers, Google Earth and mapping apps. Made on the phone; nothing is uploaded.</div></div>
 
 </div></section>
 <section class="page" id="pg-set" data-t="Settings"><div class="wrap">
@@ -533,6 +586,10 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
     <div class="note" id="netSt" style="margin:0"></div>
     <div class="row">Turbulence warning <span class="seg" data-k="tbLead" style="flex-wrap:wrap"><button data-v="5">5 min</button><button data-v="10">10</button><button data-v="15">15</button><button data-v="20">20</button><button data-v="30">30</button><button data-v="off">Off</button></span></div>
     <div class="note" style="margin:0">Turbulence master warning: a banner and tone this many minutes before moderate or rough air on the pre-flight pack's forecast. An estimate, not a real-time warning.</div>
+    <div class="row">Seatbelt and phase cues <span class="seg" data-k="cues"><button data-v="on">On</button><button data-v="voice">Voice</button><button data-v="off">Off</button></span></div>
+    <div class="note" style="margin:0">Gentle reminders worked out from GPS (taxiing out, levelling off, descent soon, approach, nearly at the gate). A guess: always follow the crew.</div>
+    <div class="row">Battery saver <span class="seg" data-k="bat"><button data-v="auto">Auto</button><button data-v="on">On</button><button data-v="off">Off</button></span></div>
+    <div class="note" id="batSt" style="margin:0"></div>
     <div class="note" id="offTxt">Checking offline readiness…</div><div class="note" id="a2hsTip" style="display:none"></div>
     <div class="note" id="storeTxt">Flight data saves every few seconds and when the app closes.</div>
   </div>
@@ -579,7 +636,8 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
   <div id="arBar">
     <div id="arMsg" style="display:none"></div>
     <div class="row"><button id="arCam">Camera on</button><button id="arSen" class="pri">Enable compass</button><button id="arAlign">Align</button><button id="arHide" aria-label="Hide controls">Hide</button></div>
-    <div class="row"><span class="seg" data-k="arSrc"><button data-v="fus">Fused</button><button data-v="cmp">Compass</button><button data-v="gps">GPS</button></span><span class="seg" data-k="arFlt"><button data-v="norm">TV</button><button data-v="grn">GRN</button><button data-v="wht">WHT</button></span></div>
+    <div class="row"><span class="seg" data-k="arSrc"><button data-v="fus">Fused</button><button data-v="cmp">Compass</button><button data-v="gps">GPS</button></span><span class="seg" data-k="arFlt"><button data-v="norm">TV</button><button data-v="grn">GRN</button><button data-v="wht">WHT</button><button data-v="nvg">NVG</button><button data-v="flir">FLIR</button><button data-v="ir">IR</button></span></div>
+    <div class="row"><span class="seg" data-k="arSky"><button data-v="auto">Sky auto</button><button data-v="on">Sky on</button><button data-v="off">Sky off</button></span></div>
     <div class="row"><span class="seg" data-k="arSide"><button data-v="left">Left window</button><button data-v="right">Right window</button></span><span class="sub">Trim</span><input type="range" id="arTrim" min="-60" max="60" step="1" value="0" aria-label="Heading trim, degrees"><b id="arTrimV">0°</b></div>
   </div>
   <button id="arShow" aria-label="Show controls">⚙</button>
@@ -604,6 +662,13 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
 <div id="cardOv"><div class="cardBox"><img id="cardImg" alt="Flight summary card"><div class="row"><button id="cardShare" class="pri">Share</button><button id="cardClose">Close</button></div><label class="chk" id="cardSnapL" style="display:none"><input type="checkbox" id="cardSnap" checked> Include 3D snapshot</label><p class="note" id="cardHint">Long-press the image to save it to Photos.</p></div></div>
 
 <div id="rpBar" style="display:none" role="group" aria-label="Replay controls"><div class="row"><button id="rpbPlay" aria-label="Play or pause">❚❚</button><span class="seg" id="rpbSpeed"><button data-v="1">1×</button><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button><button data-v="120">120×</button></span><button id="rpb3d">3D</button><button id="rpbMap">Map</button><button id="rpbExit">Exit</button></div><div class="row"><span id="rpbTitle"></span><span id="rpbTime"></span></div><input type="range" id="rpbSlider" min="0" max="1000" value="0" aria-label="Replay position"></div>
+<div id="glOv" role="dialog" aria-label="Glance mode"><div id="glHead"><span id="glTop"></span><span><button id="glDim">Dim</button><button id="glX">✕</button></span></div>
+<div class="glc"><div class="gll">ETA</div><div class="glv" id="glEta">--:--</div><div class="glu" id="glEtaS"></div></div>
+<div class="glc"><div class="gll">ALTITUDE</div><div class="glv" id="glAlt">---</div><div class="glu" id="glAltU">FT</div></div>
+<div class="glc"><div class="gll">GROUNDSPEED</div><div class="glv" id="glSpd">---</div><div class="glu" id="glSpdU">KT</div></div>
+<div class="glc"><div class="gll">DISTANCE</div><div class="glv" id="glDtg">---</div><div class="glu" id="glDtgU">NM TO GO</div></div></div>
+<div id="bpOv" role="dialog" aria-label="Scan boarding pass"><video id="bpVid" playsinline muted autoplay></video><div id="bpFrame"></div><div id="bpBar"><span id="bpScanTxt"></span><button id="bpX">✕ Close</button></div></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="fIron" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".3 .59 .11 0 0 .3 .59 .11 0 0 .3 .59 .11 0 0 0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues="0 0.25 0.6 0.9 1 1"/><feFuncG type="table" tableValues="0 0 0.05 0.35 0.75 1"/><feFuncB type="table" tableValues="0.05 0.45 0.55 0.1 0 0.85"/></feComponentTransfer></filter></svg>
 <div id="fwOv" role="dialog" aria-label="Follow a shared flight"><div id="fwTop"><span id="fwHead">Follow a flight</span><button id="fwExit">✕ Close</button></div><canvas id="fwCv" aria-label="Map of the shared flight"></canvas><div id="fwInfo" role="status"></div></div>
 <div id="dyOv" role="dialog" aria-label="Flight diary"><div class="tile"><div class="lab"><span id="dyOvT">Diary</span><button id="dyOvX">✕ Close</button></div><ul class="lm" id="dyOvList"></ul><textarea id="dyOvIn" maxlength="1000" placeholder="Add a note to this flight" aria-label="Diary note"></textarea><div class="row"><button id="dyOvAdd" class="pri">Add note</button><button id="dyOvExp">Export text</button></div><div class="note" id="dyOvTxt"></div></div></div>
 
