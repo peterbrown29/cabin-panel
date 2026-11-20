@@ -2012,8 +2012,8 @@ function arDraw(dt){
   const tiltOk=AR.ps!=null&&now-AR.ot<5000,pitch=tiltOk?AR.ps:0,roll=tiltOk&&AR.rs!=null?AR.rs:0;
   const v=$("arVid"),vw=v.videoWidth||0,vh=v.videoHeight||0,camOn=!!(AR.stream&&vw&&vh);
   const ppd=camOn?Math.max(vw,vh)*Math.max(W/vw,H/vh)/64:Math.max(W,H)/64;
-  const cx=W/2,cy=H*0.45,cr=Math.cos(rad(roll)),sr=Math.sin(rad(roll)),proj=(dA,dE)=>{const dx=dA*ppd,dy=dE*ppd;return [cx+dx*cr+dy*sr,cy+dx*sr-dy*cr]};
-  const h=L?Math.max(0,L.alt||0):0,dip=deg(Math.acos(R/(R+h)));
+  const cx=W/2,cy=camOn?H/2:H*0.45,cr=Math.cos(rad(roll)),sr=Math.sin(rad(roll)),proj=(dA,dE)=>{const dx=dA*ppd,dy=dE*ppd;return [cx+dx*cr+dy*sr,cy+dx*sr-dy*cr]};
+  const h=L?Math.max(0,L.alt||0):0,dip=deg(Math.acos(R/(R+h*0.87)));
   const bar=$("arBar"),cT=cv.getBoundingClientRect().top,dT=$("arDisc").getBoundingClientRect().top-cT-4,bt=document.body.classList.contains("arMin")?Math.min(H,dT>0?dT:H):Math.min(H,bar.getBoundingClientRect().top-cT,dT>0?dT:H),yB=Math.max(H*0.55,bt-10);
   if(!camOn){const hp=proj(0,-dip-pitch);x.save();x.translate(hp[0],hp[1]);x.rotate(rad(roll));x.fillStyle=flt==="norm"?"#081420":"#141814";x.fillRect(-2*W,-3*H,4*W,3*H);x.fillStyle=flt==="norm"?"#14180c":"#0a0c0a";x.fillRect(-2*W,0,4*W,3*H);x.restore()}
   if(flt!=="norm"){const g=x.createRadialGradient(cx,H/2,Math.min(W,H)*0.35,cx,H/2,Math.max(W,H)*0.75);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.55)");x.fillStyle=g;x.fillRect(0,0,W,H)}
