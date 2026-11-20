@@ -418,7 +418,7 @@ body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--i
   <div class="note">Attitude, GPS mode: bank comes from how fast your track is turning (assuming a coordinated turn) and pitch from your climb angle plus about 2.5°. It needs groundspeed above about 60 kt. Gyro mode: stand the phone upright facing you, braced so it can't move, and tap Level in level flight. It catches quick changes well but drifts back toward level in long turns.</div>
   <div class="note">Uses your phone's GPS, which keeps working in flight mode. Sit at a window for a fix. Altitude is GPS height above sea level, not the pressure altitude the crew flies. Not for navigation.</div>
   <h2>About &amp; credits</h2>
-  <div class="tile"><div class="note" style="margin:0">Cabin Panel v22. Entertainment only, not for navigation or safety use.<br>
+  <div class="tile"><div class="note" style="margin:0">Cabin Panel v23. Entertainment only, not for navigation or safety use.<br>
   Taxiways and aprons: © OpenStreetMap contributors, Open Database Licence (ODbL 1.0), openstreetmap.org/copyright. Simplified extract, November 2026.<br>
   Runways and airport positions: OurAirports (public domain).<br>
   Pre-flight weather: Weather data by Open-Meteo.com (CC BY 4.0), downloaded on request.<br>
@@ -2031,17 +2031,17 @@ function arDraw(dt){
   /* heading tape */
   const tY=Math.max(56,8+46);const tw=Math.min(W*0.62,420),tx0=cx-tw/2,tx1=cx+tw/2;
   if(az!=null){const sp=tw/2/ppd;S2(()=>{x.moveTo(tx0,tY+22);x.lineTo(tx1,tY+22);for(let d=Math.ceil((az-sp)/5)*5;d<=az+sp;d+=5){const px=cx+w180(d-az)*ppd;if(px<tx0||px>tx1)continue;x.moveTo(px,tY+22);x.lineTo(px,tY+(d%10===0?10:16))}},1.5);
-    for(let d=Math.ceil((az-sp)/10)*10;d<=az+sp;d+=10){const px=cx+w180(d-az)*ppd;if(px<tx0+10||px>tx1-10||Math.abs(px-cx)<26)continue;const dd=((d%360)+360)%360;T(({0:"N",90:"E",180:"S",270:"W"})[dd]||String(dd/10).padStart(2,"0"),px,tY+6,12,"center")}
-    x.fillStyle="rgba(0,0,0,.6)";x.fillRect(cx-26,tY-10,52,20);x.strokeStyle=SYM;x.lineWidth=1.5;x.strokeRect(cx-26,tY-10,52,20);T(p3(az),cx,tY+5,15,"center");
+    for(let d=Math.ceil((az-sp)/10)*10;d<=az+sp;d+=10){const px=cx+w180(d-az)*ppd;if(px<tx0+8||px>tx1-8||Math.abs(px-cx)<20)continue;const dd=((d%360)+360)%360;T(({0:"N",90:"E",180:"S",270:"W"})[dd]||String(dd/10).padStart(2,"0"),px,tY+5,10,"center")}
+    x.fillStyle="rgba(0,0,0,.6)";x.fillRect(cx-19,tY-8,38,16);x.strokeStyle=SYM;x.lineWidth=1.2;x.strokeRect(cx-19,tY-8,38,16);T(p3(az),cx,tY+4,11,"center");
     S2(()=>{x.moveTo(cx,tY+24);x.lineTo(cx-6,tY+33);x.moveTo(cx,tY+24);x.lineTo(cx+6,tY+33)},1.5);
     if(so.win!=null&&so.src!=="GPS TRK L"&&so.src!=="GPS TRK R"){const px=cx+w180(so.win-az)*ppd;if(px>tx0&&px<tx1){x.fillStyle=SYM;x.fillRect(px-1,tY+24,2,9)}}}
-  else T("NO HDG",cx,tY+10,14,"center","#ffbf00");
+  else T("NO HDG",cx,tY+8,11,"center","#ffbf00");
   /* ---- layout with collision avoidance: reserved areas first, then labels in priority order ---- */
   const RS=[],hitR=r=>RS.some(q=>r[0]<q[0]+q[2]&&r[0]+r[2]>q[0]&&r[1]<q[1]+q[3]&&r[1]+r[3]>q[1]),res=r=>{RS.push(r);return r};
   const narrow=W<560,lsc=W>H*1.2,arMin=document.body.classList.contains("arMin");
-  res([tx0-4,tY-12,tw+8,48]);            /* heading tape */
-  res([0,tY+26,172,66]);                 /* top-left data */
-  res([W-172,tY+26,172,80]);             /* top-right data */
+  res([tx0-4,tY-10,tw+8,40]);            /* heading tape */
+  res([0,tY+24,136,50]);                 /* top-left data */
+  res([W-136,tY+24,136,60]);             /* top-right data */
   res([cx-72,cy-52,144,104]);            /* gun cross: never draw labels through it */
   /* elevation scale: left edge in portrait (edge cues go below it), inboard in landscape (cues stay at the edge) */
   {const eh=lsc?Math.min(110,H*0.24):Math.min(95,H*0.12),ex=lsc?Math.round(Math.min(W*0.2,cx-190)):26,ey0=cy-eh,ey1=cy+eh,k=2*eh/50;
@@ -2051,16 +2051,16 @@ function arDraw(dt){
     T("EL",ex-6,ey0-10,10,"left");res([ex-16,ey0-22,58,ey1-ey0+32])}
   /* corner data blocks */
   const tl=["ALT "+(L&&L.alt!=null?Math.round(fAlt(L.alt)).toLocaleString():"----")+(S.alt==="ft"?" FT":" M"),"GS  "+(L&&L.spd!=null?Math.round(fSpd(L.spd)):"---")+" "+S.spd.toUpperCase(),"TRK "+(L&&L.trk!=null?p3(L.trk):"---")];
-  x.font=F(12);{const w1=Math.max(...tl.map(s=>x.measureText(s).width))+12;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(4,tY+30,w1,48)}
-  tl.forEach((s,i)=>T(s,10,tY+44+i*15,12,"left"));
+  x.font=F(10);{const w1=Math.max(...tl.map(s=>x.measureText(s).width))+8;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(4,tY+28,w1,36)}
+  tl.forEach((s,i)=>T(s,8,tY+38+i*11,10,"left"));
   const d=new Date(),tr=[d.toTimeString().slice(0,8)+" L",d.toISOString().slice(11,16)+"Z",({norm:"DAY TV",grn:"FLIR GRN",wht:"FLIR WHT"})[flt]+" · WFOV",(PHN[PH.p]||"").toUpperCase()];
-  x.font=F(12);{const w2=Math.max(...tr.map(s=>x.measureText(s).width))+12;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(W-4-w2,tY+30,w2,63)}
-  tr.forEach((s,i)=>T(s,W-10,tY+44+i*15,12,"right"));
+  x.font=F(10);{const w2=Math.max(...tr.map(s=>x.measureText(s).width))+8;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(W-4-w2,tY+28,w2,46)}
+  tr.forEach((s,i)=>T(s,W-8,tY+38+i*11,10,"right"));
   AR.view=az==null?null:{az:+az.toFixed(1),unc:+unc.toFixed(1),pitch:+pitch.toFixed(1),roll:+roll.toFixed(1),ppd:+ppd.toFixed(2),src:so.src,bias:+AR.bias.toFixed(1)};
   /* bottom-right sensor block: kept above the ⚙ button so nothing is clipped */
   const br=[(so.src||"NO HDG")+(unc!=null?" ±"+unc.toFixed(1)+"°":""),(tiltOk?"EL "+(pitch>=0?"+":"")+pitch.toFixed(1)+"°":"EL ---")+"  TRIM "+(S.arTrim>0?"+":"")+S.arTrim,"BIAS "+(AR.bias>=0?"+":"")+AR.bias.toFixed(1)+"°  VAR "+(so.dec>=0?"E":"W")+Math.abs(so.dec).toFixed(0)];
   let brB=yB;if(arMin){const gr=$("arShow").getBoundingClientRect();if(gr.height)brB=Math.min(yB,gr.top-cT-8)}
-  x.font=F(11);const brW=Math.max(...br.map(s=>x.measureText(s).width));br.forEach((s,i)=>T(s,W-10,brB-30+i*15,11,"right",i?DIM:SYM));res([W-brW-16,brB-44,brW+16,48]);
+  x.font=F(10);const brW=Math.max(...br.map(s=>x.measureText(s).width));br.forEach((s,i)=>T(s,W-8,brB-22+i*11,10,"right",i?DIM:SYM));res([W-brW-12,brB-34,brW+14,38]);
   AR.hits=[];AR.lay={labels:0,hidden:0,cues:0};
   if(az==null||!L)return;
   /* targets */
@@ -2073,26 +2073,26 @@ function arDraw(dt){
   /* range readout + target data block (bottom left; in portrait RNG sits above the block) */
   const tg=des||lockT;
   if(tg){const ls=[(AR.lock===tg.n?"◆ ":"")+tg.n.toUpperCase().slice(0,30),"BRG "+p3(tg.b)+"°T  EL "+(tg.el>=0?"+":"")+tg.el.toFixed(1)+"°"+(tg.hid?"  BEYOND HZN":"")];
-    const mxw=narrow?Math.min(W-brW-40,W*0.62):Math.min(W*0.4,340);let notes=[];
-    if(tg.note){x.font="12px \"B612\",sans-serif";let cur="";for(const w of tg.note.split(" ")){const tt=cur?cur+" "+w:w;if(x.measureText(tt).width>mxw){notes.push(cur);cur=w;if(notes.length===2)break}else cur=tt}if(notes.length<2&&cur)notes.push(cur);if(notes.length===2&&tg.note.indexOf(notes[1])+notes[1].length<tg.note.length-1)notes[1]+="…"}
-    const nL=ls.length+notes.length,by=yB-6-(nL-1)*15;
-    ls.forEach((s,i)=>T(s,10,by+i*15,i?11:12,"left",i?DIM:(AR.lock===tg.n?"#ffbf00":SYM)));
-    notes.forEach((s,i)=>{x.font="12px \"B612\",sans-serif";x.textAlign="left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";const yy=by+(ls.length+i)*15;x.strokeText(s,10,yy);x.fillStyle=SYM;x.fillText(s,10,yy)});
-    res([0,by-14,mxw+20,yB-by+20]);
-    const rng=fDst(tg.d),rs=(rng<10?rng.toFixed(1):Math.round(rng).toLocaleString())+" "+S.dst.toUpperCase(),ry=narrow?by-24:yB-14;
-    T("RNG",cx,ry-20,10,"center",DIM);T(rs,cx,ry,22,"center",AR.lock===tg.n?"#ffbf00":SYM);res([cx-80,ry-32,160,38])}
+    const mxw=narrow?Math.min(W-brW-32,W*0.58):Math.min(W*0.36,260);let notes=[];
+    if(tg.note){x.font="10px \"B612\",sans-serif";let cur="";for(const w of tg.note.split(" ")){const tt=cur?cur+" "+w:w;if(x.measureText(tt).width>mxw){notes.push(cur);cur=w;if(notes.length===2)break}else cur=tt}if(notes.length<2&&cur)notes.push(cur);if(notes.length===2&&tg.note.indexOf(notes[1])+notes[1].length<tg.note.length-1)notes[1]+="…"}
+    const nL=ls.length+notes.length,by=yB-6-(nL-1)*11;
+    ls.forEach((s,i)=>T(s,8,by+i*11,10,"left",i?DIM:(AR.lock===tg.n?"#ffbf00":SYM)));
+    notes.forEach((s,i)=>{x.font="10px \"B612\",sans-serif";x.textAlign="left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";const yy=by+(ls.length+i)*11;x.strokeText(s,8,yy);x.fillStyle=SYM;x.fillText(s,8,yy)});
+    res([0,by-11,mxw+16,yB-by+16]);
+    const rng=fDst(tg.d),rs=(rng<10?rng.toFixed(1):Math.round(rng).toLocaleString())+" "+S.dst.toUpperCase(),ry=narrow?by-18:yB-12;
+    T("RNG",cx,ry-15,10,"center",DIM);T(rs,cx,ry,15,"center",AR.lock===tg.n?"#ffbf00":SYM);res([cx-56,ry-24,112,28])}
   /* designated / locked target: track gates sized to the heading uncertainty; TGT / TGT LOCK above the box */
-  if(des){const ang=Math.max(unc,deg(Math.atan2(des.r*0.5,des.d))),hw=Math.max(14,Math.min(W*0.4,ang*ppd)),hh=Math.max(12,Math.min(H*0.3,hw*0.75)),lk=AR.lock===des.n,c=lk?"#ffbf00":SYM;
+  if(des){const ang=Math.max(unc,Math.min(3,deg(Math.atan2(des.r*0.5,des.d)))),hw=Math.max(10,Math.min(W*0.18,28,ang*ppd*0.72)),hh=Math.max(8,Math.min(H*0.14,22,hw*0.75)),lk=AR.lock===des.n,c=lk?"#ffbf00":SYM;
     x.save();if(des.hid)x.setLineDash([6,5]);const g=Math.min(hw,hh)*0.5;x.strokeStyle="rgba(0,0,0,.85)";
     const gates=()=>{for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){const X0=des.px+sx*hw,Y0=des.py+sy*hh;x.moveTo(X0-sx*g,Y0);x.lineTo(X0,Y0);x.lineTo(X0,Y0-sy*g)}};
-    x.lineWidth=lk?5:4.2;x.beginPath();gates();x.stroke();x.strokeStyle=c;x.lineWidth=lk?3:2;x.beginPath();gates();x.stroke();
-    if(lk){x.lineWidth=1.2;x.strokeRect(des.px-hw-5,des.py-hh-5,2*hw+10,2*hh+10)}x.restore();
-    S2(()=>{x.moveTo(des.px-6,des.py);x.lineTo(des.px+6,des.py);x.moveTo(des.px,des.py-6);x.lineTo(des.px,des.py+6)},1.4);
-    const tt=lk?"TGT LOCK":"TGT";x.font=F(12);const tw2=x.measureText(tt).width;let ty=des.py-hh-(lk?12:9);if(ty<tY+40)ty=des.py+hh+(lk?22:19);
-    T(tt,des.px,ty,12,"center",c);res([des.px-tw2/2-4,ty-13,tw2+8,17]);res([des.px-hw-6,des.py-hh-6,2*hw+12,2*hh+12]);
+    x.lineWidth=lk?3.5:3;x.beginPath();gates();x.stroke();x.strokeStyle=c;x.lineWidth=lk?2.2:1.5;x.beginPath();gates();x.stroke();
+    if(lk){x.lineWidth=1;x.strokeRect(des.px-hw-3,des.py-hh-3,2*hw+6,2*hh+6)}x.restore();
+    S2(()=>{x.moveTo(des.px-5,des.py);x.lineTo(des.px+5,des.py);x.moveTo(des.px,des.py-5);x.lineTo(des.px,des.py+5)},1.2);
+    const tt=lk?"TGT LOCK":"TGT";x.font=F(10);const tw2=x.measureText(tt).width;let ty=des.py-hh-(lk?10:7);if(ty<tY+36)ty=des.py+hh+(lk?18:15);
+    T(tt,des.px,ty,10,"center",c);res([des.px-tw2/2-3,ty-11,tw2+6,14]);res([des.px-hw-4,des.py-hh-4,2*hw+8,2*hh+8]);
     AR.hits.push({n:des.n,x0:des.px-hw-8,x1:des.px+hw+8,y0:des.py-hh-8,y1:des.py+hh+8})}
   /* off-screen cues: max 3 a side, stacked into free slots, lower priority dropped if no room */
-  const yTop=tY+84,yBot=yB-4;
+  const yTop=tY+68,yBot=yB-4;
   const cue=(arr,side)=>{let n=0;for(const t of arr.filter(t=>Math.abs(t.dA)<=110||t.kind==="dest"||t.n===AR.lock).sort((a,b)=>pri(a)-pri(b))){if(n>=3)break;
     const nm=(t.n.length>16?t.n.slice(0,15)+"…":t.n).toUpperCase(),sub=Math.round(Math.abs(t.dA))+"° "+Math.round(fDst(t.d))+S.dst.toUpperCase();x.font=F(10);const mw=Math.max(x.measureText(nm).width,x.measureText(sub).width);
     let y=null;const order=[];for(let yy=cy-30;yy<=yBot-14;yy+=17)order.push(yy);for(let yy=cy-47;yy>=yTop;yy-=17)order.push(yy);
@@ -2105,11 +2105,11 @@ function arDraw(dt){
   cue(offL.filter(t=>t.n!==(des&&des.n)),-1);cue(offR.filter(t=>t.n!==(des&&des.n)),1);
   /* other targets in view: box or diamond always; name only where it fits (right, then left), else hidden */
   const others=on.filter(t=>t!==des).sort((a,b)=>pri(a)-pri(b)).slice(0,9);
-  for(const t of others){const s=Math.max(5,Math.min(40,Math.max(unc,deg(Math.atan2(t.r*0.5,t.d)))*ppd));x.save();const bR=[t.px-s,t.py-s,2*s,2*s],undr=[RS[1],RS[2],RS[4]].some(q=>bR[0]<q[0]+q[2]&&bR[0]+bR[2]>q[0]&&bR[1]<q[1]+q[3]&&bR[1]+bR[3]>q[1]);x.globalAlpha=undr?.22:t.hid?.45:.9;
-    if(s>9)S2(()=>{x.rect(t.px-s,t.py-s*0.7,2*s,1.4*s)},1.2);else S2(()=>{x.moveTo(t.px,t.py-6);x.lineTo(t.px+6,t.py);x.lineTo(t.px,t.py+6);x.lineTo(t.px-6,t.py);x.closePath()},1.3);
-    const nm=(t.n.length>18?t.n.slice(0,17)+"…":t.n).toUpperCase();x.font=F(10);const lw=x.measureText(nm).width,ly=t.py-Math.max(s*0.7,6)+10;
-    const cands=[[t.px+Math.max(s,6)+4,"left"],[t.px-Math.max(s,6)-4,"right"]];let done=false;
-    for(const [lx,al] of cands){const r=al==="left"?[lx-2,ly-11,lw+4,15]:[lx-lw-2,ly-11,lw+4,15];if(r[0]<2||r[0]+r[2]>W-2||hitR(r))continue;res(r);T(nm,lx,ly,10,al,DIM);done=true;AR.lay.labels++;break}
+  for(const t of others){const s=Math.max(4,Math.min(26,Math.max(unc,Math.min(3,deg(Math.atan2(t.r*0.5,t.d))))*ppd*0.72));x.save();const bR=[t.px-s,t.py-s,2*s,2*s],undr=[RS[1],RS[2],RS[4]].some(q=>bR[0]<q[0]+q[2]&&bR[0]+bR[2]>q[0]&&bR[1]<q[1]+q[3]&&bR[1]+bR[3]>q[1]);x.globalAlpha=undr?.22:t.hid?.45:.9;
+    if(s>7)S2(()=>{x.rect(t.px-s,t.py-s*0.7,2*s,1.4*s)},1);else S2(()=>{x.moveTo(t.px,t.py-5);x.lineTo(t.px+5,t.py);x.lineTo(t.px,t.py+5);x.lineTo(t.px-5,t.py);x.closePath()},1.2);
+    const nm=(t.n.length>18?t.n.slice(0,17)+"…":t.n).toUpperCase();x.font=F(10);const lw=x.measureText(nm).width,ly=t.py-Math.max(s*0.7,5)+9;
+    const cands=[[t.px+Math.max(s,5)+3,"left"],[t.px-Math.max(s,5)-3,"right"]];let done=false;
+    for(const [lx,al] of cands){const r=al==="left"?[lx-2,ly-10,lw+4,13]:[lx-lw-2,ly-10,lw+4,13];if(r[0]<2||r[0]+r[2]>W-2||hitR(r))continue;res(r);T(nm,lx,ly,10,al,DIM);done=true;AR.lay.labels++;break}
     if(!done)AR.lay.hidden++;
     x.restore();AR.hits.push({n:t.n,x0:t.px-s-8,x1:t.px+s+8,y0:t.py-s-8,y1:t.py+s+8})}
 }
