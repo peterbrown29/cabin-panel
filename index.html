@@ -361,12 +361,12 @@ body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--i
     <div class="note" id="tkSt" style="margin:4px 0 0"></div>
     <ul class="lm" id="tkOut"></ul>
     <details><summary>Data source</summary>
-      <label class="chk"><input type="checkbox" id="tkRelay" checked> Allow the public cors.dev relay</label>
-      <div class="row"><input type="url" id="tkProxy" placeholder="Your own proxy URL (optional), https://…" autocomplete="off" spellcheck="false" aria-label="Your own adsb.lol proxy URL"></div>
-      <div class="note" style="margin:4px 0 0">Live positions come from adsb.lol, a free community ADS-B network. Its API doesn't allow requests straight from a web page, so Cabin Panel asks your own proxy if you set one (it should take a full URL after it, like https://your-proxy/https://api.adsb.lol/…; with a proxy, adsb.fi open data is also tried when adsb.lol hasn't seen the aircraft), otherwise the free public cors.dev relay (which can see which aircraft you look up). adsb.lol allows about 500 lookups a day per connection; checks slow down when the aircraft is far away and stop while the app is in the background.</div>
+      <label class="chk"><input type="checkbox" id="tkRelay" checked> If Cabin Panel's private proxy fails, use the public cors.dev relay</label>
+      <div class="row"><input type="url" id="tkProxy" placeholder="Override proxy URL (optional; blank = built-in)" autocomplete="off" spellcheck="false" aria-label="Override the private ADS-B proxy URL"></div>
+      <div class="note" style="margin:4px 0 0">Live positions come from adsb.lol, a free community ADS-B network. Its API doesn't allow requests straight from a web page, so Cabin Panel asks its own private proxy, so your lookups aren't shared with other people's. adsb.lol still allows about 500 lookups a day per proxy address. Only if the private proxy fails does it use the free public cors.dev relay, which is shared with other users and can see which aircraft you look up; untick above to never use it. An override URL must take the full adsb.lol address after it (https://your-proxy/https://api.adsb.lol/…). Checks slow down when the aircraft is far away and drop to every 5 minutes while the app is in the background.</div>
     </details>
   </div>
-  <div class="note">Display only: tracking never changes your own flight, phases or logbook. ETA, delay and weather are estimates, not airline information. Aircraft with ADS-B off, outside receiver coverage or hidden from public feeds can't be shown. Your departure time is local time at your airport. ADS-B data: adsb.lol (ODbL)<span id="tkFiCred">; adsb.fi when used through your proxy</span>. Aircraft lookups: adsbdb.com, hexdb.io. Weather data by Open-Meteo.com.</div>
+  <div class="note">Display only: tracking never changes your own flight, phases or logbook. ETA, delay and weather are estimates, not airline information. Aircraft with ADS-B off, outside receiver coverage or hidden from public feeds can't be shown. Your departure time is local time at your airport. ADS-B data: adsb.lol (ODbL). Aircraft lookups: adsbdb.com, hexdb.io. Weather data by Open-Meteo.com.</div>
 </div></section>
 <section class="page" id="pg-log" data-t="Log"><div class="wrap">
   <h2>G-meter</h2>
@@ -422,7 +422,7 @@ body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--i
   Taxiways and aprons: © OpenStreetMap contributors, Open Database Licence (ODbL 1.0), openstreetmap.org/copyright. Simplified extract, November 2026.<br>
   Runways and airport positions: OurAirports (public domain).<br>
   Pre-flight weather: Weather data by Open-Meteo.com (CC BY 4.0), downloaded on request.<br>
-  Inbound aircraft: ADS-B data: adsb.lol (Open Database Licence, ODbL 1.0), live on request; with your own proxy also ADS-B data: adsb.fi open data (personal, non-commercial use); registration lookups by adsbdb.com and hexdb.io.<br>
+  Inbound aircraft: ADS-B data: adsb.lol (Open Database Licence, ODbL 1.0), live on request through Cabin Panel&rsquo;s private proxy (public cors.dev relay only as a fallback); registration lookups by adsbdb.com and hexdb.io.<br>
   Extra places: Wikipedia (CC BY-SA 4.0), downloaded on request. Built-in landmark notes were written for Cabin Panel. Positions are approximate and this is not official aeronautical data.<br>
   Magnetic variation: World Magnetic Model 2025 (NOAA/BGS). HUD scenes were rendered in Blender. Font: B612 (SIL Open Font License).</div></div>
 </div></section>
@@ -2355,10 +2355,11 @@ window.cpWxClass=q=>wxClass(q);
 setTimeout(pickScene,0);
 /* ---------- v22g: Inbound aircraft (ground mode). Track the aircraft you are waiting for by tail number. ----------
    Display only: never feeds phaseStep, the logbook, the GPS trail or own-flight state. Live positions: adsb.lol (ODbL).
-   adsb.lol sends no CORS headers, so a browser can't call it directly: requests go to your own proxy if set,
-   then direct (in case CORS is ever enabled), then the public cors.dev relay. Registration lookups: adsbdb.com / hexdb.io. */
-var TKS=null,TKT=0,TKX={busy:false,lastPoll:0,next:0,back:0,directBad:false,err:"",wxAt:0,wxBusy:false,wxKm:0,apWxAt:0};
-const TK_ADSB="https://api.adsb.lol",TK_RELAY="https://proxy.cors.dev/";
+   adsb.lol sends no CORS headers, so a browser can't call it directly: requests go to Cabin Panel's private proxy
+   (a Cloudflare Worker; the URL can be overridden in Data source), then, only if that fails, the public cors.dev relay
+   (can be switched off). adsb.fi blocks both, so it isn't used. Registration lookups: adsbdb.com / hexdb.io. */
+var TKS=null,TKT=0,TKX={busy:false,lastPoll:0,next:0,back:0,err:"",wxAt:0,wxBusy:false,wxKm:0,apWxAt:0};
+const TK_ADSB="https://api.adsb.lol",TK_PROXY="https://cabin-adsb.cabinpanel-pb.workers.dev/",TK_RELAY="https://proxy.cors.dev/";
 function tkNormReg(s){s=String(s||"").toUpperCase().replace(/[^A-Z0-9-]/g,"");if(!s)return "";
   if(s.includes("-"))return s;let m=s.match(/^(VH|ZK|9V|9M|PK|RP|A6|A7|HS|VT|PH|EI|OE|HB|OO|SE|LN|OY|OH|EC|CS|SP|OK|TC|P2|DQ|YJ|H4|F-?O)([A-Z0-9]{3})$/);if(m)return m[1]+"-"+m[2];
   m=s.match(/^(G|F|D|C|I)([A-Z]{4})$/);if(m)return m[1]+"-"+m[2];return s}
@@ -2412,24 +2413,18 @@ function tkDelay(){if(!TKS||!TKS.dep)return null;const A=tkAp(),dep=tkLocalMs(TK
   return {dep,ready,min:late,how,txt:late<=5?"On time (estimate)":"Likely delay ~"+late+" min (estimate)"}}
 /* ---------- network ---------- */
 function tkQuota(add){const day=new Date().toISOString().slice(0,10);let q=store.get("tkq",{d:day,n:0});if(q.d!==day)q={d:day,n:0};if(add){q.n+=add;store.set("tkq",q)}return q.n}
-function tkPx(){const px=String(S.tkProxy||"").trim();return /^https:\/\/|^http:\/\/(127\.0\.0\.1|localhost)[:\/]/.test(px)?px.replace(/\/*$/,"/"):""}
-/* adsb.fi open data has the same v2 answer shape; it blocks the public relay, so it's only used through your own proxy */
-function tkFiUrl(path){const m=/^\/v2\/(reg|hex|callsign)\/(.+)$/.exec(path);return m?"https://opendata.adsb.fi/api/v2/"+(m[1]==="reg"?"registration":m[1])+"/"+m[2]:null}
-async function tkLive(path){let j=null,e0=null;try{j=await tkGet(path)}catch(e){if(e.rl!=null)throw e;e0=e}
-  const has=j&&Array.isArray(j.ac)&&j.ac.some(a=>a&&typeof a.lat==="number"),px=tkPx(),fi=tkFiUrl(path);
-  if(!has&&px&&fi){try{tkQuota(1);const r=await fetchT(px+fi,12000);if(r.ok){const k=await r.json();if(k&&Array.isArray(k.ac)&&k.ac.some(a=>a&&typeof a.lat==="number")){TKS&&(TKS.via="proxy-fi");return k}if(!j)j=k}}catch(e){if(!e0&&!j)e0=e}}
-  if(j)return j;throw e0||new Error("no answer")}
-async function tkGet(path,ms){const src=[];const px=tkPx();
-  if(px)src.push(["proxy",px+TK_ADSB+path]);
-  if(!TKX.directBad&&S.tkVia!=="relay")src.push(["direct",TK_ADSB+path]);
+function tkPxOk(v){return /^https:\/\/|^http:\/\/(127\.0\.0\.1|localhost)[:\/]/.test(v)}
+/* private proxy: your override if set, otherwise the built-in Worker. It takes the full upstream URL after it. */
+function tkPx(){const px=String(S.tkProxy||"").trim();return (tkPxOk(px)?px:TK_PROXY).replace(/\/*$/,"/")}
+async function tkGet(path,ms){const src=[["proxy",tkPx()+TK_ADSB+path]];
   if(S.tkRelay!=="off")src.push(["relay",TK_RELAY+TK_ADSB+path]);
-  if(!src.length)throw new Error("no data route allowed (Settings)");let lastE=null;
+  let lastE=null,rl=null;
   for(const [k,u] of src){try{tkQuota(1);const r=await fetchT(u,ms||12000);
-      if(r.status===429){const ra=+(r.headers.get("retry-after")||0);const e=new Error("rate limited");e.rl=ra;throw e}
+      if(r.status===429){const e=new Error("rate limited");e.rl=+(r.headers.get("retry-after")||0);throw e}
       if(r.status===404){const e=new Error("not found");e.nf=true;throw e}
       if(!r.ok)throw new Error("answered "+r.status);const j=await r.json();TKS&&(TKS.via=k);return j}
-    catch(e){lastE=e;if(k==="direct"&&e instanceof TypeError)TKX.directBad=true;if(e.rl!=null||e.nf)throw e}}
-  throw lastE||new Error("no answer")}
+    catch(e){if(e.nf)throw e;if(e.rl!=null)rl=e;else lastE=e}}   /* a limited or failed private proxy falls back to the relay */
+  throw rl||lastE||new Error("no answer")}
 async function tkHexOf(reg){try{const r=await fetchT("https://api.adsbdb.com/v0/aircraft/"+encodeURIComponent(reg),9000);if(r.ok){const j=await r.json(),a=j&&j.response&&j.response.aircraft;
     if(a&&a.mode_s)return {hex:String(a.mode_s).toLowerCase(),type:a.icao_type||"",desc:[a.manufacturer,a.type].filter(Boolean).join(" "),op:a.registered_owner||""}}}catch(e){}
   try{const r=await fetchT("https://hexdb.io/reg-hex?reg="+encodeURIComponent(reg),9000);if(r.ok){const t=(await r.text()).trim();if(/^[0-9A-Fa-f]{6}$/.test(t))return {hex:t.toLowerCase()}}}catch(e){}
@@ -2446,14 +2441,14 @@ async function tkTrace(){if(!TKS||!TKS.hex)return;let j;try{j=await tkGet("/1/tr
   tkArrFromTrail()}
 async function tkPoll(){if(!TKS||!TKS.on||TKX.busy)return;TKX.busy=true;TKX.lastPoll=Date.now();let gap=null;
   try{if(navigator.onLine===false)throw Object.assign(new Error("offline"),{off:true});
-    const q=tkQuota(0);if(q>=470){TKX.err="Daily free ADS-B allowance nearly used on this phone ("+q+" lookups today; adsb.lol allows about 500 a day). Polling paused until tomorrow or until you set your own proxy key.";gap=30*60000;return}
-    let j=null;if(TKS.hex)j=await tkLive("/v2/hex/"+TKS.hex);else if(TKS.reg)j=await tkLive("/v2/reg/"+encodeURIComponent(TKS.reg));
+    const q=tkQuota(0);if(q>=470){TKX.err="Daily free ADS-B allowance nearly used on this phone ("+q+" lookups today; adsb.lol allows about 500 a day per proxy address). Polling paused until tomorrow.";gap=30*60000;return}
+    let j=null;if(TKS.hex)j=await tkGet("/v2/hex/"+TKS.hex);else if(TKS.reg)j=await tkGet("/v2/reg/"+encodeURIComponent(TKS.reg));
     let ac=(j&&Array.isArray(j.ac)?j.ac:[]).filter(a=>a&&typeof a.lat==="number");
-    if(!ac.length&&!TKS.hex&&TKS.flt){const cs=toCallsign(TKS.flt);if(cs&&cs.cs){const k=await tkLive("/v2/callsign/"+cs.cs);ac=(k&&Array.isArray(k.ac)?k.ac:[]).filter(a=>a&&typeof a.lat==="number")}}
+    if(!ac.length&&!TKS.hex&&TKS.flt){const cs=toCallsign(TKS.flt);if(cs&&cs.cs){const k=await tkGet("/v2/callsign/"+cs.cs);ac=(k&&Array.isArray(k.ac)?k.ac:[]).filter(a=>a&&typeof a.lat==="number")}}
     const a=ac.find(x=>TKS.hex&&x.hex===TKS.hex)||ac.find(x=>tkNormReg(x.r)===TKS.reg)||ac[0];
     if(a){if(a.hex&&!TKS.hex){TKS.hex=String(a.hex).toLowerCase();if(!TKS.traceAt)await tkTrace()}if(a.r&&!TKS.reg)TKS.reg=tkNormReg(a.r);
       if(a.t)TKS.type=TKS.type||a.t;if(a.desc)TKS.desc=TKS.desc||a.desc;const f=tkFix(a,j&&j.now||Date.now());if(f){TKS.L=f;TKS.seen=Date.now();tkNoteCs(f.cs,f.t);tkPush(f);tkLegState()}TKX.err="";TKX.back=0}
-    else{TKX.err="Not seen right now by "+(tkPx()?"adsb.lol or adsb.fi":"adsb.lol")+" receivers: it may be parked with the transponder off, outside receiver coverage (common over remote areas and the ocean) or hidden from public feeds."+(TKS.L?" Showing the last known position.":"");if(TKS.L)TKS.L.old=true}
+    else{TKX.err="Not seen right now by adsb.lol receivers: it may be parked with the transponder off, outside receiver coverage (common over remote areas and the ocean) or hidden from public feeds."+(TKS.L?" Showing the last known position.":"");if(TKS.L)TKS.L.old=true}
   }catch(e){if(e.off){TKX.err="Offline: showing the last known position"+(TKS&&TKS.L?" from "+tkTime(TKS.L.t,tkAp().tz):"")+". Tracking needs internet.";gap=60000}
     else if(e.rl!=null){TKX.back=Math.min(600000,Math.max(60000,(TKX.back||30000)*2,e.rl*1000));gap=TKX.back;TKX.err="adsb.lol is limiting requests right now; trying again in "+Math.round(gap/60000)+" min."}
     else{TKX.back=Math.min(300000,Math.max(30000,(TKX.back||15000)*2));gap=TKX.back;TKX.err="Couldn't reach the live ADS-B data ("+(e&&e.name==="AbortError"?"timed out":(e&&e.message)||e)+"). Retrying.";if(TKS&&TKS.L)TKS.L.old=true}}
@@ -2498,7 +2493,7 @@ function tkRender(){const ban=$("tkBan"),box=$("tkOut"),st=$("tkSt");const on=TK
   const shown=tkOn();document.body.classList.toggle("tking",shown);
   ban.style.display="";ban.innerHTML=`<span>${shown?"TRACKING ":"WATCHING "}${esc(TKS.reg)}${cs?" · "+esc(cs):""}${L&&L.sq?" · SQK "+esc(L.sq):""}${L?" · "+(L.gnd?"ON GROUND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")):""}${age!=null&&age>60?" · LAST SEEN "+esc(ageT.toUpperCase()):""}</span><small>${shown?"Gauges, HUD and map show this aircraft, not your GPS":"Your own GPS is in use (you are not on the ground)"}</small><button id="tkBanGo">Open</button><button id="tkBanStop">Stop</button>`;
   $("tkBanGo").onclick=()=>{try{pgGo(PG.els.findIndex(e=>e.id==="pg-route"))}catch(e){}setTimeout(()=>$("tkTile").scrollIntoView({block:"start"}),400)};$("tkBanStop").onclick=tkStop;
-  st.textContent=TKX.err||(L?(TKS.via==="proxy-fi"?"Live from adsb.fi via your proxy":"Live from adsb.lol"+(TKS.via==="relay"?" via the public cors.dev relay":TKS.via==="proxy"?" via your proxy":""))+" · updated "+ageT+(TKX.next?" · next check "+tkTime(TKX.next,A.tz):""):"Looking for "+TKS.reg+"…");
+  st.textContent=TKX.err||(L?"Live from adsb.lol"+(TKS.via==="relay"?" via the public cors.dev relay (private proxy unavailable)":TKS.via==="proxy"?(tkPxOk(String(S.tkProxy||"").trim())?" via your proxy":" via Cabin Panel's private proxy"):"")+" · updated "+ageT+(TKX.next?" · next check "+tkTime(TKX.next,A.tz):""):"Looking for "+TKS.reg+"…");
   const rows=[];const li=(k,v,c)=>rows.push(`<li${c?` class="${c}"`:""}><span>${k}</span><b>${v}</b></li>`);
   li("Aircraft",esc(TKS.reg)+(TKS.type?" · "+esc(TKS.type):"")+(TKS.hex?" · "+esc(TKS.hex.toUpperCase()):""));
   if(L){li("Now",(L.gnd?"On the ground":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")+" · "+Math.round(fSpd(L.spd)||0)+" "+S.spd+" · track "+(L.trk==null?"---":String(Math.round(L.trk)%360).padStart(3,"0")+"°")+(L.vs!=null&&Math.abs(L.vs)>300?" · "+(L.vs>0?"climbing ":"descending ")+Math.abs(Math.round(L.vs/100)*100)+" fpm":""))+" near "+esc(tkNear(L)));
@@ -2516,7 +2511,7 @@ async function tkStart(){const reg=tkNormReg($("tkReg").value),flt=String($("tkF
   const same=TKS&&TKS.reg===reg&&TKS.on;
   if(!same)TKS={on:true,reg:reg||"",flt,dep,ap:ap||null,turn,hex:null,type:"",desc:"",cs:[],trail:[],L:null,at:Date.now()};else Object.assign(TKS,{flt,dep,ap:ap||TKS.ap,turn});
   if(!TKS.ap){const n=last&&nearestAp(last);TKS.ap=n&&n.d<20000?n.a[0]:(S.from||"SYD")}$("tkAp").value=TKS.ap;$("tkReg").value=TKS.reg;
-  TKX.err="";TKX.back=0;TKX.directBad=false;tkSave();tkRender();hap(15);
+  TKX.err="";TKX.back=0;tkSave();tkRender();hap(15);
   if(!same&&TKS.reg){const h=await tkHexOf(TKS.reg);if(h&&TKS){TKS.hex=h.hex;TKS.type=h.type||TKS.type;TKS.desc=h.desc||"";TKS.op=h.op||""}if(TKS&&TKS.hex)await tkTrace()}
   if(TKS&&TKS.wx)TKS.wx.at=0;await tkPoll()}
 function tkStop(){clearTimeout(TKT);TKT=0;TKS=null;store.set("tk",null);TKX.err="";document.body.classList.remove("tking");tkRender();try{render();drawMap()}catch(e){};hap(10)}
@@ -2525,7 +2520,7 @@ $("tkReg").addEventListener("blur",()=>{const v=tkNormReg($("tkReg").value);if(v
 for(const id of ["tkDep","tkTurn","tkAp"])$(id).addEventListener("change",()=>{if(!TKS||!TKS.on)return;TKS.dep=$("tkDep").value;TKS.turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));const v=String($("tkAp").value||"").toUpperCase().trim();if(v)TKS.ap=v;TKS.arrAt=null;TKS.depAt=null;tkArrFromTrail();tkLegState();tkSave();tkRender();tkWxMaybe(true)});
 $("tkShow").checked=S.tkShow!=="off";$("tkShow").onchange=()=>{S.tkShow=$("tkShow").checked?"on":"off";saveS();tkRender();render();drawMap()};
 $("tkRelay").checked=S.tkRelay!=="off";$("tkRelay").onchange=()=>{S.tkRelay=$("tkRelay").checked?"on":"off";saveS()};
-$("tkProxy").value=S.tkProxy||"";$("tkProxy").onchange=()=>{const v=$("tkProxy").value.trim();S.tkProxy=/^https:\/\/|^http:\/\/(127\.0\.0\.1|localhost)[:\/]/.test(v)?v:"";$("tkProxy").value=S.tkProxy;saveS()};
+$("tkProxy").value=S.tkProxy||"";$("tkProxy").onchange=()=>{const v=$("tkProxy").value.trim();S.tkProxy=tkPxOk(v)?v:"";$("tkProxy").value=S.tkProxy;saveS()};
 /* airport list for "your airport" */
 {const dl=$("tkApL");if(dl){dl.innerHTML=AP.map(a=>`<option value="${esc(a.c)}">${esc(a.n)}</option>`).join("")}}
 /* ---------- HUD + map ---------- */
@@ -2546,7 +2541,7 @@ function tkMapDraw(x,P,sc,W,H,col,glow){if(!TKS||!TKS.on||!TKS.L)return;const nv
   const t1=TKS.reg+(L.cs?" "+L.cs:""),t2=L.gnd?"ON GROUND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")+" "+Math.round(fSpd(L.spd)||0)+(S.spd==="kmh"?"KMH":S.spd.toUpperCase());
   x.font="700 12px \"B612 Mono\",monospace";const w=Math.max(x.measureText(t1).width,x.measureText(t2).width)+10,bx=Math.min(W-w-4,Math.max(4,px+16)),by=Math.min(H-34,Math.max(4,py-36));
   x.fillStyle="rgba(0,0,0,.72)";x.fillRect(bx,by,w,30);x.strokeStyle=c;x.lineWidth=1.2;x.strokeRect(bx,by,w,30);x.fillStyle=c;x.fillText(t1,bx+5,by+13);x.font="700 11px \"B612 Mono\",monospace";x.fillText(t2,bx+5,by+26);
-  x.font="700 11px \"B612 Mono\",monospace";const tag="TRACKING "+TKS.reg+" · ADS-B data: "+(TKS.via==="proxy-fi"?"adsb.fi":"adsb.lol (ODbL)"),tw=x.measureText(tag).width;x.fillStyle="rgba(0,0,0,.7)";x.fillRect(6,H-44,tw+10,17);x.fillStyle=c;x.fillText(tag,11,H-31);x.restore()}
+  x.font="700 11px \"B612 Mono\",monospace";const tag="TRACKING "+TKS.reg+" · ADS-B data: adsb.lol (ODbL)",tw=x.measureText(tag).width;x.fillStyle="rgba(0,0,0,.7)";x.fillRect(6,H-44,tw+10,17);x.fillStyle=c;x.fillText(tag,11,H-31);x.restore()}
 /* test hooks */
 window.cpTk=()=>TKS?{on:TKS.on,reg:TKS.reg,hex:TKS.hex,via:TKS.via,cs:(TKS.cs||[]).map(c=>c.cs),L:TKS.L&&{lat:TKS.L.lat,lon:TKS.L.lon,ft:TKS.L.ft,gnd:TKS.L.gnd,cs:TKS.L.cs,sq:TKS.L.sq,old:!!TKS.L.old},trail:(TKS.trail||[]).length,arrAt:TKS.arrAt||null,shown:tkOn(),eta:tkEta(),delay:tkDelay(),wx:TKS.wx?tkWxText():null,err:TKX.err,next:TKX.next,quota:tkQuota(0),ap:tkAp().c,own:{phase:PH.p,last:last&&{lat:last.lat,lon:last.lon},log:LOG.pts.length}}:{on:false,err:TKX.err};
 window.cpTkPoll=()=>tkPoll();window.cpTkNorm=tkNormReg;window.cpTkLocal=(h,tz,n)=>tkLocalMs(h,tz,n);window.cpTkWx=()=>tkWxMaybe(true);
