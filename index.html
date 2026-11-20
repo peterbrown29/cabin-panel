@@ -233,14 +233,50 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
 #svpTile select{flex:1 1 40%;min-width:0}#svpBar{height:6px;background:rgba(127,127,127,.25);margin:8px 0 2px;display:none}#svpBar i{display:block;height:100%;width:0;background:var(--ok)}
 #svpList li.rt div:first-child{display:grid;gap:2px}
 @media (orientation:landscape){#svBar{display:flex;flex-wrap:wrap;align-items:center;padding-top:8px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}#svBar .row{flex-wrap:nowrap}#svBar button{min-height:30px;font-size:11px}#svAttr{flex:1 1 100%;font-size:9px}#svMsg{top:calc(52px + env(safe-area-inset-top))}}
+/* v23 features */
+.cfdis{opacity:.42;filter:grayscale(1);cursor:not-allowed}
+label.chk.cfdis{opacity:.5}
+.cfWhy{display:inline-block;font:700 10px "B612 Mono",monospace;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:1px 5px;margin:0 4px;vertical-align:middle;letter-spacing:.04em;text-transform:uppercase}
+#netTag{background:#3a2a00;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px;font:700 10px "B612 Mono",monospace;margin-left:4px}
+#shTag{background:#0b3a1a;color:#3dff6e;border:1px solid #3dff6e;border-radius:6px;padding:1px 6px;font:700 10px "B612 Mono",monospace;margin-left:4px;cursor:pointer}
+#shTag::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#3dff6e;margin-right:4px;animation:shp 1.4s infinite}
+@keyframes shp{50%{opacity:.25}}
+#tbBan{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:9000;background:#b30000;color:#fff;border:3px solid #ffd400;border-radius:10px;padding:8px 10px;box-shadow:0 4px 18px rgba(0,0,0,.6);animation:tbf 1s steps(2) infinite;font-family:"B612 Mono",monospace;text-align:left}
+#tbBan.ack{animation:none;background:#7a1a00;border-color:#ff9a00}
+@keyframes tbf{50%{background:#5a0000}}
+#tbTxt{font:700 17px "B612 Mono",monospace;letter-spacing:.03em;display:block}
+#tbSub{font:400 12px "B612",sans-serif;display:block;margin:4px 0 6px;opacity:.95}
+#tbBan .row{gap:8px}#tbBan button{min-height:36px;padding:4px 12px}
+#spBan{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:8900;background:#04202e;border:2px solid #4fd2ff;color:#e6faff;border-radius:10px;padding:8px 10px;font:12px "B612",sans-serif;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#spBan button{min-height:34px;padding:4px 10px}
+#arIdBtn{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 120px);z-index:6;background:rgba(0,0,0,.55);color:#8dff9e;border:2px solid #8dff9e;border-radius:22px;padding:8px 22px;font:700 14px "B612 Mono",monospace;letter-spacing:.08em}
+body.arMin #arIdBtn{bottom:calc(env(safe-area-inset-bottom,0px) + 56px)}
+#arIdOut{display:none;position:absolute;left:10px;right:10px;top:calc(env(safe-area-inset-top,0px) + 132px);z-index:7;background:rgba(0,12,4,.86);border:1.5px solid #8dff9e;border-radius:8px;padding:8px 10px;color:#d8ffe0;font:12px "B612",sans-serif;max-width:520px;margin:0 auto}
+#arIdOut b{font:700 15px "B612 Mono",monospace;color:#8dff9e;display:block}#arIdOut p{margin:4px 0}.arIk{font:700 11px "B612 Mono",monospace;color:#ffbf00}.arIn{opacity:.95}.arIa{opacity:.7;font-size:11px}
+#spHud{display:none;position:absolute;left:50%;transform:translateX(-50%);top:calc(50% + 58px);z-index:6;font:700 12px "B612 Mono",monospace;color:#ffbf00;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:5px;white-space:nowrap}
+#rpBar{position:fixed;left:6px;right:6px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:8800;background:rgba(4,10,14,.94);border:1.5px solid var(--line);border-radius:10px;padding:6px 8px;display:grid;gap:4px}
+#rpBar .row{gap:6px;flex-wrap:nowrap;overflow-x:auto}#rpBar button{min-height:34px;padding:2px 9px}#rpbSlider{width:100%}
+#rpbTitle{font:700 11px "B612 Mono",monospace;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rpbTime{font:700 11px "B612 Mono",monospace;margin-left:auto;white-space:nowrap}
+body.sv #rpBar{bottom:calc(env(safe-area-inset-bottom,0px) + 4px)}
+#fwOv{display:none;position:fixed;inset:0;z-index:8700;background:#000;flex-direction:column}
+#fwTop{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 6px}#fwHead{font:700 15px "B612 Mono",monospace;flex:1}
+#fwCv{flex:1;width:100%;min-height:0}#fwInfo{padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 10px);font:12px "B612",sans-serif;color:var(--ink)}
+#dyOv{display:none;position:fixed;inset:0;z-index:8600;background:rgba(0,0,0,.92);align-items:flex-start;justify-content:center;overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 12px) 10px 20px}
+#dyOv .tile{width:100%;max-width:560px}.dyT{margin:4px 0 0;white-space:pre-wrap;color:var(--ink);font-size:13px}
+textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;background:#000;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px;font:13px "B612",sans-serif}
+.bdgs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.bdg{border:1px solid var(--line);border-radius:8px;padding:4px 7px;opacity:.5;max-width:48%}.bdg.got{opacity:1;border-color:#ffd400}.bdg b{display:block;font:700 11px "B612 Mono",monospace}.bdg.got b{color:#ffd400}.bdg small{font-size:10px;color:var(--dim)}
+.bigv{font:700 26px "B612 Mono",monospace;color:var(--ink)}#wsBest b{color:#ffd400}li.bch b{color:var(--cyan)}
+#shLink{flex:1;min-width:0;font:11px "B612 Mono",monospace}
 </style>
 </head>
 <body>
 <header><div class="wrap" style="padding-bottom:0">
-  <div class="bar"><span class="dot" id="dot"></span><span id="stat">GPS off</span><span id="phase" class="chip">Parked</span><span id="demoTag">DEMO</span><span id="clock"></span></div>
+  <div class="bar"><span class="dot" id="dot"></span><span id="stat">GPS off</span><span id="phase" class="chip">Parked</span><span id="demoTag">DEMO</span><span id="netTag" style="display:none">OFFLINE</span><span id="shTag" style="display:none" role="status" title="Your flight is being shared">SHARING</span><span id="clock"></span></div>
   <div id="strip" style="display:none"><div class="sr"><b id="sFrom"></b><div class="st"><canvas id="sProf"></canvas></div><b id="sTo"></b></div><div class="sub" id="sTxt"></div></div>
   <div id="toast" style="display:none"></div>
   <button id="mcBtn" class="mc" style="display:none">MASTER CAUTION</button>
+  <div id="tbBan" style="display:none" role="alert"><span id="tbTxt">TURBULENCE MASTER WARNING</span><span id="tbSub"></span><div class="row"><button id="tbAck" class="pri">Acknowledge</button><button id="tbDis">Dismiss</button></div></div>
+  <div id="spBan" style="display:none" role="status"></div>
   <button id="updBtn" class="upd" style="display:none">New version installed · tap to reload</button>
   <div id="resumeNote" style="display:none"></div>
   <div id="endNote" style="display:none"><span id="endNoteTxt"></span><div class="row"><button id="endNoteBtn" class="pri">End flight</button><button id="endNoteX">Not now</button></div></div>
@@ -268,7 +304,7 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
   <div class="row" id="markRow" style="display:none;margin-bottom:12px"><input type="text" id="markNote" maxlength="80" placeholder="Note (optional)"><button id="markSave">Save</button></div>
   <div class="tile" id="rpTile" style="display:none;margin:10px 6px 22px">
     <div class="lab"><span id="rpTitle">Replay</span><span id="rpTime"></span></div>
-    <div class="row" style="margin-top:8px"><button id="rpPlay">Pause</button><span class="seg" id="rpSpeed"><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button></span><button id="rpExit">Exit</button></div>
+    <div class="row" style="margin-top:8px"><button id="rpPlay">Pause</button><span class="seg" id="rpSpeed"><button data-v="1">1×</button><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button><button data-v="120">120×</button></span><button id="rpExit">Exit</button></div>
     <div class="row"><input type="range" id="rpSlider" min="0" max="1000" value="0" aria-label="Replay position"></div>
   </div>
   <div class="row" id="ckRow"><span class="sub">Cockpit</span><span class="seg" data-k="cockpit"><button data-v="modern">Modern</button><button data-v="f4">F-4</button><button data-v="p51">P-51</button></span></div>
@@ -299,6 +335,7 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
 </div></section>
 <section class="page fill" id="pg-nav" data-t="Nav"><div class="wrap">
   <div class="grid">
+    <div class="tile wide" id="todTile" style="display:none"><div class="lab"><span>Top of descent</span><span>3:1 rule</span></div><div class="bigv" id="todBig">---</div><div class="sub" id="todSub" style="white-space:normal"></div></div>
     <div class="tile wide" id="arrTile" style="display:none"><div class="lab"><span id="arrHead">Arrival</span></div><div class="kv3" id="arrKv"></div></div>
     <div class="tile wide"><div class="lab"><span>Position</span></div>
       <div class="kv3">
@@ -334,6 +371,7 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
 
   <div class="tband" aria-label="Turbulence key"><span style="color:var(--dim)">Turbulence (top bar, shaded profile) · rough guide, not a forecast:</span><span><i style="background:var(--ok)"></i>Smooth</span><span><i style="background:#c6e33a"></i>Light</span><span><i style="background:var(--warn)"></i>Moderate</span><span><i style="background:var(--bad)"></i>Rough</span></div>
   <div class="note" id="turbTxt"></div>
+  <div class="tile" id="bmpTile"><div class="lab"><span>Bumps felt</span><button id="bmpBtn">Log bumps felt</button></div><div class="note" id="bmpTxt" style="margin:4px 0">Uses the phone's motion sensor after you allow it, to log the bumps you actually feel, with time, height and position.</div><ul class="lm" id="bmpOut"></ul></div>
 </div></section>
 <section class="page" id="pg-win" data-t="Window"><div class="wrap">
   <h2>Out the window</h2>
@@ -341,6 +379,7 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
     <button id="svBtn" class="pri arBig" aria-label="Open 3D window view"><svg viewBox="0 0 200 90" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M4 70 L44 34 L64 50 L98 16 L132 52 L150 40 L196 70"/><path d="M4 82 H196" stroke-width="1.6"/><path d="M78 82 L94 62 H106 L122 82" stroke-width="1.6"/><path d="M100 64 V82" stroke-dasharray="3 3" stroke-width="1.4"/><circle cx="160" cy="16" r="7"/></g></svg><span>Open 3D window view</span></button>
     <div class="note" id="svNote" style="margin:0">An offline 3D view from your position: terrain, satellite imagery, runways, sun, haze and pack weather, with NVG, FLIR and CRT looks. Download a 3D route pack on the Route page while you have internet. Works in Demo flight too. Entertainment only, not for navigation.</div>
   </div>
+  <div class="tile" id="saTile"><div class="lab"><span>Sunrise and sunset at altitude</span><span class="seg" data-k="sunAlert"><button data-v="on">Alert</button><button data-v="off">Off</button></span></div><ul class="lm" id="saOut"></ul><div class="note" style="margin:4px 0 0">From height you see over the curve of the earth (horizon dip), so the sun rises earlier and sets later than on the ground below. The alert comes about 10 minutes before.</div></div>
   <div class="tile">
     <div class="sunrow"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="#ffd400"/><g stroke="#ffd400" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></g></svg><p id="sunTxt">Waiting for a GPS fix.</p></div>
     <div class="row" style="margin-top:10px">Window seat <span class="seg" data-k="seat"><button data-v="left">Left</button><button data-v="right">Right</button><button data-v="both">Both</button></span></div>
@@ -359,17 +398,38 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
     <button id="arBtn" class="pri arBig" aria-label="Open AR window"><svg viewBox="-100 -70 200 140" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2"><path d="M-62-44h-16v16M62-44h16v16M-62 44h-16v-16M62 44h16v-16"/><path d="M-40 0h-26M40 0h26M0-26v-18M0 26v18M-30-4v8M30-4v8"/><path d="M-50-58h100" stroke-width="1.4"/><path d="M-40-58v6M-20-58v4M0-58v8M20-58v4M40-58v6" stroke-width="1.4"/><rect x="18" y="-22" width="28" height="18" stroke-dasharray="0" stroke-width="1.6"/></g><text x="32" y="-26" fill="currentColor" font-size="9" text-anchor="middle" font-family="B612 Mono,monospace" font-weight="700">TGT</text></svg><span>Open AR window</span></button>
     <div class="note">A box shows where something should be, sized by how sure the phone is of its heading. Fused (default) uses the compass for where the phone points and your GPS track to correct its drift, so boxes stay tight (about ±1.5°) and widen by themselves if the compass reports trouble or drifts away from the GPS. If boxes sit off, tap Align while looking square out of the window, or fine-tune with Trim. TV, GRN and WHT switch the camera look. Things beyond your horizon get dashed boxes. Entertainment only, not for navigation.</div>
   </div>
+  <div class="tile" id="spTile">
+    <div class="lab"><span>Spot the other plane</span><span class="seg" data-k="spot"><button data-v="on" data-net>On</button><button data-v="off">Off</button></span></div>
+    <div class="bigv" id="spPts" style="font-size:16px;margin:6px 0">0 pts</div>
+    <p class="note" style="margin:0 0 6px">With internet, Cabin Panel checks for aircraft within 25 nm about once a minute (via its own server, from adsb.lol). When one is close enough to see, you get an alert to open AR; put the crosshair on its box and hold for a second to collect it. New types and airlines score extra.</p>
+    <ul class="lm" id="spOut"></ul>
+  </div>
 </div></section>
 <section class="page" id="pg-route" data-t="Route"><div class="wrap">
   <h2>Route</h2>
-  <div class="row" style="margin-bottom:6px"><input type="text" id="fltIn" placeholder="Flight number, e.g. QF812" autocapitalize="characters" autocomplete="off" maxlength="9" aria-label="Flight number"><button id="fltBtn" class="pri">Look up</button><button id="fltClr" aria-label="Clear flight number">✕</button></div>
+  <div class="row" style="margin-bottom:6px"><input type="text" id="fltIn" placeholder="Flight number, e.g. QF812" autocapitalize="characters" autocomplete="off" maxlength="9" aria-label="Flight number"><button id="fltBtn" data-net class="pri">Look up</button><button id="fltClr" aria-label="Clear flight number">✕</button></div>
   <div class="note" id="fltTxt">Look up your flight before boarding (needs internet). The route is saved on the phone for offline use.</div>
   <div class="row"><select id="from" aria-label="From"></select><select id="to" aria-label="To"></select></div>
+  <div class="row"><span class="sub">Aircraft type</span><input type="text" id="acType" placeholder="e.g. B738 (optional)" maxlength="12" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Aircraft type (optional, for your logbook stats)"></div>
+  <h2>Window seat guide</h2>
+  <div class="tile" id="wsTile">
+    <div class="lab"><span>Which side to sit</span><span>At check-in</span></div>
+    <div class="bigv" id="wsBest" style="font-size:20px;margin:6px 0">—</div>
+    <ul class="lm" id="wsOut"></ul>
+    <div class="note" id="wsNote" style="margin:4px 0 0"></div>
+    <div class="note" style="margin:4px 0 0">Works offline from the built-in landmarks, coastline, terrain and runways, plus the pre-flight pack's places and wind. Views depend on cloud, the actual route and the runway in use. Entertainment only.</div>
+  </div>
+  <h2>Body clock</h2>
+  <div class="tile" id="bcTile">
+    <div class="lab"><span id="bcHead">Jet lag and sleep</span><span>Before · during · after</span></div>
+    <ul class="lm" id="bcOut"></ul>
+    <div class="note" style="margin:4px 0 0">Uses the time-zone change, your departure time (Departs, in the pre-flight pack) and an estimated flight time. General tips, not medical advice.</div>
+  </div>
   <h2>Pre-flight pack</h2>
   <div class="tile" id="packTile">
     <div class="lab"><span id="packHead">Pre-flight pack</span><span id="packAge"></span></div>
-    <div class="row" style="margin-top:8px"><span class="sub">Departs</span><input type="time" id="packDep" aria-label="Departure time (phone time)"><button id="packBtn" class="pri">Download pack</button></div>
-    <label class="chk"><input type="checkbox" id="packWiki" checked> Add places from Wikipedia</label>
+    <div class="row" style="margin-top:8px"><span class="sub">Departs</span><input type="time" id="packDep" aria-label="Departure time (phone time)"><button id="packBtn" data-net class="pri">Download pack</button></div>
+    <label class="chk"><input type="checkbox" id="packWiki" data-net checked> Add places from Wikipedia</label>
     <div class="note" id="packTxt" style="margin:4px 0 0">Needs internet. Downloads forecast weather and winds along this route (Open-Meteo) plus extra places to look out for, and keeps them on the phone for offline use in flight. Leave Departs blank for now. Turbulence is a rough guide from forecast wind shear and storm energy, not a forecast.</div>
     <ul class="lm" id="packSum"></ul>
   </div>
@@ -380,7 +440,7 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
     <div class="row"><select id="svpW" aria-label="Corridor width"><option value="std">Standard corridor, 60 km wide</option><option value="wide">Wide corridor, 120 km</option></select></div>
     <label class="chk"><input type="checkbox" id="svpBm" checked> Night lights (NASA Black Marble)</label>
     <label class="chk"><input type="checkbox" id="svpAsp"> Airspace outlines (OpenAIP, personal non-commercial use)</label>
-    <div class="row"><button id="svpGo" class="pri">Download route pack</button><button id="svpStop" style="display:none">Pause</button></div>
+    <div class="row"><button id="svpGo" data-net class="pri">Download route pack</button><button id="svpStop" style="display:none">Pause</button></div>
     <div id="svpBar"><i></i></div>
     <div class="note" id="svpTxt" style="margin:4px 0 0">Needs internet. Saves terrain and satellite imagery along the route, plus a sharper patch around each airport, for the 3D window view. The phone downloads it directly from each provider.</div>
     <ul class="lm" id="svpList"></ul>
@@ -395,7 +455,7 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
     <p class="note" style="margin:6px 0 4px">Waiting at the airport? Follow the aircraft that will fly your flight before it changes flight numbers: where it is, when it should get here, a rough delay estimate and the weather it has flown through.</p>
     <div class="row" style="margin-top:6px"><input type="text" id="tkReg" placeholder="Tail number, e.g. VH-YIA" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Aircraft registration (tail number)"><input type="text" id="tkFlt" placeholder="Its flight (optional)" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="9" aria-label="The aircraft's current flight number (optional)"></div>
     <div class="row"><span class="sub">Your departure</span><input type="time" id="tkDep" aria-label="Your scheduled departure, local time at your airport"><span class="sub">from</span><input type="text" id="tkAp" list="tkApL" placeholder="SYD" maxlength="4" autocapitalize="characters" autocomplete="off" aria-label="Your airport (IATA code)"><datalist id="tkApL"></datalist></div>
-    <div class="row"><span class="sub">Minimum turnaround</span><input type="number" id="tkTurn" min="10" max="240" step="5" value="30" inputmode="numeric" aria-label="Minimum turnaround, minutes"><span class="sub">min</span><button id="tkGo" class="pri">Track</button><button id="tkStop" style="display:none">Stop</button></div>
+    <div class="row"><span class="sub">Minimum turnaround</span><input type="number" id="tkTurn" min="10" max="240" step="5" value="30" inputmode="numeric" aria-label="Minimum turnaround, minutes"><span class="sub">min</span><button id="tkGo" data-net class="pri">Track</button><button id="tkStop" style="display:none">Stop</button></div>
     <label class="chk"><input type="checkbox" id="tkShow" checked> Show it on the HUD, Map and Nav while I'm on the ground</label>
     <div class="note" id="tkSt" style="margin:4px 0 0"></div>
     <ul class="lm" id="tkOut"></ul>
@@ -406,6 +466,19 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
     </details>
   </div>
   <div class="note">Display only: tracking never changes your own flight, phases or logbook. ETA, delay and weather are estimates, not airline information. Aircraft with ADS-B off, outside receiver coverage or hidden from public feeds can't be shown. Your departure time is local time at your airport. ADS-B data: adsb.lol (ODbL). Aircraft lookups: adsbdb.com, hexdb.io. Weather data by Open-Meteo.com.</div>
+  <h2>Share live flight</h2>
+  <div class="tile" id="shTile">
+    <div class="lab"><span>Let family follow along</span><span>Opt-in</span></div>
+    <p class="note" style="margin:6px 0 4px">Sends a link. Anyone who opens it sees your plane on a map with the route and ETA, updated about every 45 seconds while your phone has internet (aircraft Wi-Fi). Shared: position, height, speed, route and the first name below, nothing else. Stops by itself after 24 hours, or tap Stop sharing.</p>
+    <div class="row"><input type="text" id="shName" placeholder="First name (optional)" maxlength="20" autocomplete="off" aria-label="First name shown to followers (optional)"><button id="shStart" class="pri" data-net>Start sharing</button><button id="shStop" style="display:none">Stop sharing</button></div>
+    <div class="row" id="shLinkRow" style="display:none"><input type="text" id="shLink" readonly aria-label="Follow link"><button id="shShare" data-net>Send link</button></div>
+    <div class="note" id="shSt" style="margin:4px 0 0"></div>
+  </div>
+  <h2>Follow a flight</h2>
+  <div class="tile" id="fwTile">
+    <div class="row"><input type="text" id="fwIn" placeholder="Paste the follow link" autocomplete="off" spellcheck="false" aria-label="Follow link or code"><button id="fwGo" class="pri" data-net>Follow</button></div>
+    <div class="note" id="fwTxt" style="margin:4px 0 0">Opening a follow link in Safari or Cabin Panel shows the shared flight. Needs internet.</div>
+  </div>
 </div></section>
 <section class="page" id="pg-log" data-t="Log"><div class="wrap">
   <h2>G-meter</h2>
@@ -428,12 +501,20 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
     <ul class="lm" id="markList"></ul>
   </div>
 
+  <h2>Landing score</h2>
+  <div class="tile" id="lsTile"><div class="lab"><span>Last landing</span><span>For fun</span></div><div class="bigv" id="lsBig">—</div><ul class="lm" id="lsOut"></ul>
+    <div class="note" style="margin:4px 0 0">Scored from GPS and phone sensors: sink rate and G at touchdown (G needs the G-meter on), glide path and speed in the last 2 nm / 60 s, wings level and float. Just for fun, not a report on the crew.</div></div>
+  <h2>Flight diary</h2>
+  <div class="tile" id="dyTile"><div class="lab"><span id="dyHead">Notes for this flight</span></div>
+    <textarea id="dyIn" maxlength="1000" placeholder="What's happening? (stamped with time, position and height)" aria-label="Diary note"></textarea>
+    <div class="row"><button id="dyAdd" class="pri">Add note</button></div><ul class="lm" id="dyList"></ul></div>
 </div></section>
 <section class="page fill" id="pg-book" data-t="Logbook"><div class="wrap">
   <h2>Logbook</h2>
   <div class="tile"><div class="row" style="margin-bottom:10px"><button id="expBtn">Export logbook</button><button id="impBtn">Import</button><input type="file" id="impFile" accept=".json,application/json" style="display:none"></div>
     <div class="note" id="bookTxt" style="margin:0 0 10px">Back up your flights to Files or iCloud Drive. The logbook lives only on this phone.</div>
     <div class="kv3" id="statKv"></div><div class="lab" style="margin-top:14px"><span>Flights</span></div><ul class="lm" id="bookList"></ul></div>
+  <div class="tile" id="bdgTile"><div class="lab"><span>Trip stats and records</span></div><div class="kv3" id="totKv"></div><div class="lab" style="margin-top:12px"><span id="bdgHead">Badges</span></div><div class="bdgs" id="bdgOut"></div></div>
 
 </div></section>
 <section class="page" id="pg-set" data-t="Settings"><div class="wrap">
@@ -448,6 +529,10 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
     <div class="row">Voice <span class="seg" data-k="vox"><button data-v="female">Female callouts</button><button data-v="system">System</button><button data-v="off">Off</button></span></div>
     <div class="row">Rotate for full HUD <span class="seg" data-k="autofh"><button data-v="on">On</button><button data-v="off">Off</button></span></div>
     <div class="row">Display <span class="seg" data-k="disp"><button data-v="day">Day</button><button data-v="night">Night</button><button data-v="nvg">NVG</button></span></div>
+    <div class="row">Connected features <span class="seg" data-k="net"><button data-v="auto">Auto</button><button data-v="on">On</button><button data-v="off">Off</button></span></div>
+    <div class="note" id="netSt" style="margin:0"></div>
+    <div class="row">Turbulence warning <span class="seg" data-k="tbLead" style="flex-wrap:wrap"><button data-v="5">5 min</button><button data-v="10">10</button><button data-v="15">15</button><button data-v="20">20</button><button data-v="30">30</button><button data-v="off">Off</button></span></div>
+    <div class="note" style="margin:0">Turbulence master warning: a banner and tone this many minutes before moderate or rough air on the pre-flight pack's forecast. An estimate, not a real-time warning.</div>
     <div class="note" id="offTxt">Checking offline readiness…</div><div class="note" id="a2hsTip" style="display:none"></div>
     <div class="note" id="storeTxt">Flight data saves every few seconds and when the app closes.</div>
   </div>
@@ -464,6 +549,7 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
   Inbound aircraft: ADS-B data: adsb.lol (Open Database Licence, ODbL 1.0), live on request through Cabin Panel&rsquo;s private proxy (public cors.dev relay only as a fallback); registration lookups by adsbdb.com and hexdb.io.<br>
   Extra places: Wikipedia (CC BY-SA 4.0), downloaded on request. Built-in landmark notes were written for Cabin Panel. Positions are approximate and this is not official aeronautical data.<br>
   3D window view (downloaded on request to this phone, never re-hosted): imagery Sentinel-2 cloudless 2016 &ndash; https://s2maps.eu by EOX IT Services GmbH (CC BY 4.0; contains modified Copernicus Sentinel data 2016 &amp; 2017); terrain &copy; Mapterhorn, open elevation data incl. Copernicus GLO-30 DEM (&copy; DLR e.V. 2010&ndash;2014 and &copy; Airbus Defence and Space GmbH 2014&ndash;2018, provided under COPERNICUS by the European Union and ESA) and the other sources at mapterhorn.com/attribution; night lights NASA Earth Observatory / NASA GIBS (VIIRS Black Marble); optional airspace &copy; openAIP (CC BY-NC 4.0, personal non-commercial use, not an official chart). 3D graphics: three.js (MIT). Look shaders inspired by gods-eye-view by Bilawal Sidhu (MIT). No Google, Esri, Cesium ion or Airservices data is used.<br>
+  Live features (sharing, nearby aircraft for Spot the other plane, live arrival weather, connection check) go through Cabin Panel&rsquo;s own server; nearby aircraft: adsb.lol (ODbL); live weather: Open-Meteo.com (CC BY 4.0). Shared flights expire after 24 hours.<br>
   Magnetic variation: World Magnetic Model 2025 (NOAA/BGS). HUD scenes were rendered in Blender. Font: B612 (SIL Open Font License).</div></div>
 </div></section>
 </main>
@@ -497,6 +583,7 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
     <div class="row"><span class="seg" data-k="arSide"><button data-v="left">Left window</button><button data-v="right">Right window</button></span><span class="sub">Trim</span><input type="range" id="arTrim" min="-60" max="60" step="1" value="0" aria-label="Heading trim, degrees"><b id="arTrimV">0°</b></div>
   </div>
   <button id="arShow" aria-label="Show controls">⚙</button>
+  <button id="arIdBtn" aria-label="Identify what is under the crosshair">IDENTIFY</button><div id="arIdOut" role="status"></div><div id="spHud" role="status"></div>
   <div id="arDisc">Entertainment only · not for navigation · positions approximate</div>
 </div>
 <div id="svOv" role="dialog" aria-label="3D window view">
@@ -507,14 +594,18 @@ body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block
   <div id="svMsg" role="status"></div>
   <div id="svBar">
     <div class="row"><span class="seg" data-k="svfx"><button data-v="none">Normal</button><button data-v="nvg">NVG</button><button data-v="flir">FLIR</button><button data-v="crt">CRT</button></span><span class="seg" data-k="svview"><button data-v="fwd">Ahead</button><button data-v="left">Left</button><button data-v="right">Right</button></span></div>
-    <div class="row"><span class="seg" data-k="svfps"><button data-v="30">30 fps</button><button data-v="15">15 fps saver</button></span><span class="seg" data-k="svwx"><button data-v="on">Weather</button><button data-v="off">Clear</button></span><button id="svHide" aria-label="Hide controls">Hide</button></div>
+    <div class="row"><span class="seg" data-k="svfps"><button data-v="30">30 fps</button><button data-v="15">15 fps saver</button></span><span class="seg" data-k="svwx"><button data-v="on">Weather</button><button data-v="off">Clear</button></span><button id="svSnap" aria-label="Save a 3D snapshot for your flight card">📸 Snapshot</button><button id="svHide" aria-label="Hide controls">Hide</button></div>
     <div id="svAttr">Synthetic view, entertainment only, not for navigation. Imagery: Sentinel-2 cloudless 2016 &ndash; s2maps.eu by EOX IT Services GmbH (CC BY 4.0; contains modified Copernicus Sentinel data 2016 &amp; 2017). Terrain: &copy; Mapterhorn (mapterhorn.com/attribution), incl. Copernicus GLO-30 DEM. Night lights: NASA GIBS / VIIRS Black Marble. Runways: OurAirports. <span id="svAttrAsp"></span></div>
   </div>
   <div id="svAttrMini">Imagery: Sentinel-2 cloudless 2016 by EOX (CC BY 4.0) · Terrain: Mapterhorn · Night: NASA · Not for navigation</div>
   <button id="svShow" aria-label="Show controls">⚙</button>
 </div>
 <div id="fhOv" aria-label="Full screen HUD"><button id="fhExit">✕ Exit</button><span id="fhPhase" class="chip"></span><div id="fhSlot"></div><div id="fhToast"></div></div>
-<div id="cardOv"><div class="cardBox"><img id="cardImg" alt="Flight summary card"><div class="row"><button id="cardShare" class="pri">Share</button><button id="cardClose">Close</button></div><p class="note" id="cardHint">Long-press the image to save it to Photos.</p></div></div>
+<div id="cardOv"><div class="cardBox"><img id="cardImg" alt="Flight summary card"><div class="row"><button id="cardShare" class="pri">Share</button><button id="cardClose">Close</button></div><label class="chk" id="cardSnapL" style="display:none"><input type="checkbox" id="cardSnap" checked> Include 3D snapshot</label><p class="note" id="cardHint">Long-press the image to save it to Photos.</p></div></div>
+
+<div id="rpBar" style="display:none" role="group" aria-label="Replay controls"><div class="row"><button id="rpbPlay" aria-label="Play or pause">❚❚</button><span class="seg" id="rpbSpeed"><button data-v="1">1×</button><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button><button data-v="120">120×</button></span><button id="rpb3d">3D</button><button id="rpbMap">Map</button><button id="rpbExit">Exit</button></div><div class="row"><span id="rpbTitle"></span><span id="rpbTime"></span></div><input type="range" id="rpbSlider" min="0" max="1000" value="0" aria-label="Replay position"></div>
+<div id="fwOv" role="dialog" aria-label="Follow a shared flight"><div id="fwTop"><span id="fwHead">Follow a flight</span><button id="fwExit">✕ Close</button></div><canvas id="fwCv" aria-label="Map of the shared flight"></canvas><div id="fwInfo" role="status"></div></div>
+<div id="dyOv" role="dialog" aria-label="Flight diary"><div class="tile"><div class="lab"><span id="dyOvT">Diary</span><button id="dyOvX">✕ Close</button></div><ul class="lm" id="dyOvList"></ul><textarea id="dyOvIn" maxlength="1000" placeholder="Add a note to this flight" aria-label="Diary note"></textarea><div class="row"><button id="dyOvAdd" class="pri">Add note</button><button id="dyOvExp">Export text</button></div><div class="note" id="dyOvTxt"></div></div></div>
 
 <script src="app.js"></script>
 </body>

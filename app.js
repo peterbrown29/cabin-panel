@@ -594,6 +594,7 @@ function arrInfo(){
   const rows=[["ETA local",fmt(eta,to.tz)],["Local time now",fmt(now,to.tz)+(diff?(" ("+(diff>0?"+":"−")+(Math.abs(diff)%60?Math.abs(diff)+" MIN":Math.abs(diff)/60+" H")+")"):"")],
     [ev?(ev.up?"Sunrise":"Sunset"):"Sun",ev?fmt(ev.t,to.tz):"—"],["Arrive in",sunAt>0?"Daylight":sunAt>-6?"Twilight":"Darkness"]];
   if(ai)rows.push(["Airport elevation",Math.round(fAlt(ai[4]/FT)).toLocaleString()+" "+S.alt]);
+  try{arrExtra(rows,L,to)}catch(e){}
   $("arrKv").innerHTML=rows.map(r=>`<div>${r[0]}<b>${r[1]}</b></div>`).join("");
 }
 
@@ -631,7 +632,7 @@ function thin(pts,n){if(pts.length<=n)return pts.slice();const out=[],st=(pts.le
 function makeEntry(){
   const pts=LOG.pts;if(pts.length<5)return null;const f=pts[0],l=pts[pts.length-1];
   const nf=nearestAp({lat:f[0],lon:f[1]}),nl=nearestAp({lat:l[0],lon:l[1]});
-  return {id:Date.now(),flt:S.flt||"",demo:!!(demo||PH.demo),from:S.from||(nf?nf.a[0]:"???"),to:S.to||(nl?nl.a[0]:"???"),date:f[3],ev:{...PH.ev},st:(PH.sts||[]).slice(),...flightStats(pts),marks:MARKS.slice(),pts:thin(pts,600)};
+  return {id:Date.now(),flt:S.flt||"",demo:!!(demo||PH.demo),from:S.from||(nf?nf.a[0]:"???"),to:S.to||(nl?nl.a[0]:"???"),date:f[3],ev:{...PH.ev},st:(PH.sts||[]).slice(),...flightStats(pts),marks:MARKS.slice(),pts:thin(pts,600),ac:S.acType||"",dy:dyFor(f[3]),ls:lsFor(PH.ev.td)};
 }
 function saveFlight(){const e=makeEntry();if(!e)return;const i=PH.bookId?BOOK.findIndex(b=>b&&b.id===PH.bookId):-1;
   if(i>=0){e.id=PH.bookId;BOOK[i]=e}else{BOOK.unshift(e);if(BOOK.length>40)BOOK.length=40}PH.bookId=e.id;savePH();store.set("book",BOOK);bookRender()}
@@ -656,7 +657,7 @@ function bookRender(){
   const kv=[["Flights",real.length],["Distance",Math.round(fDst(km)).toLocaleString()+" "+S.dst],["Flight time",hm(secs)],["Highest",hi?Math.round(fAlt(hi)).toLocaleString()+" "+S.alt:"—"],["Longest",longest?hm(longest.s)+" "+longest.b.from+"–"+longest.b.to:"—"],["Firmest landing",firm?firm.g.toFixed(2)+" G "+firm.b.to:"—"],["States crossed",sts.size?[...sts].join(" "):"—"]];
   $("statKv").innerHTML=kv.map(r=>`<div>${esc(r[0])}<b>${esc(r[1])}</b></div>`).join("");
   $("bookList").innerHTML=BOOK.length?BOOK.map((b,i)=>{const ft=b.ev.up&&b.ev.td?hm((b.ev.td-b.ev.up)/1000):"—";const dt=new Date(b.date).toLocaleDateString("en-AU",{day:"numeric",month:"short"});
-    return `<li class="bk"><div><b>${b.flt?esc(b.flt)+" ":""}${esc(b.from)} → ${esc(b.to)}${b.demo?" (demo)":""}</b><span>${dt} · ${ft} · ${Math.round(fDst(b.d))} ${S.dst}</span></div><div class="row"><button data-a="rp" data-i="${i}">Replay</button><button data-a="cd" data-i="${i}">Card</button><button data-a="gpx" data-i="${i}">GPX</button><button data-a="del" data-i="${i}">✕</button></div></li>`}).join(""):'<li><span>Flights save here automatically when you park.</span></li>';
+    return `<li class="bk"><div><b>${b.flt?esc(b.flt)+" ":""}${esc(b.from)} → ${esc(b.to)}${b.demo?" (demo)":""}</b><span>${dt} · ${ft} · ${Math.round(fDst(b.d))} ${S.dst}${b.ac?" · "+esc(b.ac):""}${b.ls?" · landing "+b.ls.score+"/100":""}${b.dy&&b.dy.length?" · "+b.dy.length+" notes":""}</span></div><div class="row"><button data-a="rp" data-i="${i}">Replay</button><button data-a="cd" data-i="${i}">Card</button><button data-a="dy" data-i="${i}">Diary</button><button data-a="rp3" data-i="${i}">3D</button><button data-a="ty" data-i="${i}" aria-label="Aircraft type">Type</button><button data-a="gpx" data-i="${i}">GPX</button><button data-a="del" data-i="${i}">✕</button></div></li>`}).join(""):'<li><span>Flights save here automatically when you park.</span></li>';
 }
 $("bookList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const i=+b.dataset.i,en=BOOK[i];if(!en)return;
   if(b.dataset.a==="gpx"){const nm=(en.flt?en.flt+"-":"")+en.from+"-"+en.to+"-"+new Date(en.date).toISOString().slice(0,10);shareOrDownload(nm+".gpx","application/gpx+xml",gpxOf(en.pts,en.marks,nm),$("bookTxt"));return}
@@ -685,7 +686,7 @@ $("rpLogBtn").onclick=()=>{if(LOG.pts.length<3){$("logTxt").textContent="Nothing
 
 /* ================= summary card ================= */
 async function showCard(en){
-  en=en||makeEntry();if(!en){$("logTxt").textContent="Not enough recorded for a card";return}
+  en=en||makeEntry();CARD.en=en;if(!en){$("logTxt").textContent="Not enough recorded for a card";return}
   try{await document.fonts.load('700 40px "B612 Mono"');await document.fonts.load('400 20px "B612 Mono"')}catch(e){}
   const W=1080,H=1350,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
   const G="#3dff6e",D="#22a64a",MG="#ff4fd8",F=(w,s)=>`${w} ${s}px "B612 Mono",monospace`;
@@ -715,8 +716,9 @@ async function showCard(en){
   const ev=en.ev||{},f=t=>t?new Date(t).toTimeString().slice(0,5):"—";
   const st=[["FLIGHT TIME",ev.up&&ev.td?hm((ev.td-ev.up)/1000):"—"],["DISTANCE",Math.round(en.d/NMm).toLocaleString()+" NM"],["MAX ALT",Math.round(en.ma*FT/100)*100+" FT"],["MAX GS",Math.round(en.ms*3600/NMm)+" KT"],["WHEELS UP",f(ev.up)],["TOUCHDOWN",f(ev.td)+(ev.tdG?" · "+ev.tdG.toFixed(2)+" G":"")],["MARKS",String((en.marks||[]).length)],["STATES",(en.st||[]).join(" ")||"—"]];
   st.forEach((s,i)=>{const X=72+(i%2)*((W-144)/2),Y=1100+Math.floor(i/2)*52;x.fillStyle=D;x.font=F(700,20);x.fillText(s[0],X,Y);x.fillStyle=G;x.font=F(700,30);x.fillText(s[1],X+210,Y)});
+  try{await cardExtra(x,en,W,H)}catch(e){}
   const url=c.toDataURL("image/png");$("cardImg").src=url;$("cardOv").style.display="flex";
-  $("cardShare").onclick=async()=>{try{const bl=await (await fetch(url)).blob(),file=new File([bl],`${en.from}-${en.to}.png`,{type:"image/png"});if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:`${en.from} → ${en.to}`});else $("cardHint").textContent="Sharing isn't available here. Long-press the image to save it."}catch(e){}};
+  $("cardShare").onclick=async()=>{try{const bl=await (await fetch(url)).blob(),file=new File([bl],`${en.from}-${en.to}.png`,{type:"image/png"});if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:`${en.from} → ${en.to}`});else{const a=document.createElement("a");a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();$("cardHint").textContent="Saved "+file.name+" to Downloads (sharing isn't available here)."}}catch(e){if(!(e&&e.name==="AbortError"))$("cardHint").textContent="Couldn't share. Long-press the image to save it."}};
 }
 $("cardClose").onclick=()=>{$("cardOv").style.display="none"};
 $("cardBtn").onclick=()=>showCard(null);
@@ -746,7 +748,7 @@ async function lookupFlight(){
   if(!c.cs){fltMsg("I don't know airline code "+raw.slice(0,2).toUpperCase()+". Try its 3-letter code instead, e.g. QFA812.");return}
   let framed=false;try{framed=window.self!==window.top}catch(e){framed=true}
   if(framed){fltMsg("Flight lookup needs the installed app. This preview page blocks internet access.");return}
-  if(navigator.onLine===false){fltMsg("No internet. Look up your flight before you board.");return}
+  if(!cfOk()){fltMsg("No internet. Look up your flight before you board.");return}
   fltMsg("Looking up "+c.iata+" ("+c.cs+")…");$("fltBtn").disabled=true;
   let res=null,src="";
   try{const r=await fetchT("https://api.adsbdb.com/v0/callsign/"+c.cs,9000);if(r.ok){const j=await r.json(),f=j&&j.response&&j.response.flightroute;
@@ -782,7 +784,7 @@ function cleanPts(a){if(!Array.isArray(a))return [];const o=[];for(const p of a)
 function cleanMark(m){if(!m||typeof m!=="object")return null;const lat=num(m.lat),lon=num(m.lon),t=num(m.t);if(lat==null||lon==null||t==null)return null;return {n:Math.max(1,Math.round(num(m.n)||1)),t,lat,lon,alt:num(m.alt),note:String(m.note==null?"":m.note).slice(0,80)}}
 function cleanEv(e){const o={};if(!e||typeof e!=="object")return o;for(const k of ["off","roll","up","toc","tod","td","on","rollTrk","upGs","cr","tdG"]){const v=num(e[k]);if(v!=null)o[k]=v}return o}
 function cleanEntry(b){if(!b||typeof b!=="object"||!num(b.id))return null;const pts=cleanPts(b.pts);if(!pts.length)return null;
-  return {id:num(b.id),flt:code(b.flt).slice(0,9),demo:!!b.demo,from:code(b.from).slice(0,5)||"???",to:code(b.to).slice(0,5)||"???",date:num(b.date)||pts[0][3],ev:cleanEv(b.ev),st:(Array.isArray(b.st)?b.st:[]).filter(x=>STN[x]),d:num(b.d)||0,ma:num(b.ma)||0,ms:num(b.ms)||0,marks:(Array.isArray(b.marks)?b.marks:[]).map(cleanMark).filter(Boolean),pts}}
+  return {id:num(b.id),flt:code(b.flt).slice(0,9),demo:!!b.demo,from:code(b.from).slice(0,5)||"???",to:code(b.to).slice(0,5)||"???",date:num(b.date)||pts[0][3],ev:cleanEv(b.ev),st:(Array.isArray(b.st)?b.st:[]).filter(x=>STN[x]),d:num(b.d)||0,ma:num(b.ma)||0,ms:num(b.ms)||0,marks:(Array.isArray(b.marks)?b.marks:[]).map(cleanMark).filter(Boolean),pts,ac:String(b.ac||"").replace(/[^A-Za-z0-9 -]/g,"").slice(0,12),dy:dyClean(b.dy),ls:lsClean(b.ls)}}
 function cleanAp(x){if(!x||typeof x!=="object")return null;const c=code(x.c).slice(0,5);const lat=num(x.lat),lon=num(x.lon);if(c.length<3||lat==null||lon==null)return null;return {c,n:String(x.n==null?c:x.n).replace(/[<>&"]/g,"").slice(0,24),lat,lon,tz:tzOk(x.tz)?x.tz:"Australia/Sydney",icao:code(x.icao).slice(0,4)}}
 $("impFile").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
   try{const j=JSON.parse(await f.text());if(!j||j.app!=="cabin-panel"||!Array.isArray(j.book))throw new Error("not a Cabin Panel logbook");
@@ -1447,7 +1449,7 @@ function rtAdd(f,t){const l=rtList().filter(r=>!(r.from===f&&r.to===t));l.unshif
 function rtUse(f,t){if(!apBy(f)||!apBy(t))return;prof=[];window.__terr=null;S.from=f;S.to=t;$("from").value=f;$("to").value=t;saveS();PK.key="";render();drawMap();profAll();packRender();wxBtn();try{windowInfo()}catch(e){}}
 function rtRender(){const l=rtList(),ul=$("rtList");if(!l.length){ul.innerHTML='<li><span>No saved routes yet. Download a pack or tap Save this route.</span></li>';return}
   ul.innerHTML=l.map((r,i)=>{const pk=store.get("pack_"+rtKey(r.from,r.to),null),age=pk?(Date.now()-pk.at)/3600000:null;
-    return `<li class="rt"><div><b>${esc(r.from)} → ${esc(r.to)}</b><span class="sub" style="display:block">${pk?"pack "+(age<1?Math.round(age*60)+" min":age<48?Math.round(age)+" h":Math.round(age/24)+" days")+" old"+(pk.lm&&pk.lm.length?" · "+pk.lm.length+" places":""):"no pack"}</span></div><div class="row"><button data-a="use" data-i="${i}">Use</button><button data-a="upd" data-i="${i}">Update</button><button data-a="del" data-i="${i}" aria-label="Delete route">✕</button></div></li>`}).join("")}
+    return `<li class="rt"><div><b>${esc(r.from)} → ${esc(r.to)}</b><span class="sub" style="display:block">${pk?"pack "+(age<1?Math.round(age*60)+" min":age<48?Math.round(age)+" h":Math.round(age/24)+" days")+" old"+(pk.lm&&pk.lm.length?" · "+pk.lm.length+" places":""):"no pack"}</span></div><div class="row"><button data-a="use" data-i="${i}">Use</button><button data-a="upd" data-i="${i}" data-net>Update</button><button data-a="del" data-i="${i}" aria-label="Delete route">✕</button></div></li>`}).join("")}
 $("rtList").onclick=e=>{const b=e.target.closest("button");if(!b)return;const r=rtList()[+b.dataset.i];if(!r)return;
   if(b.dataset.a==="use"){rtUse(r.from,r.to);hap(10)}
   else if(b.dataset.a==="upd"){rtUse(r.from,r.to);packDownload(r.from,r.to)}
@@ -1508,6 +1510,7 @@ function arTargets(){const L=last;if(!L)return [];const h=Math.max(0,L.alt||0),h
   if(fr&&dist(L,fr)>3000)add("ORIG "+fr.c,fr.lat,fr.lon,"orig",fr.n+" · where you departed",3,true);
   if(fr&&to&&fr.c!==to.c){const tot=dist(fr,to),pl=plan(tot);if(dist(L,to)>pl.d+5000){const t=gcPoint(fr,to,1-pl.d/tot);add("T/D",t.lat,t.lon,"wpt","Estimated top of descent (3-to-1 rule); the crew's point will differ",2,true)}}
   for(const m of MARKS)add("MK"+m.n,m.lat,m.lon,"mk",m.note?String(m.note):"Your mark",1,true);
+  try{spotTargets(L,out)}catch(e){}
   return out}
 function arStatus(){const L=last,now=Date.now();
   if(AR.cam==="denied")return "Camera blocked. Allow camera for this site (iPhone Settings › Apps › Safari › Camera), or carry on with the synthetic view.";
@@ -1530,7 +1533,7 @@ window.cpAR=()=>({bias:AR.bias,flt:S.arFlt,on:arOn,cam:AR.cam,sen:AR.sen,src:AR.
    correction learned while you look out of the chosen window; COMPASS = compass only; GPS = track ±90°.
    Box size = heading uncertainty: ~1° compass (measured in flight) + 0.5° lens/FOV + GPS terms, widened if iOS reports
    poor compass accuracy or the compass and GPS disagree. */
-function arSolve(dt){const L=last,now=Date.now(),mov=!!(L&&L.trk!=null&&L.spd!=null&&L.spd>=10&&now-L.t<20000),cmpOk=AR.hs!=null&&now-AR.ht<5000;
+function arSolve(dt){if(AR.force)return Object.assign({},AR.force);const L=last,now=Date.now(),mov=!!(L&&L.trk!=null&&L.spd!=null&&L.spd>=10&&now-L.t<20000),cmpOk=AR.hs!=null&&now-AR.ht<5000;
   const dec=L?(cmpDecl(L)||0):0,win=mov?L.trk+(S.arSide==="right"?90:-90):null,ct=cmpOk?AR.hs+dec:null;
   if(ct!=null&&win!=null&&dt){const d=w180(win-ct);if(Math.abs(w180(d-AR.bias))<25&&Math.abs(AR.ps||0)<35){const k=1-Math.exp(-dt/90);AR.bias=Math.max(-15,Math.min(15,AR.bias+k*w180(d-AR.bias)));AR.agree=Math.abs(d)}const e=Math.abs(w180(d-AR.bias));if(e<40&&Math.abs(AR.ps||0)<35)AR.dev=AR.dev==null?e:AR.dev+(1-Math.exp(-dt/8))*(e-AR.dev)}else if(win==null)AR.dev=null;
   const accT=AR.acc==null?0:AR.acc<0?20:Math.max(0,AR.acc-10)*0.5,gpsT=L&&L.acc?Math.min(1,L.acc/200):0.3;
@@ -1657,7 +1660,7 @@ document.querySelectorAll("#arBar .seg").forEach(s=>s.addEventListener("click",(
 let pkBusy=false;
 async function packRefreshInFlight(force){const pk=packGet(),L=last;if(!pk||pkBusy||!L)return "nopack";const fr=apBy(pk.from),to=apBy(pk.to);if(!fr||!to)return "noroute";
   const air=["taxi","roll","climb","cruise","descent","approach"].includes(PH.p);
-  if(!force&&(!air||navigator.onLine===false||document.hidden||Date.now()-(pk.upd||pk.at)<15*60000))return "skip";
+  if(!force&&(!air||!cfOk()||document.hidden||Date.now()-(pk.upd||pk.at)<15*60000))return "skip";
   const tot=dist(fr,to),fNow=Math.max(0,Math.min(1,1-dist(L,to)/tot)),idx=pk.smp.map((q,i)=>i).filter(i=>pk.smp[i].f>=fNow-0.03);if(!idx.length)return "done";
   const spd=Math.max(120,L.spd||230);pkBusy=true;
   try{const smp=await omSamples(idx.map(i=>pk.smp[i]),p=>Date.now()+Math.max(0,p.f-fNow)*tot/spd*1000);
@@ -1952,7 +1955,7 @@ function tkQuota(add){const day=new Date().toISOString().slice(0,10);let q=store
 function tkPxOk(v){return /^https:\/\/|^http:\/\/(127\.0\.0\.1|localhost)[:\/]/.test(v)}
 /* private proxy: your override if set, otherwise the built-in Worker. It takes the full upstream URL after it. */
 function tkPx(){const px=String(S.tkProxy||"").trim();return (tkPxOk(px)?px:TK_PROXY).replace(/\/*$/,"/")}
-async function tkGet(path,ms){const src=[["proxy",tkPx()+TK_ADSB+path]];
+async function tkGet(path,ms){const src=[["proxy",tkUrl(path)]];
   if(S.tkRelay==="on")src.push(["relay",TK_RELAY+TK_ADSB+path]);
   let lastE=null,rl=null;
   for(const [k,u] of src){try{tkQuota(1);const r=await fetchT(u,ms||12000);
@@ -1976,7 +1979,7 @@ async function tkTrace(){if(!TKS||!TKS.hex)return;let j;try{j=await tkGet("/1/tr
   if(!TKS.L&&thin.length){const z=thin[thin.length-1];TKS.L={lat:z[1],lon:z[2],alt:z[3]>0?z[3]/FT:0,ft:z[3]>=0?z[3]:null,gnd:z[3]===-1,spd:z[4]==null?null:z[4]*NMm/3600,trk:null,vs:null,sq:"",cs:(TKS.cs&&TKS.cs.length?TKS.cs[TKS.cs.length-1].cs:""),t:z[0],acc:null,altAcc:null,tk:true,old:true}}
   tkArrFromTrail()}
 async function tkPoll(){if(!TKS||!TKS.on||TKX.busy)return;TKX.busy=true;TKX.lastPoll=Date.now();let gap=null;
-  try{if(navigator.onLine===false)throw Object.assign(new Error("offline"),{off:true});
+  try{if(!cfOk())throw Object.assign(new Error("offline"),{off:true});
     const q=tkQuota(0);if(q>=470){TKX.err="Daily free ADS-B allowance nearly used on this phone ("+q+" lookups today; adsb.lol allows about 500 a day per proxy address). Polling paused until tomorrow.";gap=30*60000;return}
     let j=null;if(TKS.hex)j=await tkGet("/v2/hex/"+TKS.hex);else if(TKS.reg)j=await tkGet("/v2/reg/"+encodeURIComponent(TKS.reg));
     let ac=(j&&Array.isArray(j.ac)?j.ac:[]).filter(a=>a&&typeof a.lat==="number");
@@ -2003,7 +2006,7 @@ function tkWxOf(s,ft){const h=ft==null?0:Math.max(0,ft/FT);let tv=null;try{tv=tu
 function tkWxPts(){const tr=(TKS&&TKS.trail||[]).filter(q=>q[3]!==-1);if(tr.length<2)return [];let tot=0;const cum=[0];for(let i=1;i<tr.length;i++){tot+=dist({lat:tr[i-1][1],lon:tr[i-1][2]},{lat:tr[i][1],lon:tr[i][2]});cum.push(tot)}
   const n=Math.max(2,Math.min(12,Math.round(tot/120000)+2)),out=[];let j=0;for(let i=0;i<n;i++){const want=tot*i/(n-1);while(j<cum.length-1&&cum[j]<want)j++;const q=tr[j];out.push({f:i/(n-1),lat:+q[1].toFixed(3),lon:+q[2].toFixed(3),t:q[0],ft:q[3]})}
   return out.filter((p,i,a)=>i===0||p.t!==a[i-1].t)}
-async function tkWxMaybe(force){if(!TKS||!TKS.on||TKX.wxBusy||navigator.onLine===false)return;const tr=TKS.trail||[],now=Date.now();
+async function tkWxMaybe(force){if(!TKS||!TKS.on||TKX.wxBusy||!cfOk())return;const tr=TKS.trail||[],now=Date.now();
   let km=0;for(let i=1;i<tr.length;i++)km+=dist({lat:tr[i-1][1],lon:tr[i-1][2]},{lat:tr[i][1],lon:tr[i][2]})/1000;
   const due=force||!TKS.wx||now-(TKS.wx.at||0)>20*60000||km-(TKS.wx.km||0)>120;if(!due)return;TKX.wxBusy=true;
   try{const A=tkAp(),pts=tkWxPts(),e=tkEta(),dep=TKS.dep?tkLocalMs(TKS.dep,A.tz):null,all=pts.slice();
@@ -2104,7 +2107,7 @@ function svHud(st,p){const c=$("svHud"),pr=Math.min(2,window.devicePixelRatio||1
   x.textAlign="left";const s=fSpd(p.spd);x.fillText((s==null?"---":Math.round(s))+" "+(S.spd==="kmh"?"KM/H":S.spd.toUpperCase()),12,cy+40);
   x.textAlign="right";const a=p.alt==null?null:fAlt(p.alt);x.fillText((a==null?"---":(Math.round(a/(S.alt==="ft"?10:1))*(S.alt==="ft"?10:1)).toLocaleString())+" "+S.alt.toUpperCase(),w-12,cy+40);
   x.font="600 11px \"B612 Mono\",ui-monospace,monospace";x.textAlign="center";x.globalAlpha=.85;x.fillText("SYNTHETIC VIEW · "+({none:"NORMAL",nvg:"NVG",flir:"FLIR",crt:"CRT"}[S.svfx]||"")+" · OFFLINE",w/2,top+20);x.globalAlpha=1}
-function svFrame(st,p){const now=Date.now();{const ph=PHN[p.ph||PH.p]||"";if($("svPhase").textContent!==ph)$("svPhase").textContent=ph}
+function svFrame(st,p){const now=Date.now();if(SV.snapReq){SV.snapReq=false;try{snapTake()}catch(e){}}{const ph=PHN[p.ph||PH.p]||"";if($("svPhase").textContent!==ph)$("svPhase").textContent=ph}
   if(now-SV.cov.at>4000){SV.cov.at=now;svPack().then(pk=>{SV.cov.ids=pk.covers(p.lat,p.lon)}).catch(()=>{})}
   if(now-SV.hudAt>66){SV.hudAt=now;try{svHud(st,p)}catch(e){}}
   const L=st.lit;const dr=$("svDrops");const rain=L&&L.rain&&S.svfx==="none";dr.style.display=rain?"block":"none";if(rain)dr.style.backgroundImage="url("+(L.rain>1?"drops-heavy.webp":"drops-light.webp")+")";
@@ -2132,7 +2135,7 @@ async function svpEst(){svpSel();const pk=await svPack();const fr=apBy($("svpFro
   if(!SVP.run)$("svpTxt").textContent=`${fr.c} → ${to.c} (${P.km.toLocaleString()} km): about ${pk.fmtMB(P.est+P.aspEst)} for ${P.keys.length.toLocaleString()} tiles (terrain ${pk.fmtMB(by("d"))}, imagery ${pk.fmtMB(by("i"))}${P.bm?", night lights "+pk.fmtMB(by("n")):""}${P.asp?", airspace file about 8 MB, stored much smaller":""}).`+(P.need<P.est*0.98?` About ${pk.fmtMB(P.need+P.aspEst)} is new; the rest is already on the phone.`:"")+" Download on Wi-Fi if you can.";
   svpList()}
 async function svpList(){const pk=await svPack();const all=Object.values(pk.packs());const ul=$("svpList");
-  ul.innerHTML=all.length?all.map(p=>`<li class="rt"><div><b>${esc(p.from)} → ${esc(p.to)}</b><span class="sub" style="display:block">${pk.fmtMB(pk.packBytes(p))} · ${p.w==="wide"?"wide":"standard"}${p.bm?" · night lights":""}${p.aspB?" · airspace":p.asp&&p.aspErr?" · airspace unavailable":""} · ${p.done?"complete":"incomplete, tap Resume"}</span></div><div class="row">${p.done?"":`<button data-a="res" data-id="${esc(p.id)}">Resume</button>`}<button data-a="del" data-id="${esc(p.id)}" aria-label="Delete 3D pack ${esc(p.from)} to ${esc(p.to)}">Delete</button></div></li>`).join(""):'<li><span>No 3D packs on this phone yet.</span></li>';
+  ul.innerHTML=all.length?all.map(p=>`<li class="rt"><div><b>${esc(p.from)} → ${esc(p.to)}</b><span class="sub" style="display:block">${pk.fmtMB(pk.packBytes(p))} · ${p.w==="wide"?"wide":"standard"}${p.bm?" · night lights":""}${p.aspB?" · airspace":p.asp&&p.aspErr?" · airspace unavailable":""} · ${p.done?"complete":"incomplete, tap Resume"}</span></div><div class="row">${p.done?"":`<button data-a="res" data-net data-id="${esc(p.id)}">Resume</button>`}<button data-a="del" data-id="${esc(p.id)}" aria-label="Delete 3D pack ${esc(p.from)} to ${esc(p.to)}">Delete</button></div></li>`).join(""):'<li><span>No 3D packs on this phone yet.</span></li>';
   let q="";try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();if(e&&e.quota)q=` Browser storage in use: ${pk.fmtMB(e.usage||0)} of about ${pk.fmtMB(e.quota)} allowed.`}}catch(e){}
   $("svpStore").textContent=`3D packs use ${pk.fmtMB(pk.used())} on this phone.`+q;$("svpUse").textContent=all.length?all.length+" saved":""}
 async function svpGo(P){const pk=await svPack();if(SVP.run||!P)return;SVP.run=true;$("svpGo").disabled=true;$("svpStop").style.display="";$("svpBar").style.display="block";
@@ -2157,4 +2160,505 @@ try{new IntersectionObserver((en,ob)=>{if(en.some(x=>x.isIntersecting)){ob.disco
 window.cpSV={open:svOpen,close:svClose,on:()=>SV.on,status:()=>SV.ctl?SV.ctl.status():null,probe:()=>SV.ctl?SV.ctl.probe():null,ready:()=>!!(SV.ctl&&SV.ctl.ready()),
   force:o=>{SV.force=o||null},msg:()=>SV.msg,state:()=>svState(),est:async(a,b,o)=>{const pk=await svPack();const P=pk.plan(apBy(a),apBy(b),o||{});return {km:P.km,tiles:P.keys.length,est:P.est,rows:P.rows.map(r=>({l:r.l,z:r.z,n:r.keys.length,est:r.est}))}},
   pack:async()=>{const pk=await svPack();return {packs:pk.packs(),used:pk.used(),run:pk.running()}},refresh:()=>svpEst()};
+/* ===== v23 features (built 21 Nov 2026): window seat guide, AR identify, replay+, stats and badges, turbulence master warning,
+   bumps felt, arrival helper+, flight card+, live flight sharing / follow along, connected features, flight diary, body clock,
+   landing score, top of descent, sunrise/sunset at altitude, spot the other plane.
+   Display only unless stated: nothing here changes phases. Logbook additions (stated by Peter): aircraft type, diary notes,
+   landing score. All live data goes through the Cabin Panel Worker's provider-neutral routes (scale-ready). ===== */
+/* ---- central feature toggles and service config (one place; a public build can switch features or endpoints here) ---- */
+const FEAT=Object.assign({seat:1,identify:1,replay:1,stats:1,turb:1,bumps:1,arrival:1,card:1,share:1,follow:1,net:1,diary:1,bodyclock:1,landing:1,tod:1,sunalt:1,spot:1},store.get("feat",{}));
+const SVC={base:TK_PROXY.replace(/\/+$/,""),appKey:"",ping:"/ping",share:"/share",near:"/api/near",wx:"/api/wx/now",ac:"/api/ac",
+  nearNm:25,nearEveryMs:60000,nearPerDay:150,shareSampleMs:15000,shareSendMs:45000,followPollMs:30000};
+/* every Worker call goes through here, so a per-user app key (X-App-Key) can be added later without touching features */
+function svcFetch(path,opt,ms){opt=Object.assign({cache:"no-store"},opt||{});if(SVC.appKey)opt.headers=Object.assign({"X-App-Key":SVC.appKey},opt.headers||{});
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||12000);opt.signal=c.signal;return fetch(SVC.base+path,opt).finally(()=>clearTimeout(t))}
+/* tracker (v22g) now uses the neutral /api/ac routes on the built-in Worker; an override proxy keeps the adsb.lol URL shape */
+function tkUrl(path){const px=String(S.tkProxy||"").trim();if(tkPxOk(px))return px.replace(/\/*$/,"/")+TK_ADSB+path;let base;try{base=SVC.base}catch(e){base=TK_PROXY.replace(/\/+$/,"")}
+  const m=path.match(/^\/v2\/(reg|hex|callsign)\/(.+)$/)||path.match(/^\/1\/trace\/full\/(.+)$/);if(!m)return tkPx()+TK_ADSB+path;
+  return base+"/api/ac"+(m.length===3?"/"+m[1]+"/"+m[2]:"/trace/"+m[1])}
+const setTx=(el,t)=>{if(el&&el.textContent!==t)el.textContent=t};
+const w180b=d=>((d%360)+540)%360-180;
+const clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
+const hhmm=(ms,tz)=>{try{return new Date(ms).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:tz||undefined})}catch(e){return new Date(ms).toTimeString().slice(0,5)}};
+const sideUp=s=>s==="left"?"LEFT":s==="right"?"RIGHT":s;
+
+/* ================= 9) Connected features: Auto / On / Off ================= */
+if(!["auto","on","off"].includes(S.net))S.net="auto";
+const CF={ok:navigator.onLine!==false,probeOk:null,probeAt:0,busy:false,iv:0};
+function cfOk(){if(navigator.onLine===false)return false;try{return CF.ok}catch(e){return true}}
+function cfWhy(){return S.net==="off"?"Connected features off":"Offline"}
+async function cfProbe(){if(CF.busy||S.net!=="auto")return;CF.busy=true;
+  try{await svcFetch(SVC.ping,{},6000);CF.probeOk=true}catch(e){CF.probeOk=false}   /* any answer at all means we are connected */
+  CF.busy=false;CF.probeAt=Date.now();cfEval()}
+function cfEval(){const was=CF.ok;CF.ok=S.net==="off"?false:navigator.onLine===false?false:S.net==="on"?true:CF.probeOk!==false;cfApply();
+  if(CF.ok&&!was){try{window.dispatchEvent(new Event("cp-online"))}catch(e){}}clearTimeout(CF.iv);CF.iv=setTimeout(()=>{cfProbe().finally(()=>{if(S.net!=="auto")cfEval()})},CF.ok?180000:45000)}
+function cfApply(){const ok=CF.ok,why=cfWhy();
+  document.querySelectorAll("[data-net]").forEach(el=>{
+    if(!ok){if(!el.disabled){el.disabled=true;el.dataset.cfd="1"}}else if(el.dataset.cfd){delete el.dataset.cfd;if(!el.dataset.busy)el.disabled=false}
+    el.classList.toggle("cfdis",!ok);el.title=ok?"":why;const lab=el.closest("label.chk");if(lab)lab.classList.toggle("cfdis",!ok);
+    let w=el.nextElementSibling;if(!(w&&w.classList.contains("cfWhy"))){if(lab){w=lab.querySelector(".cfWhy")}if(!w){w=document.createElement("span");w.className="cfWhy";(lab||el).insertAdjacentElement(lab?"beforeend":"afterend",w)}}
+    setTx(w,ok?"":why);w.style.display=ok?"none":""});
+  const t=$("netTag");if(t){t.style.display=ok?"none":"";setTx(t,S.net==="off"?"NET OFF":"OFFLINE")}
+  const st=$("netSt");if(st)setTx(st,S.net==="off"?"Off: nothing goes online. Weather refresh, flight lookup, packs, tracking, sharing and live lookups are greyed out.":
+    !ok?"Offline: online features are greyed out and come back by themselves when a connection returns.":S.net==="on"?"On: online features are always offered (no connection check).":"Auto: connected"+(CF.probeAt?" (checked "+hhmm(CF.probeAt)+")":"")+". Online features are available.")}
+{let cfT=0;new MutationObserver(()=>{clearTimeout(cfT);cfT=setTimeout(()=>{try{cfApply()}catch(e){}},60)}).observe(document.body,{childList:true,subtree:true})}
+window.addEventListener("online",()=>{cfEval();cfProbe()});window.addEventListener("offline",cfEval);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Date.now()-CF.probeAt>60000)cfProbe()});
+document.addEventListener("click",e=>{const el=e.target&&e.target.closest&&e.target.closest("[data-net]");if(el&&!cfOk()){e.preventDefault();e.stopImmediatePropagation();say(cfWhy()+".")}},true);
+document.querySelector('.seg[data-k="net"]')&&document.querySelector('.seg[data-k="net"]').addEventListener("click",()=>setTimeout(()=>{CF.probeOk=null;cfEval();cfProbe()},0));
+cfEval();setTimeout(cfProbe,800);
+window.cpNet=o=>{if(o&&o.probe)return cfProbe().then(()=>({ok:CF.ok,mode:S.net}));return {ok:CF.ok,mode:S.net,probeOk:CF.probeOk,probeAt:CF.probeAt,why:CF.ok?"":cfWhy()}};
+
+/* ================= runways, wind, cities (shared by seat guide, arrival helper, body clock) ================= */
+const CITY={SYD:[-33.8688,151.2093,"Sydney CBD and harbour"],MEL:[-37.8136,144.9631,"Melbourne CBD"],BNE:[-27.4698,153.0251,"Brisbane CBD and river"],PER:[-31.9523,115.8613,"Perth CBD and Swan River"],
+  ADL:[-34.9285,138.6007,"Adelaide CBD"],CBR:[-35.2809,149.13,"Canberra and Lake Burley Griffin"],HBA:[-42.8821,147.3272,"Hobart and the Derwent"],DRW:[-12.4634,130.8456,"Darwin city and harbour"],
+  CNS:[-16.9186,145.7781,"Cairns and the inlet"],OOL:[-28.0023,153.4145,"Surfers Paradise high-rises"],TSV:[-19.259,146.8169,"Townsville and Castle Hill"],NTL:[-32.9283,151.7817,"Newcastle"],
+  MCY:[-26.65,153.09,"Sunshine Coast beaches"],LST:[-41.4332,147.1441,"Launceston"],ASP:[-23.698,133.8807,"Alice Springs"],AKL:[-36.8485,174.7633,"Auckland CBD and Sky Tower"],
+  CHC:[-43.5321,172.6362,"Christchurch"],SIN:[1.2903,103.8519,"Singapore city"],HKG:[22.2793,114.1628,"Hong Kong harbour"],DPS:[-8.65,115.2167,"Denpasar"],NAN:[-17.7765,177.435,"Nadi"],LAX:[34.0522,-118.2437,"downtown LA"]};
+function cityOf(c){const k=CITY[c];if(k)return {lat:k[0],lon:k[1],n:k[2]};const a=apBy(c);if(!a)return null;let best=null,bd=40000;for(const l of LM){if(l.kind!=="town")continue;const d=dist(a,l);if(d<bd){bd=d;best=l}}return best?{lat:best.lat,lon:best.lon,n:best.n}:null}
+function rwyEnds(c){const a=RWY&&RWY.find(r=>r[0]===c);if(!a||!Array.isArray(a[4]))return [];const out=[];
+  for(const r of a[4]){const A={lat:r[2],lon:r[3]},B={lat:r[4],lon:r[5]};if(A.lat==null||B.lat==null)continue;const len=dist(A,B);if(len<900)continue;out.push({id:String(r[0]),hdg:brg(A,B),thr:A,end:B,len});out.push({id:String(r[1]),hdg:brg(B,A),thr:B,end:A,len})}return out}
+/* wind {d: from °T, s: kt}; course = direction you arrive (or depart). Long runways only; headwind wins, else straight-in. */
+function rwyPick(c,wind,course){const e=rwyEnds(c);if(!e.length)return null;const mx=Math.max(...e.map(r=>r.len)),cand=e.filter(r=>r.len>=0.75*mx);
+  let best=null,bs=-1e9,how="";const useW=wind&&wind.s!=null&&wind.d!=null&&wind.s>=6;
+  for(const r of cand){const hw=useW?wind.s*Math.cos(rad(wind.d-r.hdg)):0,al=course==null?0:Math.cos(rad(w180b(r.hdg-course)));const s=useW?hw*10+al:al;if(s>bs){bs=s;best=r}}
+  how=useW?"from forecast wind "+String(Math.round(wind.d/10)*10%360||360).padStart(3,"0")+"/"+Math.round(wind.s)+" kt":"no wind data: straight-in guess";
+  const par=cand.filter(r=>r!==best&&Math.abs(w180b(r.hdg-best.hdg))<6).map(r=>r.id);return {r:best,id:[best.id].concat(par).join("/"),how}}
+function packWind(pk,end){const s=pk&&pk.smp&&pk.smp.length?(end?pk.smp[pk.smp.length-1]:pk.smp[0]):null;if(!s)return null;const l=s.lv.find(q=>q[0]===850);return l&&l[2]!=null&&l[3]!=null?{d:l[3],s:l[2]*0.7}:null}
+function packFor(f,t){if(!f||!t)return null;return store.get("pack_"+rtKey(f,t),null)}
+/* ================= sun along a route (shared: seat guide, sunrise/sunset at altitude) =================
+   Walks the route minute by minute at the planned (or current) speed and height. The horizon dip at height makes the
+   sun rise earlier / set later for you than on the ground below (sunThr). Returns sun events with time, side and how much
+   earlier/later than on the ground. */
+function sunAlong(o){/* o: {fr,to,t0,f0,spd,altFn(f)->m, maxMin} */
+  const tot=dist(o.fr,o.to),spd=o.spd||230,ev=[],glare={left:0,right:0};let prev=null,prevG=null,f=o.f0||0;
+  for(let m=0;m<=(o.maxMin||1080);m++){const t=o.t0+m*60000;f=Math.min(1,(o.f0||0)+spd*m*60/tot);
+    const p=gcPoint(o.fr,o.to,Math.min(f,0.9999)),q=gcPoint(o.fr,o.to,Math.min(1,f+0.002)),crs=brg(p,q),alt=o.altFn(f),sp=sunPos(t,p.lat,p.lon);
+    const a=sp.el-sunThr(alt),g=sp.el-sunThr(0),rel=w180b(sp.az-crs),sd=rel>0?"right":"left";
+    if(a>0&&sp.el<35&&Math.abs(rel)>25&&Math.abs(rel)<155)glare[sd]++;
+    if(prev!=null&&(a>0)!==(prev>0)){const e={t,up:a>0,side:Math.abs(rel)<20?"ahead":Math.abs(rel)>160?"behind":sd,f,alt,az:sp.az,m};
+      /* same spot on the ground: when does the ground below see it? */
+      let tg=null;for(let k=-90;k<=90;k++){const g1=sunPos(t+k*60000,p.lat,p.lon).el-sunThr(0),g0=sunPos(t+(k-1)*60000,p.lat,p.lon).el-sunThr(0);if((g1>0)!==(g0>0)&&(g1>0)===e.up){tg=t+k*60000;break}}
+      e.vsGround=tg==null?null:Math.round((t-tg)/60000);ev.push(e)}
+    prev=a;prevG=g;if(f>=1)break}
+  return {ev,glare,mins:Math.round(tot/spd/60)}}
+
+/* ================= 1) Window seat guide ================= */
+const WSK={lm:3,geo:2.4,town:1.2,vfr:1,wiki:1.4,ap:0.6};
+function landAt(p){for(const poly of COAST){let ins=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if(((a[0]>p.lat)!==(b[0]>p.lat))&&(p.lon<(b[1]-a[1])*(p.lat-a[0])/(b[0]-a[0])+a[1]))ins=!ins}if(ins)return true}return false}
+function depMs(){const tv=$("packDep")&&$("packDep").value;if(/^\d\d:\d\d/.test(tv||"")){const [hh,mm]=tv.split(":").map(Number),d=new Date();d.setHours(hh,mm,0,0);if(d.getTime()<Date.now()-3*3600000)d.setDate(d.getDate()+1);return d.getTime()}return null}
+function seatGuide(fc,tc,dep){const fr=apBy(fc),to=apBy(tc);if(!fr||!to||fr.c===to.c)return null;
+  const tot=dist(fr,to),spd=230,c12=brg(fr,to),pk=packFor(fc,tc),sc={left:0,right:0},it={left:[],right:[]},notes=[],below=[];
+  const add=(sd,w,txt,min)=>{sc[sd]+=w;it[sd].push({w,txt,min})};
+  const cands=lmAll().map(l=>({n:l.n,lat:l.lat,lon:l.lon,k:l.kind||"lm",r:l.r||2})).concat(AP.filter(a=>a.c!==fr.c&&a.c!==to.c).map(a=>({n:a.n+" airport",lat:a.lat,lon:a.lon,k:"ap",r:2})));
+  for(const c of cands){const d13=dist(fr,c)/R,dth=rad(brg(fr,c)-c12),xt=Math.asin(Math.sin(d13)*Math.sin(dth))*R,at=Math.acos(clampN(Math.cos(d13)/Math.cos(xt/R),-1,1))*R*(Math.cos(dth)<0?-1:1);
+    if(at<8000||at>tot-8000)continue;const f=at/tot,alt=planAlt(f,tot),vis=Math.min(90000,8000+alt*7);if(Math.abs(xt)>vis)continue;
+    const min=Math.round(at/spd/60);if(Math.abs(xt)<3000){below.push(c.n);continue}
+    const w=(WSK[c.k]||1)*(1-0.6*Math.abs(xt)/vis)*(c.r>=10?1.3:1);add(xt>0?"right":"left",w,c.n+" · "+Math.round(fDst(Math.abs(xt)))+" "+S.dst+" off",min)}
+  /* coastline and high ground: sample every ~2 min of flying */
+  const N=Math.max(20,Math.min(160,Math.round(tot/25000))),cm={left:0,right:0},hm2={left:0,right:0},stepMin=tot/spd/60/N;
+  for(let i=1;i<N;i++){const f=i/N,p=gcPoint(fr,to,f),q=gcPoint(fr,to,Math.min(1,f+0.003)),crs=brg(p,q),lp=landAt(p);
+    for(const sd of ["left","right"]){const o=dPt(p,crs+(sd==="right"?90:-90),25000);if(landAt(o)!==lp)cm[sd]+=stepMin;let h=0;try{h=elevAt(o.lat,o.lon)||0}catch(e){}if(h>900&&lp)hm2[sd]+=stepMin}}
+  for(const sd of ["left","right"]){if(cm[sd]>=4)add(sd,Math.min(4,cm[sd]*0.12),"Coastline for about "+Math.round(cm[sd])+" min",null);if(hm2[sd]>=4)add(sd,Math.min(3,hm2[sd]*0.1),"Mountains and high ground for about "+Math.round(hm2[sd])+" min",null)}
+  /* departure climb-out and approach: likely runway from the pack's forecast wind, city side */
+  const rd=rwyPick(fr.c,packWind(pk,false),c12),ra=rwyPick(to.c,packWind(pk,true),brg(to,fr)+180);
+  let rwTxt=[];
+  if(rd){const ct=cityOf(fr.c);rwTxt.push("Departing "+fr.c+" runway "+rd.id+" ("+rd.how+")");if(ct){const p=dPt(rd.r.end,rd.r.hdg,4000),rel=w180b(brg(p,ct)-rd.r.hdg);if(Math.abs(rel)>15&&Math.abs(rel)<165&&dist(p,ct)<40000)add(rel>0?"right":"left",3,ct.n+" on the climb-out",1)}}
+  if(ra){const ct=cityOf(to.c);rwTxt.push("Landing "+to.c+" runway "+ra.id+" ("+ra.how+")");if(ct){const p=dPt(ra.r.thr,ra.r.hdg+180,9000),rel=w180b(brg(p,ct)-ra.r.hdg);if(Math.abs(rel)>12&&Math.abs(rel)<168&&dist(p,ct)<45000)add(rel>0?"right":"left",4,ct.n+" on final approach",Math.round(tot/spd/60))}}
+  /* sun: glare and sunrise/sunset from the departure time */
+  const t0=(dep||depMs()||Date.now())+15*60000,su=sunAlong({fr,to,t0,f0:0,spd,altFn:f=>planAlt(f,tot),maxMin:Math.round(tot/spd/60)+2});
+  for(const e of su.ev){if(e.side!=="left"&&e.side!=="right"){notes.push((e.up?"Sunrise":"Sunset")+" straight "+e.side+" about "+hm(e.m*60)+" after take-off");continue}add(e.side,3,(e.up?"Sunrise":"Sunset")+" about "+hm(e.m*60)+" after take-off (~"+hhmm(e.t)+")",e.m)}
+  const gl=su.glare.left>su.glare.right*1.5&&su.glare.left>=15?"left":su.glare.right>su.glare.left*1.5&&su.glare.right>=15?"right":null;
+  if(gl)notes.push("Low sun on the "+sideUp(gl)+" side for about "+su.glare[gl]+" min: bright, you may want the blind down");
+  if(below.length)notes.push("Passes almost overhead (both sides): "+below.slice(0,4).join(", "));
+  for(const sd of ["left","right"])it[sd].sort((a,b)=>b.w-a.w);
+  const mx=Math.max(sc.left,sc.right),best=mx<1?"either":Math.abs(sc.right-sc.left)<0.15*mx?"either":sc.right>sc.left?"right":"left";
+  return {fr:fr.c,to:to.c,best,sc,it,notes,rw:rwTxt,mins:su.mins,dep:t0-15*60000,pack:!!pk}}
+function seatRender(){const el=$("wsOut");if(!el||!FEAT.seat)return;const g=seatGuide(S.from,S.to,depMs());
+  if(!g){el.innerHTML='<li><span>Pick your departure and destination above.</span></li>';$("wsBest").textContent="—";return}
+  $("wsBest").innerHTML=g.best==="either"?"Either side is good":"Sit on the <b>"+sideUp(g.best)+"</b> · window seat "+(g.best==="left"?"A":"F");
+  const row=sd=>g.it[sd].slice(0,5).map(x=>`<li${g.best===sd?' class="myside"':""}><b>${esc(sideUp(sd))}</b><span>${x.min!=null?"~"+esc(hm(x.min*60))+" · ":""}${esc(x.txt)}</span></li>`).join("");
+  el.innerHTML=row("left")+row("right")+g.notes.map(n=>`<li><span>${esc(n)}</span></li>`).join("")+(g.rw.length?`<li><span>${esc(g.rw.join(". "))}. Runways change with the wind, so the approach side can flip.</span></li>`:"");
+  $("wsNote").textContent=`${g.fr} → ${g.to}, about ${hm(g.mins*60)} in the air, departing ${hhmm(g.dep)}${$("packDep").value?"":" (set Departs in the pre-flight pack for sun times)"}${g.pack?"":"; no pre-flight pack, so the runway is a guess"}. Window seats: A = left, F = right on most single-aisle jets (wide-bodies: A left, K or J right). Score left ${g.sc.left.toFixed(1)} · right ${g.sc.right.toFixed(1)}.`}
+window.cpSeat=(a,b,dep)=>seatGuide(a,b,dep);
+
+/* ================= 11) Body clock / jet lag helper ================= */
+function tzOffAt(tz,ms){try{const s=new Intl.DateTimeFormat("en-AU",{timeZone:tz,timeZoneName:"longOffset"}).formatToParts(new Date(ms)).find(p=>p.type==="timeZoneName").value;const m=s.match(/([+-])(\d{1,2}):?(\d{2})?/);return m?(m[1]==="-"?-1:1)*(+m[2]*60+(+m[3]||0)):0}catch(e){return null}}
+const APTZ={AKL:"Pacific/Auckland",CHC:"Pacific/Auckland",WLG:"Pacific/Auckland",ZQN:"Pacific/Auckland",SIN:"Asia/Singapore",HKG:"Asia/Hong_Kong",DPS:"Asia/Makassar",NAN:"Pacific/Fiji",LAX:"America/Los_Angeles",NRT:"Asia/Tokyo",HND:"Asia/Tokyo",POM:"Pacific/Port_Moresby"};
+function apTz(a){if(!a)return null;if(APTZ[a.c])return APTZ[a.c];if(a.tz&&tzOffAt(a.tz,Date.now())!=null)return a.tz;return "Australia/Sydney"}
+function bodyClock(fc,tc,dep){const fr=apBy(fc),to=apBy(tc);if(!fr||!to||fr.c===to.c)return null;
+  const t0=dep||depMs()||Date.now()+2*3600000,dur=(dist(fr,to)/230+25*60)*1000,t1=t0+dur,tzA=apTz(fr),tzB=apTz(to),oa=tzOffAt(tzA,t0),ob=tzOffAt(tzB,t1),sh=(ob-oa)/60;
+  const locH=(ms,tz)=>{const o=tzOffAt(tz,ms);const d=new Date(ms+o*60000);return d.getUTCHours()+d.getUTCMinutes()/60};
+  const atLocal=(baseMs,tz,h)=>{/* the next time it is h:00 at tz after baseMs-12h */let t=baseMs-12*3600000;for(let i=0;i<48*4;i++){if(Math.abs(locH(t,tz)-h)<0.13)return t;t+=900000}return null};
+  const both=ms=>hhmm(ms,tzB)+" "+to.c+" time"+(sh?" ("+hhmm(ms,tzA)+" "+fr.c+")":"");
+  const B=[],D=[],A=[],arrH=locH(t1,tzB),east=sh>0;
+  const big=Math.abs(sh)>=2;
+  if(!big){B.push("Time-zone change is "+(sh?Math.abs(sh)+" h":"nil")+": little or no jet lag. Keep your usual routine.")}
+  else{B.push(east?`You fly ${Math.abs(sh)} h east: your body clock needs to run earlier.`:`You fly ${Math.abs(sh)} h west: your body clock needs to run later.`);
+    if(Math.abs(sh)>=3)B.push(east?"For 2–3 nights before, go to bed and get up 30–60 min earlier each day.":"For 2–3 nights before, go to bed and get up 30–60 min later each day.");
+    B.push(east?"Get bright morning light on the days before; dim the lights in the evening.":"Get light in the late afternoon and evening; avoid very early bright light.")}
+  /* in flight: does the flight overlap night at the destination (22:00–06:00)? */
+  let sl=null;for(let t=t0;t<t1;t+=600000){const h=locH(t,tzB);const night=h>=22||h<6;if(night){if(!sl)sl={a:t,b:t};sl.b=t+600000}else if(sl&&!sl.done)sl.done=true}
+  const durH=dur/3600000;
+  if(sl&&durH>=4)D.push(`Sleep on board during destination night: about ${both(sl.a)} to ${both(Math.min(sl.b,t1-30*60000))}.`);
+  else if(sl)D.push("The flight crosses destination night but is short: a nap of 20–30 min at most, then stay awake until local bedtime.");
+  else D.push(arrH>=17||arrH<2?"You arrive in the evening: stay awake on board (light, walk the aisle) and sleep at local bedtime.":"Stay awake on board: it's daytime at your destination.");
+  D.push("Set your watch to "+to.c+" time when you board. Drink water; go easy on alcohol.");
+  const bed=atLocal(t1,tzB,22),cut=bed&&bed>t1?bed-6*3600000:null;
+  if(big){if(cut&&cut>t0)D.push("Last coffee or tea by "+both(cut)+" (6 h before 22:00 local bedtime).");else A.push("Coffee or tea in the morning only, none after about 16:00 local, for the first 2 days.");}
+  A.push(`You land about ${both(t1)}.`);
+  if(big){A.push(east?"First 2 days: get outdoor light from 07:00 to 10:00 local, and avoid bright light after 20:00.":"First 2 days: get outdoor light from 16:00 to 19:00 local, and avoid bright light before 08:00.");
+    A.push("Eat meals at local times. Expect about "+Math.max(1,Math.round(Math.abs(sh)/(east?1:1.5)))+" day"+(Math.abs(sh)>1.5?"s":"")+" to adjust fully.")}
+  else A.push("Eat and sleep at local times.");
+  return {fr:fr.c,to:to.c,shift:sh,t0,t1,before:B,during:D,after:A,tzA,tzB}}
+function bodyRender(){const el=$("bcOut");if(!el||!FEAT.bodyclock)return;const g=bodyClock(S.from,S.to,depMs());if(!g){el.innerHTML='<li><span>Pick your departure and destination above.</span></li>';return}
+  const sec=(h,a)=>`<li class="bch"><b>${h}</b></li>`+a.map(x=>`<li><span>${esc(x)}</span></li>`).join("");
+  $("bcHead").textContent=`${g.fr} → ${g.to}: ${g.shift===0?"no time change":(g.shift>0?"+":"−")+Math.abs(g.shift)+" h"}`;
+  el.innerHTML=sec("Before",g.before)+sec("During the flight",g.during)+sec("After you land",g.after)}
+window.cpBody=(a,b,dep)=>bodyClock(a,b,dep);
+
+/* ================= 13) Time to top of descent (3:1 rule) ================= */
+function todInfo(){const L=viewL()||last,to=apBy(S.to),fr=apBy(S.from);if(!L||!to||!fr||L.spd==null||L.spd<40)return null;
+  const el=(apInfo(to.c)||[])[4]||0,tot=dist(fr,to),pl=plan(tot),cruise=PH.p==="cruise"||(demo&&demo.stg==="air"&&demo.vs===0)?Math.max(L.alt||0,pl.cr):Math.max(pl.cr,L.alt||0);
+  const dd=Math.max(0,(cruise*FT-el)/1000*3*NMm),dg=dist(L,to),toGo=dg-dd,sec=toGo/L.spd;
+  return {cruiseFt:Math.round(cruise*FT/100)*100,dd,dg,toGo,sec,t:Date.now()+sec*1000,past:toGo<=0,should:Math.max(0,Math.round((dg/NMm/3*1000+el)/100)*100),to:to.c,tz:to.tz}}
+let todSaid=0;
+function todRender(){const tl=$("todTile");if(!tl||!FEAT.tod)return;const i=todInfo();const air=["climb","cruise","descent","approach"].includes(PH.p)||(demo&&demo.stg==="air")||(REPLAY&&last&&last.spd>40);
+  if(!i||!air){tl.style.display="none";return}tl.style.display="";
+  if(i.past){$("todBig").textContent="PAST T/D";$("todSub").textContent=`3:1 profile: about ${i.should.toLocaleString()} ft now, ${Math.round(fDst(i.dg))} ${S.dst} to ${i.to}. Estimate; the crew's descent will differ.`;return}
+  $("todBig").textContent="T/D in "+hm(i.sec);$("todSub").textContent=`About ${hhmm(i.t)} phone time · ${Math.round(fDst(i.dd))} ${S.dst} before ${i.to} · from ${i.cruiseFt.toLocaleString()} ft by the 3:1 rule (3 nm per 1,000 ft). Estimate; the crew's point will differ.`;
+  if(i.sec<300&&i.sec>200&&Date.now()-todSaid>600000){todSaid=Date.now();say("Top of descent in about five minutes.")}}
+window.cpTod=()=>todInfo();
+
+/* ================= 14) Sunrise / sunset at altitude, with an alert ================= */
+if(!["on","off"].includes(S.sunAlert))S.sunAlert="on";
+let SUNA={t:0,ev:null,said:0};
+function sunAltNow(){const L=viewL()||last,fr=apBy(S.from),to=apBy(S.to);if(!L)return null;const air=L.spd!=null&&L.spd>40;
+  if(fr&&to&&fr.c!==to.c){const tot=dist(fr,to),f0=clampN(1-dist(L,to)/tot,0,1);return sunAlong({fr,to,t0:Date.now(),f0,spd:air?L.spd:230,altFn:f=>air&&PH.p!=="descent"?Math.max(L.alt||0,0):planAlt(f,tot),maxMin:air?Math.round(dist(L,to)/L.spd/60)+1:0})}
+  return null}
+function sunAltPlan(){const fr=apBy(S.from),to=apBy(S.to);if(!fr||!to||fr.c===to.c)return null;const tot=dist(fr,to),t0=(depMs()||Date.now())+15*60000;return sunAlong({fr,to,t0,f0:0,spd:230,altFn:f=>planAlt(f,tot),maxMin:Math.round(tot/230/60)+2})}
+function sunAltRender(){const el=$("saOut");if(!el||!FEAT.sunalt)return;const now=Date.now();if(now-SUNA.t>20000){SUNA.t=now;try{const L=last;SUNA.ev=L&&L.spd>40?sunAltNow():null;SUNA.pl=sunAltPlan()}catch(e){SUNA.ev=null}}
+  const rows=[],fmt=e=>`${e.up?"Sunrise":"Sunset"} at about ${hhmm(e.t)} phone time on your ${e.side==="left"||e.side==="right"?sideUp(e.side)+" side":e.side}`+(e.vsGround?`, ${Math.abs(e.vsGround)} min ${(e.up?e.vsGround<0:e.vsGround>0)?(e.up?"earlier":"later"):(e.up?"later":"earlier")} than on the ground below`:"")+` (at ${Math.round(fAlt(e.alt)/100)*100} ${S.alt})`;
+  if(SUNA.ev&&SUNA.ev.ev.length){const e=SUNA.ev.ev[0],mins=Math.round((e.t-now)/60000);rows.push(`<li class="myside"><b>${e.up?"Sunrise":"Sunset"} in ${esc(hm(mins*60))}</b><span>${esc(fmt(e))}</span></li>`);
+    if(S.sunAlert==="on"&&mins<=10&&mins>=8&&now-SUNA.said>20*60000){SUNA.said=now;say((e.up?"Sunrise":"Sunset")+" in about ten minutes"+(e.side==="left"||e.side==="right"?", on your "+e.side+" side.":"."))}}
+  else if(SUNA.ev)rows.push('<li><span>No sunrise or sunset before arrival from here.</span></li>');
+  if(SUNA.pl){if(SUNA.pl.ev.length)SUNA.pl.ev.slice(0,2).forEach(e=>rows.push(`<li><b>Planned flight</b><span>${esc(fmt(e))}, ${esc(hm(e.m*60))} after take-off</span></li>`));else rows.push(`<li><b>Planned flight</b><span>No sunrise or sunset during the flight (departing ${esc(hhmm((depMs()||Date.now())))}).</span></li>`)}
+  el.innerHTML=rows.join("")||'<li><span>Pick a route, or start GPS in flight.</span></li>'}
+window.cpSunAlt=()=>({now:sunAltNow(),plan:sunAltPlan()});
+/* ================= 2) AR Identify: what's under the crosshair ================= */
+const KINDN={town:"Town",lm:"Landmark",vfr:"Landmark",wiki:"Place (Wikipedia)",ap:"Airport",dest:"Destination airport",orig:"Departure airport",mk:"Your mark",wpt:"Waypoint",ac:"Aircraft"};
+function kindName(t){if(t.kind==="geo"){const n=t.n;return /Lake|Lagoon|Reservoir|Dam\b|Weir/i.test(n)?"Lake":/Mount|Mt\b|Peak|Range|Ranges|Bluff|Hill|Tops|Pinnacle/i.test(n)?"Mountain or range":/River|Creek/i.test(n)?"River":/Island/i.test(n)?"Island":/Bay|Cape|Head|Heads|Point|Strait|Gulf|Beach|Inlet/i.test(n)?"Coast":"Natural feature"}return KINDN[t.kind]||"Place"}
+let ARI={last:null};
+function arIdentify(){const v=AR.view,L=last;if(!L)return {err:"No GPS position yet."};if(!v)return {err:"No heading: tap Enable compass, or move so GPS track works."};
+  const tg=(AR.tg||[]).slice();let best=[];
+  for(const t of tg){const dA=w180b(t.b-v.az),dE=t.el-v.pitch,ang=Math.hypot(dA,dE*1.2),size=deg(Math.atan2((t.r||1000)*0.5,Math.max(1,t.d))),tol=Math.max(v.unc*1.5,2.5)+Math.min(4,size);
+    if(ang<=tol)best.push({t,ang,s:ang/tol+(t.hid?0.4:0)+(t.kind==="town"?0.05:0)})}
+  best.sort((a,b)=>a.s-b.s);
+  /* where the line of sight meets the ground (below the horizon only) */
+  let gnd=null;const h=Math.max(0,L.alt||0),dip=deg(Math.acos(R/(R+h*0.87)));
+  if(v.pitch<-dip-0.2&&h>30){const a=rad(-v.pitch);let d=h/Math.tan(a);for(let i=0;i<4;i++){const dr=d*d/(2*R)*0.87;d=Math.max(50,(h-dr)/Math.tan(a))}d=Math.min(d,400000);const p=dPt(L,v.az,d);
+    let near=null,nd=1e12;for(const l of lmAll().concat(AP.map(a=>({n:a.n+" airport",lat:a.lat,lon:a.lon,kind:"ap"})))){const dd=dist(p,l);if(dd<nd){nd=dd;near=l}}gnd={lat:p.lat,lon:p.lon,d,near:near&&nd<25000?{n:near.n,d:nd,kind:near.kind}:null}}
+  const r=best[0]?best[0].t:null,rel=r&&L.trk!=null?side(r.b-L.trk):null;
+  const out={at:Date.now(),az:v.az,pitch:v.pitch,unc:v.unc,hit:r?{n:r.n,kind:r.kind,kindN:kindName(r),d:Math.round(r.d),b:Math.round(r.b),el:+r.el.toFixed(1),note:r.note||"",hid:!!r.hid,side:rel?rel.s:null,clk:rel?rel.clk:null}:null,
+    alts:best.slice(1,3).map(x=>({n:x.t.n,d:Math.round(x.t.d)})),gnd};
+  if(r)AR.lock=r.n;ARI.last=out;return out}
+function arIdShow(o){const el=$("arIdOut");if(!el)return;el.style.display="block";
+  if(o.err){el.innerHTML=`<b>IDENTIFY</b><p>${esc(o.err)}</p>`;return}
+  if(o.hit){const h=o.hit;el.innerHTML=`<b>${esc(h.n)}</b><span class="arIk">${esc(h.kindN)}${h.hid?" · beyond the horizon":""}</span><p>${Math.round(fDst(h.d)*10)/10} ${S.dst} · bearing ${String(h.b).padStart(3,"0")}°T${h.side==="left"||h.side==="right"?" · your "+h.side+" ("+h.clk+" o'clock)":""}</p>${h.note?`<p class="arIn">${esc(h.note)}</p>`:""}${o.alts.length?`<p class="arIa">Also near the crosshair: ${o.alts.map(a=>esc(a.n)).join(", ")}</p>`:""}<p class="arIa">Approximate: depends on compass accuracy (±${o.unc.toFixed(1)}°). Entertainment only.</p>`}
+  else el.innerHTML=`<b>Nothing named under the crosshair</b><p>${o.gnd?`The ground there is about ${Math.round(fDst(o.gnd.d))} ${S.dst} away${o.gnd.near?", near "+esc(o.gnd.near.n)+" ("+Math.round(fDst(o.gnd.near.d))+" "+S.dst+")":""}.`:"Aim at the ground or a boxed target and tap Identify again."}</p>`;
+  clearTimeout(ARI.hT);ARI.hT=setTimeout(()=>{el.style.display="none"},15000)}
+if($("arIdBtn"))$("arIdBtn").onclick=e=>{e.stopPropagation();hap(15);arIdShow(arIdentify())};
+if($("arIdOut"))$("arIdOut").onclick=()=>{$("arIdOut").style.display="none"};
+/* test hook: force the AR heading/tilt (no compass in headless browsers) */
+let ARF=0;window.cpARForce=o=>{AR.force=o?{az:o.az,unc:o.unc||1.5,src:"TEST",win:null,mov:false,dec:0}:null;clearInterval(ARF);if(o){const tick=()=>{AR.ps=o.pitch||0;AR.rs=0;AR.ot=Date.now()};tick();ARF=setInterval(tick,200)}return !!AR.force};
+window.cpARId=()=>{const o=arIdentify();arIdShow(o);return o};
+
+/* ================= 15) Spot the other plane ================= */
+if(!["on","off"].includes(S.spot))S.spot="off";
+const AIRN={};for(const [k,v] of Object.entries(AIRL))AIRN[v[0]]=v[1];Object.assign(AIRN,{RXA:"Rex",QLK:"QantasLink",NWK:"Network Aviation",FDA:"Flying Doctor",VOZ:"Virgin Australia",JST:"Jetstar",QFA:"Qantas",UTY:"Alliance",ANZ:"Air New Zealand",TFX:"Toll",SIA:"Singapore Airlines"});
+let SPOT={ac:[],at:0,busy:false,day:store.get("spotq",{d:"",n:0}),alerted:{},hold:{},msg:""};
+let SPC=Object.assign({pts:0,caught:[],types:{},airl:{}},store.get("spot",{}));
+function spotQuota(add){const day=new Date().toISOString().slice(0,10);if(SPOT.day.d!==day)SPOT.day={d:day,n:0};if(add){SPOT.day.n+=add;store.set("spotq",SPOT.day)}return SPOT.day.n}
+function spotOn(){return FEAT.spot&&S.spot==="on"&&cfOk()&&!demo&&!REPLAY}
+async function spotPoll(force){const L=last;if(!force&&(!spotOn()||!L||SPOT.busy||Date.now()-SPOT.at<SVC.nearEveryMs-500||document.hidden))return;if(!L)return;
+  if(spotQuota()>=SVC.nearPerDay){SPOT.msg="Daily lookup limit reached; back tomorrow.";spotRender();return}
+  SPOT.busy=true;SPOT.at=Date.now();
+  try{spotQuota(1);const r=await svcFetch(SVC.near+"/"+L.lat.toFixed(4)+"/"+L.lon.toFixed(4)+"/"+SVC.nearNm,{},12000);if(r.status===429){SPOT.msg="Busy; trying again shortly.";return}if(!r.ok)throw new Error("answered "+r.status);
+    const j=await r.json(),now=Date.now();SPOT.ac=(Array.isArray(j.ac)?j.ac:[]).filter(a=>a&&typeof a.lat==="number"&&typeof a.lon==="number").map(a=>({hex:String(a.hex||"").slice(0,6),cs:String(a.flight||"").trim().slice(0,8),reg:String(a.r||"").slice(0,10),type:String(a.t||"").slice(0,5),
+      lat:a.lat,lon:a.lon,alt:typeof a.alt_baro==="number"?a.alt_baro/FT:(typeof a.alt_geom==="number"?a.alt_geom/FT:null),gnd:a.alt_baro==="ground",gs:typeof a.gs==="number"?a.gs*NMm/3600:0,trk:typeof a.track==="number"?a.track:null,t:now-(typeof a.seen_pos==="number"?a.seen_pos*1000:0)}));
+    SPOT.msg="";spotAlert()}
+  catch(e){SPOT.msg="Couldn't look up nearby aircraft ("+(e&&e.name==="AbortError"?"timed out":(e&&e.message)||e)+")."}
+  finally{SPOT.busy=false;spotRender()}}
+/* dead-reckon each aircraft between lookups so AR boxes keep up */
+function spotNow(){const L=last;if(!L)return [];const now=Date.now(),h=Math.max(0,L.alt||0);
+  return SPOT.ac.map(a=>{const dt=Math.min(120,(now-a.t)/1000),p=a.trk!=null&&a.gs?dPt(a,a.trk,a.gs*dt):a,d=dist(L,p);return Object.assign({},a,{lat:p.lat,lon:p.lon,d})})
+    .filter(a=>!a.gnd&&a.alt!=null&&a.d<40000&&!(a.d<1500&&Math.abs((a.alt||0)-h)<300))}  /* skip ground traffic and your own aircraft */
+function spotAlert(){const now=Date.now();const vis=spotNow().filter(a=>a.d<30000).sort((a,b)=>a.d-b.d);const a=vis[0];if(!a||arOn)return;if(SPOT.alerted[a.hex]&&now-SPOT.alerted[a.hex]<15*60000)return;SPOT.alerted[a.hex]=now;
+  const L=last,rel=L&&L.trk!=null?side(brg(L,a)-L.trk):null,b=$("spBan");if(!b)return;
+  b.innerHTML=`<b>✈ ${esc(a.cs||a.reg||a.hex.toUpperCase())}${a.type?" · "+esc(a.type):""}</b> ${Math.round(fDst(a.d))} ${S.dst} ${rel?(rel.s==="left"||rel.s==="right"?"to your "+rel.s.toUpperCase():rel.s):""} · switch to AR to spot it <button id="spGo" class="pri">Open AR</button><button id="spX">✕</button>`;b.style.display="";
+  $("spGo").onclick=()=>{b.style.display="none";arOpen()};$("spX").onclick=()=>{b.style.display="none"};hap([40,60,40]);setTimeout(()=>{b.style.display="none"},30000)}
+function spotTargets(L,out){if(!S||S.spot!=="on")return;const h=Math.max(0,L.alt||0);for(const a of spotNow()){const drop=a.d*a.d/(2*R)*0.87,el=deg(Math.atan2((a.alt||0)-h-drop,Math.max(1,a.d)));
+  out.push({n:"✈ "+(a.cs||a.reg||a.hex.toUpperCase()),kind:"ac",note:[a.type,AIRN[(a.cs||"").slice(0,3)]||"",a.alt!=null?Math.round(a.alt*FT/100)*100+" ft":""].filter(Boolean).join(" · "),d:a.d,b:brg(L,a),el,r:600,hid:false,ac:a})}}
+function spotCatch(t){const a=t.ac,now=Date.now();const last1=SPC.caught.find(c=>c.hex===a.hex);if(last1&&now-last1.t<3*3600000)return false;
+  const al=AIRN[(a.cs||"").slice(0,3)]||(a.cs?a.cs.slice(0,3):"Other"),ty=a.type||"Unknown",newT=!SPC.types[ty],newA=!SPC.airl[al];
+  const pts=100+Math.round(Math.min(40,a.d/1000)*5)+(newT?150:0)+(newA?100:0);SPC.pts+=pts;SPC.types[ty]=(SPC.types[ty]||0)+1;SPC.airl[al]=(SPC.airl[al]||0)+1;
+  SPC.caught.unshift({t:now,hex:a.hex,cs:a.cs,reg:a.reg,type:ty,airl:al,km:+(a.d/1000).toFixed(1),pts});SPC.caught=SPC.caught.slice(0,200);store.set("spot",SPC);
+  say("Spotted "+(a.cs||a.reg||"aircraft")+". Plus "+pts+" points"+(newT?", new type":"")+".");try{beep()}catch(e){}hap([30,40,30,40,80]);spotRender();return pts}
+/* crosshair inside the aircraft's box for about 1 s scores it */
+setInterval(()=>{const hud=$("spHud");if(!arOn||!AR.view||S.spot!=="on"){if(hud)hud.style.display="none";return}
+  const v=AR.view,acs=(AR.tg||[]).filter(t=>t.kind==="ac");let best=null,bd=1e9;
+  for(const t of acs){const a=Math.hypot(w180b(t.b-v.az),t.el-v.pitch),tol=Math.max(2,v.unc*1.3);if(a<tol&&a<bd){bd=a;best=t}}
+  const now=Date.now();if(!best){SPOT.hold={};if(hud){hud.style.display=acs.length?"":"none";setTx(hud,acs.length+" aircraft nearby · put the crosshair on one")}return}
+  if(SPOT.hold.n!==best.n)SPOT.hold={n:best.n,t0:now};const p=Math.min(1,(now-SPOT.hold.t0)/1000);if(hud){hud.style.display="";setTx(hud,"LOCKING "+best.n+" "+Math.round(p*100)+"%")}
+  if(p>=1&&!SPOT.hold.done){SPOT.hold.done=true;const pts=spotCatch(best);if(hud)setTx(hud,pts?"SPOTTED "+best.n+" +"+pts:"Already spotted "+best.n+" today")}},100);
+function spotRender(){const el=$("spOut");if(!el)return;const types=Object.entries(SPC.types).sort((a,b)=>b[1]-a[1]),airl=Object.entries(SPC.airl).sort((a,b)=>b[1]-a[1]);
+  $("spPts").textContent=SPC.pts.toLocaleString()+" pts · "+SPC.caught.length+" spotted · "+types.length+" types · "+airl.length+" airlines";
+  el.innerHTML=(SPOT.msg?`<li><span>${esc(SPOT.msg)}</span></li>`:"")+(S.spot==="on"?`<li><span>${spotNow().length} aircraft within ${Math.round(fDst(40000))} ${S.dst} at the last lookup${SPOT.at?" ("+hhmm(SPOT.at)+")":""}.</span></li>`:"")+
+    (types.length?`<li><b>Types</b><span>${types.slice(0,12).map(x=>esc(x[0])+" ×"+x[1]).join(", ")}</span></li>`:"")+(airl.length?`<li><b>Airlines</b><span>${airl.slice(0,12).map(x=>esc(x[0])+" ×"+x[1]).join(", ")}</span></li>`:"")+
+    SPC.caught.slice(0,6).map(c=>`<li><b>${esc(c.cs||c.reg||c.hex)}</b><span>${esc(c.type)} · ${esc(c.airl)} · ${c.km} km · +${c.pts} · ${new Date(c.t).toLocaleDateString("en-AU",{day:"numeric",month:"short"})}</span></li>`).join("")}
+setInterval(()=>{spotPoll(false)},5000);
+window.cpSpot={poll:()=>spotPoll(true),state:()=>({ac:SPOT.ac.length,vis:spotNow().length,msg:SPOT.msg,q:spotQuota(),pts:SPC.pts,caught:SPC.caught.length,types:Object.keys(SPC.types),hold:SPOT.hold}),reset:()=>{SPC={pts:0,caught:[],types:{},airl:{}};store.set("spot",SPC);SPOT.alerted={};spotRender()}};
+
+/* ================= 5) Turbulence Master Warning (from the pre-flight pack) ================= */
+if(!["off","5","10","15","20","30"].includes(String(S.tbLead)))S.tbLead="15";
+let TB={key:null,ack:null,dis:null,said:null,lastBeep:0,cur:null,force:null};
+function tbAhead(){const L=viewL()||last,pk=packGet(),fr=apBy(S.from),to=apBy(S.to);if(!L||!pk||!fr||!to||fr.c===to.c)return null;
+  const air=TB.force||["climb","cruise","descent","approach"].includes(PH.p)||(demo&&demo.stg==="air")||(REPLAY&&L.spd>40);if(!air)return null;
+  const tot=dist(fr,to),f0=clampN(1-dist(L,to)/tot,0,1),spd=Math.max(L.spd||0,100),lead=+S.tbLead||15,look=(lead+10)*60*spd,step=Math.max(1500,tot/600);
+  for(let s=0;s<=look;s+=step){const f=f0+s/tot;if(f>1)break;const h=PH.p==="cruise"||(L.alt||0)>6000?(L.alt||planAlt(f,tot)):planAlt(f,tot),t=turbAt(pk,f,h);if(!t)continue;const c=tcat(t.v);
+    if(c>=2)return {f,eta:s/spd/60,cat:c,why:t.why,key:Math.round(f*150)}}
+  return {none:true}}
+function tbCheck(){const b=$("tbBan");if(!b)return;if(!FEAT.turb||S.tbLead==="off"){b.style.display="none";return}
+  const a=tbAhead();TB.cur=a;const lead=+S.tbLead||15;
+  if(!a||a.none||a.eta>lead||TB.dis===a.key){b.style.display="none";b.classList.remove("ack");return}
+  const now=Date.now(),m=Math.round(a.eta),acked=TB.ack===a.key;
+  $("tbTxt").textContent=m<1?"TURBULENCE MASTER WARNING · NOW":"TURBULENCE MASTER WARNING · ETA "+m+" MIN";
+  $("tbSub").textContent=TCAT[a.cat][0]+" turbulence possible ("+a.why+"). Estimate from the forecast pack, not a real-time warning. Good time for the loo, then seatbelt on.";
+  b.style.display="";b.classList.toggle("ack",acked);
+  if(TB.said!==a.key){TB.said=a.key;say("Turbulence master warning. Estimated "+(m<1?"now":"in "+m+" minutes")+".");hap([150,80,150,80,150])}
+  if(!acked&&now-TB.lastBeep>5000){TB.lastBeep=now;try{beep()}catch(e){}}}
+if($("tbAck"))$("tbAck").onclick=e=>{e.stopPropagation();if(TB.cur)TB.ack=TB.cur.key;tbCheck()};
+if($("tbDis"))$("tbDis").onclick=e=>{e.stopPropagation();if(TB.cur)TB.dis=TB.cur.key;tbCheck()};
+setInterval(()=>{try{tbCheck()}catch(e){}},3000);
+window.cpTurb={check:()=>{tbCheck();return {cur:TB.cur,shown:$("tbBan").style.display!=="none",text:$("tbTxt").textContent,ack:TB.ack,dis:TB.dis}},force:v=>{TB.force=!!v},reset:()=>{TB.ack=TB.dis=TB.said=null}};
+
+/* ---- bumps actually felt (phone motion sensor, only after you allow it) ---- */
+let BMP=Object.assign({on:false,list:[]},{list:store.get("bumps",[])}),bmpS={base:null,peak:0,t0:0,last:0};
+function bmpFeed(g,now){now=now||Date.now();bmpS.base=bmpS.base==null?g:bmpS.base*0.995+g*0.005;const dev=Math.abs(g-bmpS.base);
+  if(dev>=0.2){if(!bmpS.t0)bmpS.t0=now;bmpS.peak=Math.max(bmpS.peak,dev)}
+  if(bmpS.t0&&now-bmpS.t0>1200){const pk=bmpS.peak;bmpS.t0=0;bmpS.peak=0;if(now-bmpS.last<5000)return null;bmpS.last=now;const L=last;
+    const e={t:now,lat:L?+L.lat.toFixed(4):null,lon:L?+L.lon.toFixed(4):null,alt:L&&L.alt!=null?Math.round(L.alt):null,g:+pk.toFixed(2),sev:pk>=0.5?"Severe":pk>=0.35?"Moderate":"Light"};
+    BMP.list.unshift(e);BMP.list=BMP.list.slice(0,300);store.set("bumps",BMP.list);bmpRender();return e}return null}
+function bmpMotion(e){const a=e.accelerationIncludingGravity;if(!a||a.x==null)return;bmpFeed(Math.hypot(a.x,a.y,a.z)/9.80665)}
+function bmpRender(){const el=$("bmpOut");if(!el)return;const today=BMP.list.filter(b=>Date.now()-b.t<24*3600000);
+  $("bmpBtn").textContent=BMP.on?"Stop logging":"Log bumps felt";$("bmpBtn").classList.toggle("on",BMP.on);
+  el.innerHTML=(today.length?`<li><b>Last 24 h</b><span>${today.length} bumps · ${["Light","Moderate","Severe"].map(s=>today.filter(b=>b.sev===s).length+" "+s.toLowerCase()).join(", ")}</span></li>`:"")+
+    BMP.list.slice(0,5).map(b=>{let nr="";try{if(b.lat!=null){const n=nearestAp({lat:b.lat,lon:b.lon});if(n)nr=" · "+Math.round(fDst(n.d))+" "+S.dst+" from "+n.a[0]}}catch(e){}return `<li><b>${esc(b.sev)} ${b.g.toFixed(2)} G</b><span>${hhmm(b.t)}${b.alt!=null?" · "+Math.round(fAlt(b.alt)/100)*100+" "+S.alt:""}${esc(nr)}</span></li>`}).join("")||'<li><span>No bumps logged yet.</span></li>'}
+if($("bmpBtn"))$("bmpBtn").onclick=async()=>{if(BMP.on){window.removeEventListener("devicemotion",bmpMotion);BMP.on=false;bmpRender();return}
+  try{if(typeof DeviceMotionEvent!=="undefined"&&typeof DeviceMotionEvent.requestPermission==="function"){const r=await DeviceMotionEvent.requestPermission();if(r!=="granted"){$("bmpTxt").textContent="Motion access denied, so bumps can't be logged.";return}}
+    window.addEventListener("devicemotion",bmpMotion);BMP.on=true;$("bmpTxt").textContent="Logging bumps from the phone's motion sensor. Rest the phone on the tray table or hold it steady.";bmpRender()}catch(e){$("bmpTxt").textContent="Motion sensor unavailable."}};
+window.cpBump=(g,t)=>bmpFeed(g,t);window.cpBumps=()=>BMP.list.slice(0,10);
+/* ================= 6) Arrival helper extras (weather, likely runway, taxi time, gate side) ================= */
+const TAXI={SYD:9,MEL:8,BNE:8,PER:7,ADL:5,CBR:4,OOL:4,CNS:5,DRW:5,HBA:4,TSV:4,NTL:4,MCY:4,LST:3,ASP:3,AKL:8,CHC:6,SIN:12,HKG:12,LAX:15,DPS:6,NAN:5};
+let ARX={wx:null,at:0,c:"",busy:false};
+async function arrWxLive(to){if(ARX.busy||!cfOk()||(ARX.c===to.c&&Date.now()-ARX.at<15*60000))return;ARX.busy=true;
+  try{const r=await svcFetch(SVC.wx+"/"+to.lat.toFixed(3)+"/"+to.lon.toFixed(3),{},10000);if(r.ok){const j=await r.json(),c=j&&j.current;if(c)ARX.wx={T:c.temperature_2m,wc:c.weather_code,cc:c.cloud_cover,ws:c.wind_speed_10m,wd:c.wind_direction_10m,g:c.wind_gusts_10m,vis:c.visibility,at:Date.now(),src:"live"}}ARX.c=to.c;ARX.at=Date.now()}catch(e){}finally{ARX.busy=false}}
+const WXN=c=>c==null?"":c>=95?"thunderstorms":c>=85?"snow showers":c>=80?"showers":c>=71?"snow":c>=61?"rain":c>=51?"drizzle":c>=45?"fog":c>=3?"overcast":c>=2?"partly cloudy":c>=1?"mostly clear":"clear";
+function gateSide(c,r){const ap=TWY&&TWY.find(a=>a.c===c);if(!ap||!r)return null;let L=0,Rr=0;
+  for(const w of ap.ws){if(w.t!==1||w.p.length<3)continue;let la=0,lo=0;for(const q of w.p){la+=q[0];lo+=q[1]}const cen={lat:la/w.p.length,lon:lo/w.p.length},rel=w180b(brg(r.thr,cen)-r.hdg),d=dist(r.thr,cen);if(d>5000)continue;(rel>0?(Rr+=w.p.length):(L+=w.p.length))}
+  if(L+Rr<8)return null;if(Rr>=3*L)return "right";if(L>=3*Rr)return "left";return null}
+function arrExtra(rows,L,to){if(!FEAT.arrival)return;arrWxLive(to);const pk=packGet();let wx=null,src="";
+  if(ARX.wx&&ARX.c===to.c&&Date.now()-ARX.wx.at<60*60000){wx=ARX.wx;src="live"}else if(pk&&pk.to===to.c&&pk.smp&&pk.smp.length){const s=pk.smp[pk.smp.length-1];wx={T:s.T,wc:s.wc,cc:s.cc,ws:s.w10,wd:null,g:s.g10};src="forecast pack"}
+  if(wx)rows.push(["Weather ("+src+")",[wx.T!=null?Math.round(wx.T)+"°":"",WXN(wx.wc),wx.ws!=null?"wind "+(wx.wd!=null?String(Math.round(wx.wd/10)*10%360||360).padStart(3,"0")+"/":"")+Math.round(wx.ws)+" kt":""].filter(Boolean).join(" · ")]);
+  const wind=wx&&wx.wd!=null&&wx.ws!=null?{d:wx.wd,s:wx.ws}:packWind(pk&&pk.to===to.c?pk:null,true),rp=rwyPick(to.c,wind,brg(L,to));
+  if(rp)rows.push(["Likely runway",rp.id+" ("+(wx&&wx.wd!=null?"from live wind":rp.how)+")"]);
+  rows.push(["Taxi to the gate","about "+(TAXI[to.c]||5)+" min (estimate)"]);
+  const gs=rp?gateSide(to.c,rp.r):null;if(gs)rows.push(["Terminal side",sideUp(gs)+" after landing (likely)"])}
+window.cpArr=()=>{const L=last,to=apBy(S.to);if(!L||!to)return null;const rows=[];arrExtra(rows,L,to);return rows};
+
+/* ================= 12) Landing score (for fun; not a report on the crew) ================= */
+let LSB=[],LSD=store.get("ls",{});
+setInterval(()=>{const L=last;if(!L||L.t==null)return;const p=LSB[LSB.length-1];if(p&&p.t===L.t)return;LSB.push({t:L.t,lat:L.lat,lon:L.lon,alt:L.alt,spd:L.spd,trk:L.trk});if(LSB.length>900)LSB.splice(0,300)},200);
+function lsCompute(pts,td,tdG,elev){/* pts: [{t,lat,lon,alt,spd,trk}] in time order; td: touchdown time (fix time) */
+  const pre=pts.filter(p=>p.t<=td&&p.alt!=null);if(pre.length<6)return null;const tp=pre[pre.length-1],e0=elev!=null?elev:tp.alt;const parts=[];let tot=0,max=0;
+  const part=(k,lab,sc,mx,txt)=>{parts.push({k,lab,sc:Math.round(sc),max:mx,txt});tot+=sc;max+=mx};
+  /* touchdown vertical speed: line fit of height over the last 8 s */
+  const v8=pre.filter(p=>td-p.t<=8000);let vs=null;if(v8.length>=3){let n=v8.length,sx=0,sy=0,sxx=0,sxy=0;for(const p of v8){const x=(p.t-td)/1000;sx+=x;sy+=p.alt;sxx+=x*x;sxy+=x*p.alt}const den=n*sxx-sx*sx;if(den)vs=-(n*sxy-sx*sy)/den*FT*60}
+  if(vs!=null)part("vs","Touchdown sink rate",30*clampN(1-(Math.max(0,vs)-120)/480,0,1),30,Math.round(Math.max(0,vs))+" fpm");
+  if(tdG)part("g","Touchdown G",20*clampN(1-(tdG-1.15)/0.65,0,1),20,tdG.toFixed(2)+" G");
+  /* approach stability: glide angle vs 3° over the last 2 nm; speed spread over the last 60 s */
+  const g2=pre.filter(p=>{const d=dist(p,tp);return d>300&&d<=2*NMm});if(g2.length>=3){let s2=0;for(const p of g2){const a=deg(Math.atan2(Math.max(0,p.alt-e0),dist(p,tp)));s2+=(a-3)*(a-3)}const rms=Math.sqrt(s2/g2.length);part("gl","Glide path (3° target)",15*clampN(1-rms/1.5,0,1),15,"±"+rms.toFixed(1)+"° from 3°")}
+  const s60=pre.filter(p=>td-p.t<=60000&&p.spd!=null).map(p=>p.spd);if(s60.length>=4){const m=s60.reduce((a,b)=>a+b,0)/s60.length,sd=Math.sqrt(s60.reduce((a,b)=>a+(b-m)*(b-m),0)/s60.length);part("spd","Speed steadiness (last 60 s)",10*clampN(1-(sd*1.944-4)/12,0,1),10,"±"+(sd*1.944).toFixed(0)+" kt")}
+  /* bank at touchdown from how fast the track turns in the last 6 s (coordinated turn) */
+  const b6=pre.filter(p=>td-p.t<=6000&&p.trk!=null);if(b6.length>=2){const a=b6[0],b=b6[b6.length-1],dt=(b.t-a.t)/1000;if(dt>0){const om=rad(Math.abs(w180b(b.trk-a.trk)))/dt,v=b.spd||70,bank=deg(Math.atan(v*om/9.81));part("bank","Wings level",10*clampN(1-(bank-2)/6,0,1),10,bank.toFixed(0)+"° bank")}}
+  /* float: from 50 ft over the ground to touchdown */
+  let fl=null;for(let i=pre.length-1;i>=0;i--){if(pre[i].alt-e0>=15){fl=dist(pre[i],tp);break}}if(fl!=null)part("float","Float distance",15*clampN(1-(fl-450)/550,0,1),15,Math.round(fl)+" m");
+  if(max<40)return null;const score=Math.round(tot/max*100);
+  return {score,parts,td,max,missing:!tdG?"No motion data (enable the G-meter for the touchdown G part).":"",note:"For fun only: GPS and phone sensors, not a report on the crew."}}
+function lsFor(td){try{return td&&LSD[td]?LSD[td]:undefined}catch(e){return undefined}}
+function lsClean(o){if(!o||typeof o!=="object"||typeof o.score!=="number")return undefined;return {score:Math.max(0,Math.min(100,Math.round(o.score))),parts:(Array.isArray(o.parts)?o.parts:[]).slice(0,8).map(p=>({k:String(p.k||"").slice(0,8),lab:String(p.lab||"").replace(/[<>&"]/g,"").slice(0,40),sc:+p.sc||0,max:+p.max||0,txt:String(p.txt||"").replace(/[<>&"]/g,"").slice(0,30)})),td:+o.td||0,note:"For fun only."}}
+let lsDone=null;
+function lsAuto(){const td=PH.ev&&PH.ev.td;if(!td||lsDone===td||LSD[td])return;const lastT=LSB.length?LSB[LSB.length-1].t:0;if(lastT-td<8000)return;lsDone=td;
+  const to=apBy(S.to),el=to&&apInfo(to.c)?apInfo(to.c)[4]/FT:null;const r=lsCompute(LSB,td,PH.ev.tdG,el);if(!r)return;LSD[td]=r;const ks=Object.keys(LSD).sort();while(ks.length>60)delete LSD[ks.shift()];store.set("ls",LSD);
+  if(PH.bookId){const i=BOOK.findIndex(b=>b&&b.id===PH.bookId);if(i>=0){BOOK[i].ls=r;store.set("book",BOOK)}}
+  say("Landing score "+r.score+" out of 100. Just for fun.");lsRender()}
+setInterval(()=>{try{lsAuto()}catch(e){}},2000);
+function lsRender(){const el=$("lsOut");if(!el)return;const ks=Object.keys(LSD).sort(),r=ks.length?LSD[ks[ks.length-1]]:null;
+  if(!r){$("lsBig").textContent="—";el.innerHTML='<li><span>Scores itself a few seconds after touchdown.</span></li>';return}
+  $("lsBig").textContent=r.score+"/100";el.innerHTML=r.parts.map(p=>`<li><b>${esc(p.lab)}</b><span>${esc(p.txt)} · ${p.sc}/${p.max}</span></li>`).join("")+`<li><span>${esc(new Date(r.td).toLocaleString("en-AU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hour12:false}))}. ${esc(r.note)} ${esc(r.missing||"")}</span></li>`}
+window.cpLand={compute:(pts,td,g,e)=>lsCompute(pts,td,g,e),auto:()=>{lsAuto();return lsFor(PH.ev&&PH.ev.td)},all:()=>LSD};
+
+/* ================= 10) Flight diary (offline notes, time and position stamped, attached to the logbook flight) ================= */
+let DY=store.get("diary",{});
+function dyKey(){return LOG.pts.length?String(LOG.pts[0][3]):PH.ev&&PH.ev.off?String(PH.ev.off):"gen"}
+function dyFor(k){try{return (DY[String(k)]||[]).slice()}catch(e){return []}}
+function dyClean(a){return (Array.isArray(a)?a:[]).slice(0,200).map(e=>e&&typeof e==="object"?{t:+e.t||0,lat:typeof e.lat==="number"?e.lat:null,lon:typeof e.lon==="number"?e.lon:null,alt:typeof e.alt==="number"?e.alt:null,ph:String(e.ph||"").slice(0,12),at:String(e.at||"").replace(/[<>&"]/g,"").slice(0,60),txt:String(e.txt||"").slice(0,1000)}:null).filter(e=>e&&e.txt)}
+function dyStamp(txt){const L=last,n=L?nearestAp(L):null;let at="";if(L){const lm=lmAll().map(l=>({l,d:dist(L,l)})).sort((a,b)=>a.d-b.d)[0];at=lm&&lm.d<60000?Math.round(fDst(lm.d))+" "+S.dst+" from "+lm.l.n:n?Math.round(fDst(n.d))+" "+S.dst+" from "+n.a[0]:""}
+  return {t:Date.now(),lat:L?+L.lat.toFixed(4):null,lon:L?+L.lon.toFixed(4):null,alt:L&&L.alt!=null?Math.round(L.alt):null,ph:PH.p,at:at.slice(0,60),txt:String(txt).slice(0,1000)}}
+function dyAdd(txt,bookIdx){txt=String(txt||"").trim();if(!txt)return null;const e=dyStamp(txt);
+  if(bookIdx!=null&&BOOK[bookIdx]){const b=BOOK[bookIdx];b.dy=(b.dy||[]).concat([e]);store.set("book",BOOK);return e}
+  const k=dyKey();(DY[k]=DY[k]||[]).push(e);const ks=Object.keys(DY);if(ks.length>60)delete DY[ks.sort()[0]];store.set("diary",DY);
+  if(PH.bookId){const i=BOOK.findIndex(b=>b&&b.id===PH.bookId);if(i>=0){BOOK[i].dy=dyFor(k);store.set("book",BOOK)}}return e}
+const dyLi=(e,i,del)=>`<li><div><b>${esc(new Date(e.t).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false}))} · ${esc(PHN[e.ph]||e.ph||"")}</b><span class="sub" style="display:block">${e.alt!=null?esc(Math.round(fAlt(e.alt)/100)*100+" "+S.alt+" · "):""}${esc(e.at||(e.lat!=null?e.lat+", "+e.lon:"no position"))}</span><p class="dyT">${esc(e.txt)}</p></div>${del?`<button data-dy="${i}" aria-label="Delete note">✕</button>`:""}</li>`;
+function dyRender(){const el=$("dyList");if(!el)return;const a=dyFor(dyKey());$("dyHead").textContent=dyKey()==="gen"?"Notes (no flight recording yet)":"Notes for this flight";el.innerHTML=a.length?a.map((e,i)=>dyLi(e,i,true)).join(""):'<li><span>No notes yet. Notes are stamped with time, position, height and phase, and saved with this flight in the logbook.</span></li>'}
+if($("dyAdd"))$("dyAdd").onclick=()=>{const t=$("dyIn").value;if(dyAdd(t)){$("dyIn").value="";hap(15);dyRender()}};
+if($("dyList"))$("dyList").onclick=e=>{const b=e.target.closest("button[data-dy]");if(!b)return;const k=dyKey(),a=DY[k]||[];a.splice(+b.dataset.dy,1);DY[k]=a;store.set("diary",DY);dyRender()};
+let DYO=null;
+function dyOpen(i){const b=BOOK[i];if(!b)return;DYO=i;$("dyOv").style.display="flex";$("dyOvT").textContent="Diary · "+b.from+" → "+b.to+" · "+new Date(b.date).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"});dyOvRender()}
+function dyOvRender(){const b=BOOK[DYO];if(!b)return;const a=(b.dy||[]).concat(dyFor(b.date).filter(x=>!(b.dy||[]).some(y=>y.t===x.t)));a.sort((x,y)=>x.t-y.t);$("dyOvList").innerHTML=a.length?a.map((e,i)=>dyLi(e,i,false)).join(""):'<li><span>No notes for this flight yet.</span></li>'}
+if($("dyOvAdd"))$("dyOvAdd").onclick=()=>{if(DYO==null)return;if(dyAdd($("dyOvIn").value,DYO)){$("dyOvIn").value="";dyOvRender()}};
+if($("dyOvX"))$("dyOvX").onclick=()=>{$("dyOv").style.display="none";DYO=null};
+if($("dyOvExp"))$("dyOvExp").onclick=()=>{const b=BOOK[DYO];if(!b)return;const a=(b.dy||[]).slice().sort((x,y)=>x.t-y.t);const txt="Cabin Panel flight diary\n"+b.from+" → "+b.to+" · "+new Date(b.date).toDateString()+"\n\n"+a.map(e=>new Date(e.t).toLocaleString("en-AU")+" · "+(PHN[e.ph]||e.ph||"")+(e.alt!=null?" · "+Math.round(e.alt*FT)+" ft":"")+(e.at?" · "+e.at:"")+"\n"+e.txt+"\n").join("\n");shareOrDownload("diary-"+b.from+"-"+b.to+".txt","text/plain",txt,$("dyOvTxt"))};
+window.cpDiary={add:t=>dyAdd(t),list:()=>dyFor(dyKey()),key:()=>dyKey()};
+/* ================= 4) Trip stats and badges (from the logbook; demo flights don't count) ================= */
+const CAPS=["SYD","MEL","BNE","PER","ADL","CBR","HBA","DRW"],INTL=["AKL","CHC","WLG","ZQN","SIN","HKG","DPS","NAN","LAX","NRT","HND","POM"],EASTC=["SYD","MEL","BNE","CBR","OOL","NTL","MCY","HBA"];
+const near=(b,lat,lon,km)=>(b.pts||[]).some(p=>dist({lat:p[0],lon:p[1]},{lat,lon})<km*1000);
+function sunElAt(t,lat,lon){try{return sunPos(t,lat,lon).el}catch(e){return 0}}
+function tdNight(b){const to=apBy(b.to);return !!(b.ev&&b.ev.td&&to&&sunElAt(b.ev.td,to.lat,to.lon)<-6)}
+function sunXing(b){const p=(b.pts||[]).filter(q=>q[2]!=null&&q[2]>1500);if(p.length<2)return false;const a=sunElAt(p[0][3],p[0][0],p[0][1])-sunThr(p[0][2]),z=sunElAt(p[p.length-1][3],p[p.length-1][0],p[p.length-1][1])-sunThr(p[p.length-1][2]);return (a>0)!==(z>0)}
+const BADGES=[
+ ["first","First flight","Log your first flight",r=>[r.n,1]],["f5","Frequent flyer","5 flights",r=>[r.n,5]],["f10","Ten up","10 flights",r=>[r.n,10]],["f25","Road warrior","25 flights",r=>[r.n,25]],["f50","Half century","50 flights",r=>[r.n,50]],
+ ["night","Night landing","Land after dark",r=>[r.B.some(tdNight)?1:0,1]],["sun","Sun chaser","See a sunrise or sunset in flight",r=>[r.B.some(sunXing)?1:0,1]],
+ ["uluru","The Rock","Fly within 25 km of Uluru",r=>[r.B.some(b=>near(b,-25.344,131.037,25))?1:0,1]],["bm","Blue Mountains","Fly over the Blue Mountains",r=>[r.B.some(b=>near(b,-33.7,150.3,20))?1:0,1]],
+ ["bass","Bass Strait","Cross Bass Strait",r=>[r.B.some(b=>{const la=(b.pts||[]).map(p=>p[0]);return la.some(x=>x<-40.2)&&la.some(x=>x>-38.8)})?1:0,1]],
+ ["c2c","Coast to coast","Perth to the east coast (or back)",r=>[r.B.some(b=>(b.from==="PER"&&EASTC.includes(b.to))||(b.to==="PER"&&EASTC.includes(b.from)))?1:0,1]],
+ ["caps","All the capitals","Visit all 8 capital cities",r=>[CAPS.filter(c=>r.aps.has(c)).length,8]],["k10","10,000 km club","10,000 km flown",r=>[Math.round(r.km/1000),10000]],
+ ["long","Long haul","One flight over 3,000 km",r=>[r.B.some(b=>b.d>=3e6)?1:0,1]],["fl400","FL400 club","Fly at 40,000 ft or higher",r=>[r.B.some(b=>b.ma*FT>=39500)?1:0,1]],
+ ["redeye","Red-eye","Take off between 22:00 and 05:00",r=>[r.B.some(b=>{const t=(b.ev&&(b.ev.up||b.ev.off))||b.date,h=new Date(t).getHours();return h>=22||h<5})?1:0,1]],
+ ["states","State hopper","Cross 4 states in one flight",r=>[Math.max(0,...r.B.map(b=>(b.st||[]).length)),4]],["intl","Going overseas","Fly to or from an overseas airport",r=>[r.B.some(b=>INTL.includes(b.from)||INTL.includes(b.to))?1:0,1]],
+ ["butter","Butter landing","Landing score of 90 or more",r=>[r.B.some(b=>b.ls&&b.ls.score>=90)?1:0,1]],["types","Type collector","Fly 3 aircraft types",r=>[r.types.size,3]],
+ ["spot","Spotter","Spot another aircraft in AR",r=>[Math.min(1,SPC.caught.length),1]],["diary","Diarist","Write 5 diary notes",r=>[r.B.reduce((s,b)=>s+(b.dy||[]).length,0),5]]];
+function statsCalc(){const B=BOOK.filter(b=>b&&!b.demo);const aps=new Set(),types=new Set();let km=0,secs=0,lg=null,ld=null,hi=null,fa=null;
+  for(const b of B){aps.add(b.from);aps.add(b.to);if(b.ac)types.add(String(b.ac).toUpperCase());km+=b.d||0;if(b.ev&&b.ev.up&&b.ev.td){const s=(b.ev.td-b.ev.up)/1000;secs+=s;if(!lg||s>lg.v)lg={v:s,b}}if(!ld||b.d>ld.v)ld={v:b.d,b};if(!hi||b.ma>hi.v)hi={v:b.ma,b};if(!fa||b.ms>fa.v)fa={v:b.ms,b}}
+  const r={B,n:B.length,aps,types,km,secs,lg,ld,hi,fa};r.badges=BADGES.map(([k,n,d,f])=>{let [v,g]=[0,1];try{[v,g]=f(r)}catch(e){}return {k,n,d,v:Math.min(v,g),g,got:v>=g}});return r}
+function statsRender(){const el=$("bdgOut"),kv=$("totKv");if(!el||!FEAT.stats)return;const r=statsCalc(),rt=x=>x?" "+x.b.from+"–"+x.b.to:"";
+  kv.innerHTML=[["Flights",r.n],["Distance",Math.round(fDst(r.km)).toLocaleString()+" "+S.dst],["Hours",hm(r.secs)],["Airports",r.aps.size],["Aircraft types",r.types.size||"—"],
+    ["Longest (time)",r.lg?hm(r.lg.v)+rt(r.lg):"—"],["Longest (distance)",r.ld?Math.round(fDst(r.ld.v)).toLocaleString()+" "+S.dst+rt(r.ld):"—"],["Highest",r.hi?Math.round(fAlt(r.hi.v)).toLocaleString()+" "+S.alt+rt(r.hi):"—"],["Fastest",r.fa?Math.round(fSpd(r.fa.v))+" "+S.spd+rt(r.fa):"—"]].map(x=>`<div>${esc(x[0])}<b>${esc(x[1])}</b></div>`).join("");
+  const got=r.badges.filter(b=>b.got).length;$("bdgHead").textContent="Badges "+got+" of "+r.badges.length;
+  el.innerHTML=r.badges.map(b=>`<span class="bdg${b.got?" got":""}" title="${esc(b.d)}"><b>${b.got?"★":"☆"} ${esc(b.n)}</b><small>${esc(b.d)}${!b.got&&b.g>1?" · "+b.v.toLocaleString()+"/"+b.g.toLocaleString():""}</small></span>`).join("")}
+window.cpStats=()=>{const r=statsCalc();return {n:r.n,km:Math.round(r.km/1000),aps:[...r.aps],types:[...r.types],got:r.badges.filter(b=>b.got).map(b=>b.k),badges:r.badges.length}};
+$("bookList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const i=+b.dataset.i,en=BOOK[i];if(!en)return;
+  if(b.dataset.a==="dy")dyOpen(i);
+  else if(b.dataset.a==="ty"){const v=prompt("Aircraft type for "+en.from+" → "+en.to+" (e.g. B738, A320):",en.ac||"");if(v!=null){en.ac=v.replace(/[^A-Za-z0-9 -]/g,"").toUpperCase().slice(0,12);store.set("book",BOOK);bookRender()}}
+  else if(b.dataset.a==="rp3"){replayStart(en.pts,en);setTimeout(()=>{try{svOpen()}catch(_){}},100)}});
+{const _br=bookRender;bookRender=function(){_br();try{statsRender()}catch(e){console.warn(e)}}}
+if($("acType")){$("acType").value=S.acType||"";$("acType").addEventListener("change",e=>{S.acType=e.target.value.replace(/[^A-Za-z0-9 -]/g,"").toUpperCase().slice(0,12);e.target.value=S.acType;saveS()})}
+
+/* ================= 7) Shareable flight card extras: 3D snapshot inset, landing score, share sheet or download ================= */
+const CARD={en:null,snap:store.get("snap",null)};
+function snapTake(){const c=$("svCv");if(!c||!c.width)return;const W=640,H=Math.round(640*c.height/c.width),o=document.createElement("canvas");o.width=W;o.height=Math.min(H,480);o.getContext("2d").drawImage(c,0,(c.height-o.height*c.width/W)/2,c.width,o.height*c.width/W,0,0,W,o.height);
+  const url=o.toDataURL("image/jpeg",0.82);CARD.snap={t:Date.now(),from:S.from,to:S.to,url};if(!store.set("snap",CARD.snap))CARD.snap.mem=true;say("3D snapshot saved for your flight card.")}
+if($("svSnap"))$("svSnap").onclick=()=>{SV.snapReq=true;hap(15)};
+function snapFor(en){const s=CARD.snap;if(!s||!s.url)return null;if(en&&en.pts&&en.pts.length){const t0=en.pts[0][3]-3600000,t1=en.pts[en.pts.length-1][3]+3*3600000;if(s.t>=t0&&s.t<=t1)return s}return (s.from===en.from&&s.to===en.to)?s:null}
+async function cardExtra(x,en,W,H){const F=(w,s)=>`${w} ${s}px "B612 Mono",monospace`;const sn=$("cardSnap")&&$("cardSnap").checked?snapFor(en):null;
+  if(sn){const im=new Image();await new Promise(r=>{im.onload=r;im.onerror=r;im.src=sn.url});if(im.width){const iw=380,ih=Math.round(iw*im.height/im.width),X=W-72-iw-14,Y=320+14;x.fillStyle="#000";x.fillRect(X-4,Y-4,iw+8,ih+8);x.drawImage(im,X,Y,iw,ih);x.strokeStyle="#3dff6e";x.lineWidth=2;x.strokeRect(X-4,Y-4,iw+8,ih+8);x.fillStyle="#3dff6e";x.font=F(700,18);x.fillText("3D VIEW",X+8,Y+ih-10)}}
+  const ls=en.ls||lsFor(en.ev&&en.ev.td);x.fillStyle="#22a64a";x.font=F(400,20);x.fillText("ENTERTAINMENT ONLY · NOT FOR NAVIGATION"+(ls?"   ·   LANDING SCORE "+ls.score+"/100 (FOR FUN)":""),72,H-58);
+  if($("cardSnap"))$("cardSnapL").style.display=CARD.snap?"":"none"}
+if($("cardSnap"))$("cardSnap").addEventListener("change",()=>{if(CARD.en)showCard(CARD.en)});
+window.cpCard={snap:()=>CARD.snap?{t:CARD.snap.t,len:CARD.snap.url.length}:null,img:()=>$("cardImg").src.length,setSnap:u=>{CARD.snap={t:Date.now(),from:S.from,to:S.to,url:u};store.set("snap",CARD.snap)}};
+
+/* ================= 3) Replay: floating bar (works over the map and the 3D view), 1x–120x, scrub slider ================= */
+function rpBarSync(){const b=$("rpBar");if(!b)return;b.style.display=REPLAY&&RP?"":"none";if(!RP)return;$("rpbPlay").textContent=RP.playing?"❚❚":"▶";$("rpbSlider").value=$("rpSlider").value;$("rpbTime").textContent=$("rpTime").textContent;$("rpbTitle").textContent=$("rpTitle").textContent;
+  document.querySelectorAll("#rpbSpeed button").forEach(x=>x.classList.toggle("sel",+x.dataset.v===RP.speed))}
+{const _u=rpUI;rpUI=function(){_u();try{rpBarSync()}catch(e){}}}
+{const _s=replayStop;replayStop=function(){_s();try{rpBarSync()}catch(e){}}}
+if($("rpbPlay")){$("rpbPlay").onclick=()=>$("rpPlay").click();$("rpbExit").onclick=()=>{try{if(SV.on)svClose()}catch(e){}replayStop()};$("rpb3d").onclick=()=>{SV.on?svClose():svOpen()};$("rpbMap").onclick=()=>{try{if(SV.on)svClose()}catch(e){}pgGo(PG.els.findIndex(p=>p.id==="pg-map"))};
+  $("rpbSpeed").addEventListener("click",e=>{const b=e.target.closest("button");if(b&&RP){RP.speed=+b.dataset.v;rpUI()}});
+  $("rpbSlider").addEventListener("input",e=>{$("rpSlider").value=e.target.value;$("rpSlider").dispatchEvent(new Event("input"))})}
+window.cpReplay={start:i=>{const en=BOOK[i];if(en)replayStart(en.pts,en);return !!RP},state:()=>RP?{t:RP.t-RP.t0,dur:RP.t1-RP.t0,speed:RP.speed,playing:RP.playing,i:RP.i,n:RP.pts.length,last:last?{lat:last.lat,lon:last.lon,alt:last.alt}:null}:null,
+  speed:v=>{if(RP){RP.speed=v;rpUI()}},seek:f=>{const s=$("rpSlider");s.value=Math.round(f*1000);s.dispatchEvent(new Event("input"))},stop:()=>replayStop()};
+/* ================= 8) Share live flight / follow along (opt-in; only while connected) =================
+   The Worker keeps one record per share: an unguessable 22-character id for followers and a separate 43-character
+   write token that stays on this phone. Expires after 24 h; Stop sharing ends it at once. Stored: position, height,
+   speed, track, route codes, ETA and an optional first name. */
+let SH=Object.assign({on:false,id:"",token:"",exp:0,n:"",buf:[],lastS:0,lastT:0,sent:0,err:""},store.get("share",{}),{buf:[]});
+const shSave=()=>store.set("share",{on:SH.on,id:SH.id,token:SH.token,exp:SH.exp,n:SH.n,sent:SH.sent});
+const shLink=id=>location.origin+location.pathname.replace(/index\.html$/,"")+"#follow="+id;
+function shUI(){const on=SH.on&&SH.exp>Date.now();const t=$("shTag");if(t)t.style.display=on?"":"none";if(!$("shTile"))return;
+  $("shStart").style.display=on?"none":"";$("shStop").style.display=on?"":"none";$("shLinkRow").style.display=on?"":"none";$("shName").disabled=on;
+  if(on){$("shLink").value=shLink(SH.id);setTx($("shSt"),"Sharing on · "+(SH.sent?"last update sent "+hhmm(SH.sent):"waiting for the first update")+" · stops by itself at "+hhmm(SH.exp)+(cfOk()?"":" · offline: updates resume when you're connected")+(SH.err?" · "+SH.err:""))}
+  else setTx($("shSt"),"Off. Nothing is shared until you tap Start sharing.")}
+async function shStart(){if(!cfOk()){say(cfWhy()+".");return}const n=String($("shName").value||"").replace(/[^\p{L} '\-]/gu,"").trim().slice(0,20);SH.n=n;S.shName=n;saveS();
+  $("shStart").disabled=true;$("shStart").dataset.busy="1";
+  try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n,fr:S.from||"",to:S.to||""})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
+    const j=await r.json();Object.assign(SH,{on:true,id:j.id,token:j.token,exp:j.exp,sent:0,err:"",buf:[]});shSave();shUI();shSample(true);shSend(true);hap(20)}
+  catch(e){setTx($("shSt"),"Couldn't start sharing: "+((e&&e.message)||e)+".")}finally{delete $("shStart").dataset.busy;$("shStart").disabled=false;cfApply()}}
+async function shStop(){const id=SH.id,tok=SH.token;Object.assign(SH,{on:false,id:"",token:"",exp:0,buf:[]});shSave();shUI();
+  if(id&&tok&&cfOk()){try{await svcFetch(SVC.share+"/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+tok}},10000)}catch(e){}}}
+function shSample(force){if(!SH.on)return;const L=last;if(!L||L.lat==null)return;const p=SH.buf[SH.buf.length-1];if(!force&&p&&p[0]===L.t)return;
+  SH.buf.push([L.t||Date.now(),+L.lat.toFixed(5),+L.lon.toFixed(5),L.alt!=null?Math.round(L.alt):null,L.spd!=null?+L.spd.toFixed(1):null,L.trk!=null?Math.round(L.trk):null]);if(SH.buf.length>40)SH.buf=thin(SH.buf,20)}
+async function shSend(force){if(!SH.on||SH.busy)return;if(SH.exp<=Date.now()){Object.assign(SH,{on:false});shSave();shUI();return}
+  if(!cfOk()||!SH.buf.length||(!force&&Date.now()-SH.lastT<SVC.shareSendMs))return;SH.busy=true;SH.lastT=Date.now();
+  const pts=SH.buf.length>12?thin(SH.buf,12):SH.buf.slice(),to=apBy(S.to),n=navT(viewL()||last,to);
+  try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,fr:S.from||"",to:S.to||"",eta:n?Math.round(Date.now()+n.sec*1000):null})},12000);
+    if(r.status===404||r.status===410||r.status===403){Object.assign(SH,{on:false,err:"share ended"});shSave()}
+    else if(r.ok){SH.buf=SH.buf.filter(q=>q[0]>pts[pts.length-1][0]);SH.sent=Date.now();SH.err="";shSave()}else SH.err="update failed ("+r.status+")"}
+  catch(e){SH.err="no connection"}finally{SH.busy=false;shUI()}}
+setInterval(()=>{shSample(false)},SVC.shareSampleMs);setInterval(()=>{shSend(false)},5000);window.addEventListener("cp-online",()=>shSend(true));
+if($("shStart")){$("shName").value=S.shName||"";$("shStart").onclick=shStart;$("shStop").onclick=()=>{if(confirm("Stop sharing your flight? Followers will see that sharing has ended."))shStop()};
+  $("shShare").onclick=async()=>{const u=shLink(SH.id);try{if(navigator.share){await navigator.share({title:"Follow my flight",text:(SH.n?SH.n+"'s":"My")+" flight"+(S.from&&S.to?" "+S.from+" → "+S.to:"")+" on Cabin Panel",url:u});return}}catch(e){if(e&&e.name==="AbortError")return}
+    try{await navigator.clipboard.writeText(u);setTx($("shSt"),"Link copied.")}catch(e){$("shLink").select()}};}
+window.cpShare={state:()=>({on:SH.on,id:SH.id?SH.id.slice(0,4)+"…":"",hasToken:!!SH.token,exp:SH.exp,sent:SH.sent,buf:SH.buf.length,err:SH.err,link:SH.id?shLink(SH.id):""}),send:()=>shSend(true),sample:()=>shSample(true),stop:()=>shStop(),start:()=>shStart(),rawId:()=>SH.id};
+
+/* ---- follower view ---- */
+let FW={id:"",d:null,at:0,err:"",iv:0,busy:false};
+function fwParse(s){s=String(s||"").trim();const m=s.match(/follow=([A-Za-z0-9_-]{22})/)||s.match(/^([A-Za-z0-9_-]{22})$/);return m?m[1]:null}
+async function fwPoll(){if(!FW.id||FW.busy)return;if(!cfOk()){FW.err="offline";fwDraw();return}FW.busy=true;
+  try{const r=await svcFetch(SVC.share+"/"+FW.id,{},12000);if(r.status===404){FW.err="This shared flight has ended or the link is wrong.";FW.d=null}else if(!r.ok)throw new Error("answered "+r.status);else{FW.d=await r.json();FW.at=Date.now();FW.err=""}}
+  catch(e){FW.err="Couldn't reach the share service ("+((e&&e.message)||e)+")."}finally{FW.busy=false;fwDraw()}}
+function fwOpen(id){if(!FEAT.follow)return;FW={id,d:null,at:0,err:"",iv:0,busy:false};$("fwOv").style.display="flex";document.body.classList.add("fw");fwDraw();fwPoll();clearInterval(FW.iv);FW.iv=setInterval(fwPoll,SVC.followPollMs);try{$("fwExit").focus()}catch(e){}}
+function fwClose(){clearInterval(FW.iv);FW.id="";$("fwOv").style.display="none";document.body.classList.remove("fw");if(/follow=/.test(location.hash))try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}}
+function fwDraw(){const cv=$("fwCv");if(!cv||!FW.id)return;const W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;const pr=Math.min(2,window.devicePixelRatio||1);if(cv.width!==Math.round(W*pr)){cv.width=Math.round(W*pr);cv.height=Math.round(H*pr)}
+  const x=cv.getContext("2d");x.setTransform(pr,0,0,pr,0,0);x.fillStyle="#020a0f";x.fillRect(0,0,W,H);const d=FW.d,info=$("fwInfo");
+  if(!d){setTx(info,FW.err||"Loading the shared flight…");setTx($("fwHead"),"Follow a flight");return}
+  const fr=apBy(d.fr),to=apBy(d.to),pts=(d.pts||[]).map(p=>({lat:p[1],lon:p[2],alt:p[3],spd:p[4],trk:p[5],t:p[0]})),lp=pts[pts.length-1];
+  const all=pts.slice();if(fr)all.push(fr);if(to)all.push(to);if(!all.length){setTx(info,"No position shared yet. It updates when the sharer's phone is connected.");return}
+  let la0=Math.min(...all.map(p=>p.lat)),la1=Math.max(...all.map(p=>p.lat)),lo0=Math.min(...all.map(p=>p.lon)),lo1=Math.max(...all.map(p=>p.lon));const k=Math.cos(rad((la0+la1)/2)),sx=Math.max((lo1-lo0)*k,0.6),sy=Math.max(la1-la0,0.6),sc=Math.min((W-60)/sx,(H-90)/sy),cx=(lo0+lo1)/2,cy=(la0+la1)/2;
+  const P=(la,lo)=>[W/2+(lo-cx)*k*sc,H/2+10-(la-cy)*sc];
+  x.fillStyle="#0a2413";x.strokeStyle="#1d7a3a";x.lineWidth=1.5;for(const poly of COAST){x.beginPath();poly.forEach((q,i)=>{const [X,Y]=P(q[0],q[1]);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.closePath();x.fill();x.stroke()}
+  if(fr&&to){x.setLineDash([7,6]);x.strokeStyle="#ff4fd8";x.lineWidth=2;x.beginPath();for(let i=0;i<=60;i++){const q=gcPoint(fr,to,i/60),[X,Y]=P(q.lat,q.lon);i?x.lineTo(X,Y):x.moveTo(X,Y)}x.stroke();x.setLineDash([])}
+  x.strokeStyle="#3dff6e";x.lineWidth=3;x.beginPath();pts.forEach((p,i)=>{const [X,Y]=P(p.lat,p.lon);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke();
+  x.font='700 13px "B612 Mono",monospace';for(const a of [fr,to]){if(!a)continue;const [X,Y]=P(a.lat,a.lon);x.fillStyle="#3dff6e";x.beginPath();x.arc(X,Y,5,0,7);x.fill();x.fillText(a.c,X+8,Y-6)}
+  if(lp){const [X,Y]=P(lp.lat,lp.lon);x.save();x.translate(X,Y);x.rotate(rad(lp.trk||0));x.fillStyle="#ffd400";x.strokeStyle="#000";x.lineWidth=1.5;x.beginPath();x.moveTo(0,-13);x.lineTo(9,10);x.lineTo(0,5);x.lineTo(-9,10);x.closePath();x.fill();x.stroke();x.restore()}
+  setTx($("fwHead"),(d.n?d.n+"'s flight":"Shared flight")+(d.fr&&d.to?" · "+d.fr+" → "+d.to:""));
+  const age=lp?Math.round((Date.now()-lp.t)/60000):null,tz=to?to.tz:undefined;
+  setTx(info,d.st?"Sharing has ended."+(lp?" Last position "+hhmm(lp.t)+".":""):(lp?[lp.alt!=null?Math.round(fAlt(lp.alt)/100)*100+" "+S.alt:"",lp.spd!=null?Math.round(fSpd(lp.spd))+" "+S.spd:"",d.eta?"ETA "+hhmm(d.eta,tz)+(to?" "+to.c+" time":""):"","updated "+(age<1?"just now":age+" min ago")].filter(Boolean).join(" · "):"Waiting for the first position.")+(FW.err==="offline"?" · You're offline: showing the last update.":FW.err?" · "+FW.err:"")+" · Positions arrive only while the sharer has internet. Entertainment only.")}
+if($("fwExit")){$("fwExit").onclick=fwClose;$("fwGo").onclick=()=>{const id=fwParse($("fwIn").value);if(!id){setTx($("fwTxt"),"Paste the link you were sent (it contains #follow=…).");return}fwOpen(id)};window.addEventListener("resize",()=>{if(FW.id)fwDraw()})}
+{const id=fwParse(location.hash);if(id)setTimeout(()=>fwOpen(id),300)}
+window.addEventListener("hashchange",()=>{const id=fwParse(location.hash);if(id&&id!==FW.id)fwOpen(id)});
+window.cpFollow={open:id=>fwOpen(id),close:fwClose,state:()=>({id:FW.id?FW.id.slice(0,4)+"…":"",d:FW.d,err:FW.err,info:$("fwInfo").textContent})};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&FW.id)fwClose()});
+
+/* ---- test hook: feed a GPS fix straight in (skips the ground filter) ---- */
+window.cpFix=(lat,lon,alt,spd,trk,t)=>{onPos({gf:true,timestamp:t||Date.now(),coords:{latitude:lat,longitude:lon,altitude:alt,accuracy:5,speed:spd,heading:trk}});lastFixAt=Date.now();return !!last};
+
+/* ---- periodic renders and wiring ---- */
+function v23fRender(){try{todRender()}catch(e){}try{if(!document.activeElement||document.activeElement.id!=="dyIn")dyRender()}catch(e){}try{sunAltRender()}catch(e){}try{shUI()}catch(e){}}
+setInterval(()=>{if(!document.hidden)v23fRender()},5000);
+for(const id of ["from","to","packDep"])if($(id))$(id).addEventListener("change",()=>{setTimeout(()=>{try{seatRender();bodyRender();SUNA.t=0;sunAltRender()}catch(e){console.warn(e)}},0)});
+document.querySelectorAll('.seg[data-k="tbLead"],.seg[data-k="sunAlert"],.seg[data-k="spot"]').forEach(s=>s.addEventListener("click",()=>setTimeout(()=>{tbCheck();spotRender();SUNA.t=0;sunAltRender()},0)));
+applySeg();rtRender();
+const waitRwy=setInterval(()=>{if(RWY||Date.now()-v23T0>8000){clearInterval(waitRwy);try{seatRender();bodyRender()}catch(e){console.warn(e)}}},300);const v23T0=Date.now();
+try{bookRender()}catch(e){}bmpRender();lsRender();dyRender();spotRender();shUI();v23fRender();cfApply();
+window.cpV23f={seatRender,bodyRender,statsRender,sunAltRender,todRender,FEAT,SVC:Object.assign({},SVC)};
 }
