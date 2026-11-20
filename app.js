@@ -718,7 +718,7 @@ async function showCard(en){
   st.forEach((s,i)=>{const X=72+(i%2)*((W-144)/2),Y=1100+Math.floor(i/2)*52;x.fillStyle=D;x.font=F(700,20);x.fillText(s[0],X,Y);x.fillStyle=G;x.font=F(700,30);x.fillText(s[1],X+210,Y)});
   try{await cardExtra(x,en,W,H)}catch(e){}
   const url=c.toDataURL("image/png");$("cardImg").src=url;$("cardOv").style.display="flex";
-  $("cardShare").onclick=async()=>{try{const bl=await (await fetch(url)).blob(),file=new File([bl],`${en.from}-${en.to}.png`,{type:"image/png"});if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:`${en.from} → ${en.to}`});else{const a=document.createElement("a");a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();$("cardHint").textContent="Saved "+file.name+" to Downloads (sharing isn't available here)."}}catch(e){if(!(e&&e.name==="AbortError"))$("cardHint").textContent="Couldn't share. Long-press the image to save it."}};
+  $("cardShare").onclick=async()=>{try{const bl=(u=>{const b=atob(u.split(",")[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:"image/png"})})(url),file=new File([bl],`${en.from}-${en.to}.png`,{type:"image/png"});if(navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:`${en.from} → ${en.to}`});else{const a=document.createElement("a");a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();$("cardHint").textContent="Saved "+file.name+" to Downloads (sharing isn't available here)."}}catch(e){if(!(e&&e.name==="AbortError"))$("cardHint").textContent="Couldn't share. Long-press the image to save it."}};
 }
 $("cardClose").onclick=()=>{$("cardOv").style.display="none"};
 $("cardBtn").onclick=()=>showCard(null);
@@ -2324,7 +2324,7 @@ function todInfo(){const L=viewL()||last,to=apBy(S.to),fr=apBy(S.from);if(!L||!t
   const dd=Math.max(0,(cruise*FT-el)/1000*3*NMm),dg=dist(L,to),toGo=dg-dd,sec=toGo/L.spd;
   return {cruiseFt:Math.round(cruise*FT/100)*100,dd,dg,toGo,sec,t:Date.now()+sec*1000,past:toGo<=0,should:Math.max(0,Math.round((dg/NMm/3*1000+el)/100)*100),to:to.c,tz:to.tz}}
 let todSaid=0;
-function todRender(){const tl=$("todTile");if(!tl||!FEAT.tod)return;const i=todInfo();const air=["climb","cruise","descent","approach"].includes(PH.p)||(demo&&demo.stg==="air")||(REPLAY&&last&&last.spd>40);
+function todRender(){const tl=$("todTile");if(!tl||!FEAT.tod)return;const i=todInfo();const air=["climb","cruise","descent","approach"].includes(PH.p)||(demo&&demo.stg==="air")||(REPLAY&&last&&last.spd>40)||(!!last&&last.spd>100&&(last.alt||0)>3000);
   if(!i||!air){tl.style.display="none";return}tl.style.display="";
   if(i.past){$("todBig").textContent="PAST T/D";$("todSub").textContent=`3:1 profile: about ${i.should.toLocaleString()} ft now, ${Math.round(fDst(i.dg))} ${S.dst} to ${i.to}. Estimate; the crew's descent will differ.`;return}
   $("todBig").textContent="T/D in "+hm(i.sec);$("todSub").textContent=`About ${hhmm(i.t)} phone time · ${Math.round(fDst(i.dd))} ${S.dst} before ${i.to} · from ${i.cruiseFt.toLocaleString()} ft by the 3:1 rule (3 nm per 1,000 ft). Estimate; the crew's point will differ.`;
@@ -2346,6 +2346,10 @@ function sunAltRender(){const el=$("saOut");if(!el||!FEAT.sunalt)return;const no
   if(SUNA.pl){if(SUNA.pl.ev.length)SUNA.pl.ev.slice(0,2).forEach(e=>rows.push(`<li><b>Planned flight</b><span>${esc(fmt(e))}, ${esc(hm(e.m*60))} after take-off</span></li>`));else rows.push(`<li><b>Planned flight</b><span>No sunrise or sunset during the flight (departing ${esc(hhmm((depMs()||Date.now())))}).</span></li>`)}
   el.innerHTML=rows.join("")||'<li><span>Pick a route, or start GPS in flight.</span></li>'}
 window.cpSunAlt=()=>({now:sunAltNow(),plan:sunAltPlan()});
+
+/* test/diagnostic hook: next sunrise or sunset at a fixed place, seen from the ground and from altitude (horizon dip) */
+window.cpSunAltAt=(lat,lon,ms,altM)=>{const out={};for(const [k,h] of [["gnd",0],["alt",altM]]){const thr=sunThr(h);let prev=sunPos(ms,lat,lon).el-thr;
+  for(let m=1;m<=1440;m++){const t=ms+m*60000,v=sunPos(t,lat,lon).el-thr;if((prev<0)!==(v<0)){out[k]={t,up:v>0};break}prev=v}}return out};
 /* ================= 2) AR Identify: what's under the crosshair ================= */
 const KINDN={town:"Town",lm:"Landmark",vfr:"Landmark",wiki:"Place (Wikipedia)",ap:"Airport",dest:"Destination airport",orig:"Departure airport",mk:"Your mark",wpt:"Waypoint",ac:"Aircraft"};
 function kindName(t){if(t.kind==="geo"){const n=t.n;return /Lake|Lagoon|Reservoir|Dam\b|Weir/i.test(n)?"Lake":/Mount|Mt\b|Peak|Range|Ranges|Bluff|Hill|Tops|Pinnacle/i.test(n)?"Mountain or range":/River|Creek/i.test(n)?"River":/Island/i.test(n)?"Island":/Bay|Cape|Head|Heads|Point|Strait|Gulf|Beach|Inlet/i.test(n)?"Coast":"Natural feature"}return KINDN[t.kind]||"Place"}
@@ -2702,15 +2706,15 @@ function cueCheck(){if(S.cues==="off"||REPLAY)return null;const k=PH.bookId||PH.
   if(p==="approach")id="appr";
   if(ev.td&&sp!=null&&sp<15&&sp>1.5&&(p==="landed"||p==="taxi")){if(!CU.slowAt)CU.slowAt=Date.now();if(Date.now()-CU.slowAt>15000)id="gate"}
   CU.p=p;if(id&&!CU.said[id]){cueShow(id,CUT[id]);return id}return null}
-setInterval(()=>{try{cueCheck()}catch(e){}},3000);
+setInterval(()=>{try{cueCheck()}catch(e){}},1000);
 $("cueBar").onclick=()=>{$("cueBar").style.display="none"};
-window.cpCue={check:cueCheck,log:()=>CU.log.slice(),reset:()=>{CU.said={};CU.k=null;CU.log=[]},text:CUT};
+window.cpCue={state:()=>({p:PH.p,ev:PH.ev,demo:!!PH.demo,cues:S.cues,rep:!!REPLAY,spd:last&&last.spd,cp:CU.p}),check:cueCheck,log:()=>CU.log.slice(),reset:()=>{CU.said={};CU.k=null;CU.log=[]},text:CUT};
 
 /* ---- 18 Connection countdown: time to make the next flight on a multi-leg trip ---- */
 const CN=Object.assign({t:"",kind:"same",flt:""},store.get("conn",{}));
 const HUB=new Set(["SYD","MEL","BNE","PER","AKL","SIN","HKG","LAX","DXB","DOH","LHR","NRT","HND","ICN","BKK","KUL","SFO","YVR","DFW","JFK"]);
 const CNK={same:{l:"Same terminal",m:0},term:{l:"Change terminal",m:20},intl:{l:"International transfer",m:45}};
-function cnArr(){const to=apBy(S.to),fr=apBy(S.from);if(!to)return null;const L=viewL()||last,n=L&&PH.p!=="parked"?navT(L,to):null;
+function cnArr(){const to=apBy(S.to),fr=apBy(S.from);if(!to)return null;const L=viewL()||last,n=L&&(PH.p!=="parked"||(L.spd!=null&&L.spd>40))?navT(L,to):null;
   if(n)return {ms:Date.now()+n.sec*1000,how:"live ETA"};
   if(PH.ev&&PH.ev.on&&Date.now()-PH.ev.on<3*3600e3)return {ms:PH.ev.on,how:"landed"};
   if(fr&&fr.c!==to.c){const dep=depMs()||null;if(dep)return {ms:dep+15*60000+dist(fr,to)/230*1000+10*60000,how:"planned from Departs time"}}
