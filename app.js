@@ -807,7 +807,7 @@ function fhEnter(auto){if(fhOn)return;fhOn=true;fhAuto=!!auto;const rr=typeof re
 function fhExit(){if(!fhOn)return;fhOn=false;fhAuto=false;const t=document.querySelector(".tile.hud");if($("hudwrap").parentNode!==t)t.insertBefore($("hudwrap"),t.firstChild);if($("retro").parentNode!==$("retroHome"))$("retroHome").appendChild($("retro"));document.body.classList.remove("fh","fhr");hudKey=""}
 $("fhBtn").onclick=()=>fhEnter(false);$("fhExit").onclick=fhExit;
 const landMQ=matchMedia("(orientation: landscape) and (max-height: 600px)");
-const landCheck=()=>{if(cmpOn||arOn)return;if((S.autofh||"on")!=="on")return;if(landMQ.matches)fhEnter(true);else if(fhAuto)fhExit()};
+const landCheck=()=>{if(cmpOn||arOn||document.body.classList.contains("sv"))return;if((S.autofh||"on")!=="on")return;if(landMQ.matches)fhEnter(true);else if(fhAuto)fhExit()};
 try{landMQ.addEventListener("change",landCheck)}catch(e){try{landMQ.addListener(landCheck)}catch(_){}}
 setTimeout(landCheck,300);
 
@@ -1296,7 +1296,7 @@ window.cpPage=i=>{if(i==null)return {i:PG.i,n:PG.els.length,t:PG.els[PG.i]&&PG.e
 $("pgPrev").onclick=()=>pgGo(PG.i-1);$("pgNext").onclick=()=>pgGo(PG.i+1);
 {const c=$("pages");let st=0;c.addEventListener("scroll",()=>{clearTimeout(st);st=setTimeout(()=>{const i=Math.round(c.scrollLeft/Math.max(1,c.clientWidth));if(i!==PG.i&&i>=0&&i<PG.els.length)pgSet(i)},60)},{passive:true});
  let lw=0;new ResizeObserver(()=>{if(c.clientWidth!==lw){lw=c.clientWidth;c.scrollLeft=Math.max(0,PG.i)*c.clientWidth}}).observe(c)}
-document.addEventListener("keydown",e=>{if(e.defaultPrevented||cmpOn||arOn||fhOn||e.altKey||e.ctrlKey||e.metaKey)return;const t=e.target,tn=t&&t.tagName;
+document.addEventListener("keydown",e=>{if(e.defaultPrevented||cmpOn||arOn||fhOn||document.body.classList.contains("sv")||e.altKey||e.ctrlKey||e.metaKey)return;const t=e.target,tn=t&&t.tagName;
   if(tn==="INPUT"||tn==="SELECT"||tn==="TEXTAREA"||(t&&t.isContentEditable))return;
   if(e.key==="ArrowRight"||e.key==="PageDown"&&false){e.preventDefault();pgGo(PG.i+1)}else if(e.key==="ArrowLeft"){e.preventDefault();pgGo(PG.i-1)}});
 /* tiles that open in the HUD page (pick up, replay) bring that page into view */
@@ -2085,4 +2085,76 @@ window.cpTkPoll=()=>tkPoll();window.cpTkNorm=tkNormReg;window.cpTkLocal=(h,tz,n)
 {const s=store.get("tk",null);if(s&&s.on&&(s.reg||s.flt)&&Date.now()-(s.at||0)<36*3600000){TKS=s;$("tkReg").value=s.reg||"";$("tkFlt").value=s.flt||"";$("tkDep").value=s.dep||"";$("tkAp").value=s.ap||"";$("tkTurn").value=s.turn||30;setTimeout(tkPoll,1500)}
   else if(s)store.set("tk",null);tkRender()}
 setInterval(()=>{if(TKS&&TKS.on&&!document.hidden){tkRender()}},15000);
+/* ===== v23: synthetic 3D window view + 3D route pack =====
+   Display only: svState() reads the position, attitude, sun and pack weather; nothing here writes PH, LOG, BOOK or the GPS state.
+   three.js (sv3d.js + three.module.min.js) is only loaded when the 3D view is opened. */
+if(S.svfx==null)S.svfx="none";if(S.svview==null)S.svview="fwd";if(S.svfps==null)S.svfps="30";if(S.svwx==null)S.svwx="on";applySeg();
+const SV={on:false,ctl:null,mod:null,pk:null,force:null,cov:{at:0,ids:[]},hudAt:0,msg:""};
+const svPack=()=>SV.pk||(SV.pk=import("./svpack.js"));
+function svState(){if(SV.force)return SV.force;const L=tkOn()?last:viewL();if(!L||L.lat==null)return null;let sun=null;try{sun=sunPos(Date.now(),L.lat,L.lon)}catch(e){}
+  let wx=null;if(S.wxs!=="off"&&S.svwx!=="off"){try{const q=wxNow();if(q)wx={cls:wxClass(q),vis:q.vis,cc:q.cc,ccl:q.ccl,pr:q.pr}}catch(e){}}
+  return {lat:L.lat,lon:L.lon,alt:L.alt,trk:L.trk,spd:L.spd,pitch:att.p||0,bank:att.r||0,sun,wx,ph:PH.p}}
+function svMsg(t){SV.msg=t||"";const m=$("svMsg");m.textContent=SV.msg;m.style.display=SV.msg?"block":"none"}
+function svHud(st,p){const c=$("svHud"),pr=Math.min(2,window.devicePixelRatio||1),w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;
+  if(c.width!==Math.round(w*pr)||c.height!==Math.round(h*pr)){c.width=Math.round(w*pr);c.height=Math.round(h*pr)}
+  const x=c.getContext("2d");x.setTransform(pr,0,0,pr,0,0);x.clearRect(0,0,w,h);const col=S.svfx==="nvg"?"#d6ffd6":S.svfx==="flir"?"#ffffff":"#7dffb0";
+  x.strokeStyle=col;x.fillStyle=col;x.lineWidth=1.6;x.shadowColor="#000";x.shadowBlur=4;x.font="700 15px \"B612 Mono\",ui-monospace,monospace";x.textBaseline="middle";
+  const cy=h*0.5;if(S.svview==="fwd"){x.beginPath();x.moveTo(w/2-58,cy);x.lineTo(w/2-22,cy);x.moveTo(w/2+22,cy);x.lineTo(w/2+58,cy);x.stroke();x.beginPath();x.arc(w/2,cy,6,0,7);x.stroke()}
+  const top=Math.max(64,h*0.1)+(SV.msg?($("svMsg").offsetHeight||40)+12:0);x.textAlign="center";x.fillText((S.svview==="fwd"?"TRK ":S.svview==="left"?"LEFT · ":"RIGHT · ")+String(Math.round(((p.hd%360)+360)%360)).padStart(3,"0")+"°",w/2,top);
+  x.textAlign="left";const s=fSpd(p.spd);x.fillText((s==null?"---":Math.round(s))+" "+(S.spd==="kmh"?"KM/H":S.spd.toUpperCase()),12,cy+40);
+  x.textAlign="right";const a=p.alt==null?null:fAlt(p.alt);x.fillText((a==null?"---":(Math.round(a/(S.alt==="ft"?10:1))*(S.alt==="ft"?10:1)).toLocaleString())+" "+S.alt.toUpperCase(),w-12,cy+40);
+  x.font="600 11px \"B612 Mono\",ui-monospace,monospace";x.textAlign="center";x.globalAlpha=.85;x.fillText("SYNTHETIC VIEW · "+({none:"NORMAL",nvg:"NVG",flir:"FLIR",crt:"CRT"}[S.svfx]||"")+" · OFFLINE",w/2,top+20);x.globalAlpha=1}
+function svFrame(st,p){const now=Date.now();{const ph=PHN[p.ph||PH.p]||"";if($("svPhase").textContent!==ph)$("svPhase").textContent=ph}
+  if(now-SV.cov.at>4000){SV.cov.at=now;svPack().then(pk=>{SV.cov.ids=pk.covers(p.lat,p.lon)}).catch(()=>{})}
+  if(now-SV.hudAt>66){SV.hudAt=now;try{svHud(st,p)}catch(e){}}
+  const L=st.lit;const dr=$("svDrops");const rain=L&&L.rain&&S.svfx==="none";dr.style.display=rain?"block":"none";if(rain)dr.style.backgroundImage="url("+(L.rain>1?"drops-heavy.webp":"drops-light.webp")+")";
+  if(!SV.cov.ids.length&&SV.cov.at)svMsg("No 3D route pack covers this spot, so this is a plain sky and horizon. Download one on the Route page before you fly.");
+  else if(SV.msg&&!/could not|paused/.test(SV.msg))svMsg("")}
+async function svOpen(){if(SV.on)return;try{if(arOn)arClose();if(fhOn)fhExit();if(cmpOn)cmpClose()}catch(e){}SV.on=true;SV.cov={at:0,ids:[]};document.body.classList.add("sv");$("svPhase").textContent=PHN[PH.p]||"";svMsg("Loading the 3D view…");
+  try{const [m]=await Promise.all([SV.mod||(SV.mod=import("./sv3d.js")),svPack()]);if(!SV.on)return;
+    const lowGpu=(navigator.hardwareConcurrency||4)<=2;
+    SV.ctl=m.create($("svCv"),{state:svState,frame:svFrame,err:t=>svMsg(t)},{fx:S.svfx,view:S.svview,fps:+S.svfps||30,wx:S.svwx!=="off",low:lowGpu,dpr:1.5});
+    if(!svState())svMsg("Waiting for a GPS fix. Tap Start GPS on the HUD page, or run the Demo flight.");else svMsg("")}
+  catch(e){SV.mod=null;svMsg("The 3D view could not start: "+(e&&e.message||e))}
+  try{wantWake||$("wakeBtn").click()}catch(e){}try{$("svExit").focus()}catch(e){}}
+function svClose(){if(!SV.on)return;SV.on=false;document.body.classList.remove("sv","svh");if(SV.ctl){try{SV.ctl.close()}catch(e){}SV.ctl=null}svMsg("");try{$("svBtn").focus()}catch(e){}setTimeout(()=>{try{landCheck()}catch(e){}},50)}
+$("svBtn").onclick=()=>{hap(10);svOpen()};$("svExit").onclick=svClose;
+$("svHide").onclick=()=>document.body.classList.add("svh");$("svShow").onclick=()=>document.body.classList.remove("svh");
+document.addEventListener("keydown",e=>{if(SV.on&&e.key==="Escape")svClose()});
+for(const k of ["svfx","svview","svfps","svwx"]){const s=document.querySelector('#svOv .seg[data-k="'+k+'"]');if(s)s.addEventListener("click",()=>{const c=SV.ctl;if(!c)return;c.setFx(S.svfx);c.setView(S.svview);c.setFps(+S.svfps||30);c.setWx(S.svwx!=="off")})}
+/* ---- 3D route pack UI (Route page) ---- */
+const SVP={plan:null,run:false};
+function svpSel(){const f=$("svpFrom"),t=$("svpTo"),src=$("from").innerHTML;if(f.options.length!==$("from").options.length){const fv=f.value||S.from,tv=t.value||S.to;f.innerHTML=src;t.innerHTML=src.replace("Departure…","Arrival…");f.value=fv||"";t.value=tv||""}}
+async function svpEst(){svpSel();const pk=await svPack();const fr=apBy($("svpFrom").value),to=apBy($("svpTo").value);
+  if(!fr||!to||fr.c===to.c){SVP.plan=null;if(!SVP.run)$("svpTxt").textContent="Pick a departure and destination for the 3D pack.";svpList();return}
+  const P=pk.plan(fr,to,{w:$("svpW").value,bm:$("svpBm").checked,asp:$("svpAsp").checked});SVP.plan=P;
+  const by=l=>P.rows.filter(r=>r.l===l).reduce((s,r)=>s+r.est,0);
+  if(!SVP.run)$("svpTxt").textContent=`${fr.c} → ${to.c} (${P.km.toLocaleString()} km): about ${pk.fmtMB(P.est+P.aspEst)} for ${P.keys.length.toLocaleString()} tiles (terrain ${pk.fmtMB(by("d"))}, imagery ${pk.fmtMB(by("i"))}${P.bm?", night lights "+pk.fmtMB(by("n")):""}${P.asp?", airspace file about 8 MB, stored much smaller":""}).`+(P.need<P.est*0.98?` About ${pk.fmtMB(P.need+P.aspEst)} is new; the rest is already on the phone.`:"")+" Download on Wi-Fi if you can.";
+  svpList()}
+async function svpList(){const pk=await svPack();const all=Object.values(pk.packs());const ul=$("svpList");
+  ul.innerHTML=all.length?all.map(p=>`<li class="rt"><div><b>${esc(p.from)} → ${esc(p.to)}</b><span class="sub" style="display:block">${pk.fmtMB(pk.packBytes(p))} · ${p.w==="wide"?"wide":"standard"}${p.bm?" · night lights":""}${p.aspB?" · airspace":p.asp&&p.aspErr?" · airspace unavailable":""} · ${p.done?"complete":"incomplete, tap Resume"}</span></div><div class="row">${p.done?"":`<button data-a="res" data-id="${esc(p.id)}">Resume</button>`}<button data-a="del" data-id="${esc(p.id)}" aria-label="Delete 3D pack ${esc(p.from)} to ${esc(p.to)}">Delete</button></div></li>`).join(""):'<li><span>No 3D packs on this phone yet.</span></li>';
+  let q="";try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();if(e&&e.quota)q=` Browser storage in use: ${pk.fmtMB(e.usage||0)} of about ${pk.fmtMB(e.quota)} allowed.`}}catch(e){}
+  $("svpStore").textContent=`3D packs use ${pk.fmtMB(pk.used())} on this phone.`+q;$("svpUse").textContent=all.length?all.length+" saved":""}
+async function svpGo(P){const pk=await svPack();if(SVP.run||!P)return;SVP.run=true;$("svpGo").disabled=true;$("svpStop").style.display="";$("svpBar").style.display="block";
+  const bar=$("svpBar").firstElementChild;let t0=Date.now();
+  try{const r=await pk.download(P,s=>{bar.style.width=Math.round(100*s.done/Math.max(1,s.total))+"%";if(Date.now()-t0>250){t0=Date.now();$("svpTxt").textContent=`Downloading the 3D pack ${P.from} → ${P.to}: ${s.done.toLocaleString()} of ${s.total.toLocaleString()} · ${pk.fmtMB(s.bytes)} so far${s.fail?" · "+s.fail+" failed":""}. Keep this screen open.`}},
+      {proxy:(($("tkProxy")&&$("tkProxy").value.trim())||TK_PROXY)});
+    const tot=pk.packBytes(pk.packs()[P.id]||{});
+    $("svpTxt").textContent=r.stopped?`Paused. ${P.from} → ${P.to} is partly saved; tap Resume to carry on.`:r.ok?`✓ 3D pack saved for ${P.from} → ${P.to}: ${pk.fmtMB(tot)} on the phone. Works offline in the 3D window view.`+(r.aspErr?" Airspace was skipped: "+r.aspErr+".":""):`Saved most of ${P.from} → ${P.to}, but ${r.fail} tiles failed (${r.err}). Tap Resume when you have a better connection.`+(r.aspErr?" Airspace: "+r.aspErr+".":"");
+    if(r.ok)hap(20)}
+  catch(e){$("svpTxt").textContent="3D pack download stopped: "+(e&&e.message||e)}
+  finally{SVP.run=false;$("svpGo").disabled=false;$("svpStop").style.display="none";setTimeout(()=>{$("svpBar").style.display="none"},1500);svpList()}}
+$("svpGo").onclick=async()=>{await svpEst();if(!SVP.plan){$("svpTxt").textContent="Pick a departure and destination for the 3D pack.";return}svpGo(SVP.plan)};
+$("svpStop").onclick=async()=>{(await svPack()).stop()};
+for(const id of ["svpFrom","svpTo","svpW","svpBm","svpAsp"])$(id).addEventListener("change",()=>svpEst());
+$("svpList").onclick=async e=>{const b=e.target.closest("button");if(!b)return;const pk=await svPack();const p=pk.packs()[b.dataset.id];if(!p)return;
+  if(b.dataset.a==="del"){if(SVP.run)return;const fr=await pk.remove(p.id);$("svpTxt").textContent=`Deleted the 3D pack ${p.from} → ${p.to}; freed ${pk.fmtMB(fr)}.`;svpList()}
+  else if(b.dataset.a==="res"){const fr=apBy(p.from),to=apBy(p.to);if(fr&&to)svpGo(pk.plan(fr,to,{w:p.w,bm:p.bm,asp:p.asp}))}};
+$("from").addEventListener("change",()=>{$("svpFrom").value=$("from").value;svpEst()});$("to").addEventListener("change",()=>{$("svpTo").value=$("to").value;svpEst()});
+/* load the small pack module only when the tile comes into view */
+try{new IntersectionObserver((en,ob)=>{if(en.some(x=>x.isIntersecting)){ob.disconnect();svpSel();svpEst()}}).observe($("svpTile"))}catch(e){svpSel();svpEst()}
+/* test hooks */
+window.cpSV={open:svOpen,close:svClose,on:()=>SV.on,status:()=>SV.ctl?SV.ctl.status():null,probe:()=>SV.ctl?SV.ctl.probe():null,ready:()=>!!(SV.ctl&&SV.ctl.ready()),
+  force:o=>{SV.force=o||null},msg:()=>SV.msg,state:()=>svState(),est:async(a,b,o)=>{const pk=await svPack();const P=pk.plan(apBy(a),apBy(b),o||{});return {km:P.km,tiles:P.keys.length,est:P.est,rows:P.rows.map(r=>({l:r.l,z:r.z,n:r.keys.length,est:r.est}))}},
+  pack:async()=>{const pk=await svPack();return {packs:pk.packs(),used:pk.used(),run:pk.running()}},refresh:()=>svpEst()};
 }

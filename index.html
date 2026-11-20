@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob: data: mediastream:; connect-src 'self' https: http://127.0.0.1:* http://localhost:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.maps.eox.at https://tiles.mapterhorn.com https://gibs.earthdata.nasa.gov https://storage.openaip.net https://cabin-adsb.cabinpanel-pb.workers.dev; font-src 'self' data:; media-src 'self' blob: data: mediastream:; connect-src 'self' https://tiles.maps.eox.at https://tiles.mapterhorn.com https://gibs.earthdata.nasa.gov https://storage.openaip.net https://cabin-adsb.cabinpanel-pb.workers.dev https: http://127.0.0.1:* http://localhost:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -213,6 +213,26 @@ body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--i
 #tkOut li.ok b{color:var(--ok)}#tkOut li.warn b{color:var(--warn)}#tkOut li.bad b{color:var(--bad)}#tkOut li b{text-align:right;font-weight:600}
 #tkTile details{margin-top:8px;font-size:12px;color:var(--dim)}#tkTile summary{cursor:pointer;color:var(--ink)}
 #tkOut li span{flex:0 0 34%;max-width:34%;text-align:left;color:var(--dim)}#tkOut li b{text-transform:none;flex:1;font:600 12px/1.45 var(--mono)}
+/* ===== v23: synthetic 3D window view + 3D route pack ===== */
+#svOv{position:fixed;inset:0;z-index:32;background:#000;display:none;overflow:hidden}
+body.sv{overflow:hidden}body.sv #svOv{display:block}
+#svCv,#svHud,#svDrops{position:absolute;inset:0;width:100%;height:100%;display:block}
+#svCv{touch-action:none}#svHud,#svDrops{pointer-events:none}
+#svDrops{background:center/cover no-repeat;opacity:.5;display:none}
+#svExit{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:3;min-height:40px;font-size:12px;opacity:.9}
+#svPhase{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:3}
+#svMsg{position:absolute;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(56px + env(safe-area-inset-top));z-index:3;font:600 12px/1.4 var(--mono);color:#ffd27a;background:rgba(0,0,0,.62);padding:6px 8px;border:1px solid rgba(255,210,122,.5);display:none}
+#svBar{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:14px max(10px,env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));background:linear-gradient(transparent,rgba(0,0,0,.62) 30%);display:grid;gap:5px}
+#svBar button{min-height:34px;font-size:12px;padding:0 9px}#svBar .seg button{min-width:0;padding:0 8px}#svBar .row{gap:6px}
+#svAttr,#svAttrMini{font:9.5px/1.35 var(--sans);color:rgba(255,255,255,.7)}
+#svAttrMini{position:absolute;left:calc(8px + env(safe-area-inset-left));right:64px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:2;display:none}
+#svShow{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));z-index:3;display:none;min-height:40px}
+body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block}
+#svBtn.arBig{flex:1 1 auto;min-height:150px;width:100%;margin:4px 0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:16px;letter-spacing:.06em}
+#svBtn.arBig svg{width:min(60%,260px);height:auto}
+#svpTile select{flex:1 1 40%;min-width:0}#svpBar{height:6px;background:rgba(127,127,127,.25);margin:8px 0 2px;display:none}#svpBar i{display:block;height:100%;width:0;background:var(--ok)}
+#svpList li.rt div:first-child{display:grid;gap:2px}
+@media (orientation:landscape){#svBar{display:flex;flex-wrap:wrap;align-items:center;padding-top:8px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}#svBar .row{flex-wrap:nowrap}#svBar button{min-height:30px;font-size:11px}#svAttr{flex:1 1 100%;font-size:9px}#svMsg{top:calc(52px + env(safe-area-inset-top))}}
 </style>
 </head>
 <body>
@@ -317,6 +337,10 @@ body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--i
 </div></section>
 <section class="page" id="pg-win" data-t="Window"><div class="wrap">
   <h2>Out the window</h2>
+  <div class="tile" id="svTile">
+    <button id="svBtn" class="pri arBig" aria-label="Open 3D window view"><svg viewBox="0 0 200 90" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M4 70 L44 34 L64 50 L98 16 L132 52 L150 40 L196 70"/><path d="M4 82 H196" stroke-width="1.6"/><path d="M78 82 L94 62 H106 L122 82" stroke-width="1.6"/><path d="M100 64 V82" stroke-dasharray="3 3" stroke-width="1.4"/><circle cx="160" cy="16" r="7"/></g></svg><span>Open 3D window view</span></button>
+    <div class="note" id="svNote" style="margin:0">An offline 3D view from your position: terrain, satellite imagery, runways, sun, haze and pack weather, with NVG, FLIR and CRT looks. Download a 3D route pack on the Route page while you have internet. Works in Demo flight too. Entertainment only, not for navigation.</div>
+  </div>
   <div class="tile">
     <div class="sunrow"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="#ffd400"/><g stroke="#ffd400" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></g></svg><p id="sunTxt">Waiting for a GPS fix.</p></div>
     <div class="row" style="margin-top:10px">Window seat <span class="seg" data-k="seat"><button data-v="left">Left</button><button data-v="right">Right</button><button data-v="both">Both</button></span></div>
@@ -348,6 +372,19 @@ body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--i
     <label class="chk"><input type="checkbox" id="packWiki" checked> Add places from Wikipedia</label>
     <div class="note" id="packTxt" style="margin:4px 0 0">Needs internet. Downloads forecast weather and winds along this route (Open-Meteo) plus extra places to look out for, and keeps them on the phone for offline use in flight. Leave Departs blank for now. Turbulence is a rough guide from forecast wind shear and storm energy, not a forecast.</div>
     <ul class="lm" id="packSum"></ul>
+  </div>
+  <h2>3D route pack</h2>
+  <div class="tile" id="svpTile">
+    <div class="lab"><span>Terrain and satellite for the 3D view</span><span id="svpUse"></span></div>
+    <div class="row" style="margin-top:8px"><select id="svpFrom" aria-label="3D pack departure"></select><select id="svpTo" aria-label="3D pack destination"></select></div>
+    <div class="row"><select id="svpW" aria-label="Corridor width"><option value="std">Standard corridor, 60 km wide</option><option value="wide">Wide corridor, 120 km</option></select></div>
+    <label class="chk"><input type="checkbox" id="svpBm" checked> Night lights (NASA Black Marble)</label>
+    <label class="chk"><input type="checkbox" id="svpAsp"> Airspace outlines (OpenAIP, personal non-commercial use)</label>
+    <div class="row"><button id="svpGo" class="pri">Download route pack</button><button id="svpStop" style="display:none">Pause</button></div>
+    <div id="svpBar"><i></i></div>
+    <div class="note" id="svpTxt" style="margin:4px 0 0">Needs internet. Saves terrain and satellite imagery along the route, plus a sharper patch around each airport, for the 3D window view. The phone downloads it directly from each provider.</div>
+    <ul class="lm" id="svpList"></ul>
+    <div class="note" id="svpStore" style="margin:4px 0 0"></div>
   </div>
   <h2>Common routes</h2>
   <div class="tile"><div class="row"><button id="rtSave">Save this route</button></div><ul class="lm" id="rtList"></ul></div>
@@ -426,6 +463,7 @@ body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--i
   Pre-flight weather: Weather data by Open-Meteo.com (CC BY 4.0), downloaded on request.<br>
   Inbound aircraft: ADS-B data: adsb.lol (Open Database Licence, ODbL 1.0), live on request through Cabin Panel&rsquo;s private proxy (public cors.dev relay only as a fallback); registration lookups by adsbdb.com and hexdb.io.<br>
   Extra places: Wikipedia (CC BY-SA 4.0), downloaded on request. Built-in landmark notes were written for Cabin Panel. Positions are approximate and this is not official aeronautical data.<br>
+  3D window view (downloaded on request to this phone, never re-hosted): imagery Sentinel-2 cloudless 2016 &ndash; https://s2maps.eu by EOX IT Services GmbH (CC BY 4.0; contains modified Copernicus Sentinel data 2016 &amp; 2017); terrain &copy; Mapterhorn, open elevation data incl. Copernicus GLO-30 DEM (&copy; DLR e.V. 2010&ndash;2014 and &copy; Airbus Defence and Space GmbH 2014&ndash;2018, provided under COPERNICUS by the European Union and ESA) and the other sources at mapterhorn.com/attribution; night lights NASA Earth Observatory / NASA GIBS (VIIRS Black Marble); optional airspace &copy; openAIP (CC BY-NC 4.0, personal non-commercial use, not an official chart). 3D graphics: three.js (MIT). Look shaders inspired by gods-eye-view by Bilawal Sidhu (MIT). No Google, Esri, Cesium ion or Airservices data is used.<br>
   Magnetic variation: World Magnetic Model 2025 (NOAA/BGS). HUD scenes were rendered in Blender. Font: B612 (SIL Open Font License).</div></div>
 </div></section>
 </main>
@@ -460,6 +498,20 @@ body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--i
   </div>
   <button id="arShow" aria-label="Show controls">⚙</button>
   <div id="arDisc">Entertainment only · not for navigation · positions approximate</div>
+</div>
+<div id="svOv" role="dialog" aria-label="3D window view">
+  <canvas id="svCv" aria-label="Synthetic 3D view out of the window"></canvas>
+  <div id="svDrops"></div>
+  <canvas id="svHud" aria-hidden="true"></canvas>
+  <button id="svExit">✕ Exit</button><span id="svPhase" class="chip"></span>
+  <div id="svMsg" role="status"></div>
+  <div id="svBar">
+    <div class="row"><span class="seg" data-k="svfx"><button data-v="none">Normal</button><button data-v="nvg">NVG</button><button data-v="flir">FLIR</button><button data-v="crt">CRT</button></span><span class="seg" data-k="svview"><button data-v="fwd">Ahead</button><button data-v="left">Left</button><button data-v="right">Right</button></span></div>
+    <div class="row"><span class="seg" data-k="svfps"><button data-v="30">30 fps</button><button data-v="15">15 fps saver</button></span><span class="seg" data-k="svwx"><button data-v="on">Weather</button><button data-v="off">Clear</button></span><button id="svHide" aria-label="Hide controls">Hide</button></div>
+    <div id="svAttr">Synthetic view, entertainment only, not for navigation. Imagery: Sentinel-2 cloudless 2016 &ndash; s2maps.eu by EOX IT Services GmbH (CC BY 4.0; contains modified Copernicus Sentinel data 2016 &amp; 2017). Terrain: &copy; Mapterhorn (mapterhorn.com/attribution), incl. Copernicus GLO-30 DEM. Night lights: NASA GIBS / VIIRS Black Marble. Runways: OurAirports. <span id="svAttrAsp"></span></div>
+  </div>
+  <div id="svAttrMini">Imagery: Sentinel-2 cloudless 2016 by EOX (CC BY 4.0) · Terrain: Mapterhorn · Night: NASA · Not for navigation</div>
+  <button id="svShow" aria-label="Show controls">⚙</button>
 </div>
 <div id="fhOv" aria-label="Full screen HUD"><button id="fhExit">✕ Exit</button><span id="fhPhase" class="chip"></span><div id="fhSlot"></div><div id="fhToast"></div></div>
 <div id="cardOv"><div class="cardBox"><img id="cardImg" alt="Flight summary card"><div class="row"><button id="cardShare" class="pri">Share</button><button id="cardClose">Close</button></div><p class="note" id="cardHint">Long-press the image to save it to Photos.</p></div></div>
