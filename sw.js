@@ -1,6 +1,6 @@
 // Cabin Panel service worker. Bump C on every release, or installed phones keep the old version.
 const C='cabin-panel-v23';
-const F=['./','index.html','manifest.webmanifest','icon-180.png','icon-512.png','icon-512-maskable.png',
+const F=['./','index.html','app.js','manifest.webmanifest','icon-180.png','icon-512.png','icon-512-maskable.png',
   'bg-day.webp','bg-ocean.webp','bg-sunset.webp','bg-night.webp','bg-appday.webp','bg-appnight.webp',
   'bg-apron.webp','bg-apronnight.webp','rwy.json','twy.json','lmk.json',
   'bg-wx-sct.webp','bg-wx-bkn.webp','bg-wx-tops.webp','bg-wx-ovc.webp','bg-wx-rain.webp','bg-wx-storm.webp','bg-wx-haze.webp','bg-wx-fog.webp','bg-wx-tops-dusk.webp','bg-wx-ovc-dusk.webp','bg-wx-storm-dusk.webp','bg-wx-ovc-night.webp','bg-wx-storm-night.webp','bg-wx-fog-night.webp','drops-light.webp','drops-heavy.webp',
