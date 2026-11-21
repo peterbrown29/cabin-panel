@@ -23,7 +23,7 @@ async function poll(){if(!st.id||st.busy)return;st.busy=true;
   st.busy=false;draw();clearTimeout(st.t);st.t=setTimeout(poll,document.hidden?POLL*2:POLL)}
 function txt(id,v){const e=$(id);if(e.textContent!==v)e.textContent=v}
 function draw(){const d=st.d;
-  if(d){const who=d.n?d.n+"'s flight":"Shared flight",rt=(d.fr||"?")+" → "+(d.to||"?");txt("title",who);txt("sub",rt+" · Cabin Panel");document.title=who+" "+rt;
+  if(d){const who="Shared flight",rt=(d.fr||"?")+" → "+(d.to||"?");txt("title",who);txt("sub",rt+" · Cabin Panel");document.title=who+" "+rt;
     const p=d.pts||[],l=p[p.length-1];const isL=landed(d);$("landed").hidden=!isL;if(isL)txt("landed","✈ Landed"+(d.to?" at "+d.to:"")+" · "+hhmm(l[0]));
     txt("eta",isL?"Landed":d.eta?hhmm(d.eta):"--:--");txt("alt",l&&l[3]!=null?Math.round(l[3]*FT/100)*100+" ft":"---");txt("spd",l&&l[4]!=null?Math.round(l[4]*1.94384)+" kt":"---");
     txt("dtg",l&&st.dest?Math.round(dist({lat:l[1],lon:l[2]},st.dest)/1000)+" km":"---");

@@ -56,7 +56,7 @@ function vsFpm(){if(tkOn())return tkVs();if(hist.length<3)return null;const t0=h
 function bridgeGap(a,b,t){const gap=(t-a.t)/1000;if(!(gap>20&&gap<8*3600))return;const d=dist(a,b);if(d/gap>400||d<200)return;const n=Math.min(240,Math.floor(gap/15));const sp=+(d/gap).toFixed(1);
   for(let i=1;i<n;i++){const f=i/n,q=gcPoint(a,b,f),al=a.alt!=null&&b.alt!=null?Math.round(a.alt+(b.alt-a.alt)*f):null,tt=Math.round(a.t+f*(t-a.t));
     if(LOG.on)LOG.pts.push([+q.lat.toFixed(6),+q.lon.toFixed(6),al,tt,sp]);const lt=trail[trail.length-1];if(!lt||dist(lt,q)>80)trail.push(q)}if(LOG.on)logDirty=true}
-function viewL(){if(tkOn())return TKS.L;const L=last;if(!L||demo||REPLAY||L.spd==null||L.spd<25||L.trk==null)return L;const age=(Date.now()-L.t)/1000;if(!(age>8&&age<4*3600))return L;if(!["climb","cruise","descent"].includes(PH.p))return L;const q=dPt(L,L.trk,L.spd*age);return Object.assign({},L,{lat:q.lat,lon:q.lon,dr:age})}
+function viewL(){if(tkOn())return tkLive();const L=last;if(!L||demo||REPLAY||L.spd==null||L.spd<25||L.trk==null)return L;const age=(Date.now()-L.t)/1000;if(!(age>8&&age<4*3600))return L;if(!["climb","cruise","descent"].includes(PH.p))return L;const q=dPt(L,L.trk,L.spd*age);return Object.assign({},L,{lat:q.lat,lon:q.lon,dr:age})}
 /* ---------- v22e: ground GPS filter (gate and taxi wander fix). Spec by Claude, 20 Nov 2026; built into v22 by Grok Bot ----------
    Runs on real GPS fixes before onPos (demo and replay bypass it). Stopped: one steady, accuracy-weighted position, speed 0, no heading.
    Moving only on real evidence. Speed never from a single 1 s jump. Taxi positions smoothed and snapped to OSM taxiway centrelines.
@@ -190,7 +190,8 @@ function render(){
     if(v!=null){const r=Math.round(v/50)*50;setVal("vs",(r>0?"+":"")+r,"fpm");$("vs2").textContent=Math.abs(r)<200?"Level":r>0?"Climbing ▲":"Descending ▼"}else vsClear();
     if(L.trk!=null){roseRot=unwrap(roseRot,-L.trk);$("rose").setAttribute("transform",`rotate(${roseRot} 150 150)`)}
   }
-  const tkd=tkOn(),to=tkd?tkAp():apBy(S.to),fr=tkd?null:apBy(S.from);
+  const tkd=tkOn(),to=tkd?tkTo():apBy(S.to),fr=tkd?null:apBy(S.from);
+  if(tkd&&!to){for(const id of ["dtg","brg","ete","eta"])$(id).textContent="---";$("etaTz").textContent="(heading away from "+tkAp().c+")"}
   $("toCode").textContent=to?to.c:"—";
   if(to&&L){
     const d=dist(L,to),b=brg(L,to);
@@ -214,6 +215,8 @@ function render(){
 setInterval(()=>{
   const n=new Date();$("clock").textContent=n.toTimeString().slice(0,5)+" · "+n.toISOString().slice(11,16)+"Z";
   if(PH.ev&&PH.ev.up&&!PH.ev.td&&n.getSeconds()%10===0)evRender();
+  {const ph=tkOn()?"ADS-B · "+PHN[tkPhase()]:PHN[PH.p];if($("phase").textContent!==ph)$("phase").textContent=ph}
+  if(tkOn()&&(watchId==null||GROUND.includes(PH.p))){const a=Math.max(0,Math.round((Date.now()-TKS.L.t)/1000));$("stat").textContent="ADS-B "+TKS.reg+" · "+(tkStale()?"last seen "+(a<5400?Math.round(a/60)+" min":Math.round(a/3600)+" h")+" ago":"report "+a+" s ago"+(a>20?" · moving it on (EST)":""));$("dot").className="dot "+(tkStale()?"warn":"ok");return}
   if(watchId==null&&!demo)return;
   const age=(Date.now()-lastFixAt)/1000;
   if(watchId!=null&&last&&!demo&&!REPLAY&&(Date.now()-last.t)>8000&&n.getSeconds()%5===0){try{render()}catch(e){}}
@@ -265,9 +268,9 @@ function bgSet(href,flip){const cur=$(bgTop),nxt=$(bgTop==="bgA"?"bgB":"bgA");co
   nxt.parentNode.appendChild(nxt);for(const id of ["skyF","gndF"])nxt.parentNode.appendChild($(id));
   nxt.setAttribute("opacity","0");void nxt.getBoundingClientRect();nxt.style.opacity="1";cur.style.opacity="0";bgTop=nxt.id}
 function pickScene(){
-  const im=$("bgA");if(!im)return;let k=S.scn||"auto",flip=false;const L=last;
+  const im=$("bgA");if(!im)return;let k=S.scn||"auto",flip=false;const tko=tkOn(),L=tko?tkLive():last,ph=tko?tkPhase():PH.p;
   const sp=L?sunPos(Date.now(),L.lat,L.lon):sunPos(Date.now(),-35.3,149.1);
-  if(k==="auto"){if(GROUND.includes(PH.p)&&!(demo&&demo.stg==="air"))k=sp.el<-4?"apronnight":"apron";else if(PH.p==="approach")k=sp.el<-4?"appnight":"appday";else if(sp.el<-6)k="night";else if(sp.el<6)k="sunset";else if(L&&!inAus(L.lat,L.lon))k="ocean";else k="day"}
+  if(k==="auto"){if(GROUND.includes(ph)&&!(demo&&demo.stg==="air"))k=sp.el<-4?"apronnight":"apron";else if(ph==="approach")k=sp.el<-4?"appnight":"appday";else if(sp.el<-6)k="night";else if(sp.el<6)k="sunset";else if(L&&!inAus(L.lat,L.lon))k="ocean";else k="day"}
   else if(k==="app")k=sp.el<-4?"appnight":"appday";
   let wxr=null;if((S.scn||"auto")==="auto"&&S.wxs!=="off"&&typeof wxScene==="function"){try{wxr=wxScene(k,sp);if(wxr&&wxr.k&&SCNI[wxr.k])k=wxr.k}catch(e){wxr=null}}try{wxApply(wxr)}catch(e){}
   if(k==="sunset"&&L&&L.trk!=null){const rel=((sp.az-L.trk)%360+540)%360-180;flip=rel>0}
@@ -330,14 +333,14 @@ function hudDraw(p,r,fpa,live,now){
   h+="</g>";symG.innerHTML=h;
 }
 /* battery: one rAF loop at ~15 fps that skips frames when nothing on the HUD has changed */
-function hudNav(){const to=tkOn()?tkAp():apBy(S.to);if(!to)return null;const n=navT(viewL(),to);return n?["ETA "+n.eta,"REM "+remS(n.sec)]:["ETA --:--","REM --"]}
+function hudNav(){const to=tkOn()?tkTo():apBy(S.to);if(!to)return null;const n=navT(viewL(),to);return n?["ETA "+n.eta,"REM "+remS(n.sec)]:["ETA --:--","REM --"]}
 let bgXf="";
 function hudLoop(now){
   requestAnimationFrame(hudLoop);
-  if(document.hidden||now-hudLast<66)return;hudLast=now;const LL=tkOn()?TKS.L:last;
-  const useSen=S.att==="sen"&&sen.on,p=useSen?sen.p:att.p,r=useSen?sen.r:att.r;
+  if(document.hidden||now-hudLast<66)return;hudLast=now;const tko=tkOn(),LL=tko?tkLive():last;
+  const useSen=!tko&&S.att==="sen"&&sen.on,ta=tko?tkAtt():att,p=useSen?sen.p:ta.p,r=useSen?sen.r:ta.r;
   adiR+=(r-adiR)*0.35;adiP+=(p-adiP)*0.35;
-  const live=useSen||(LL&&LL.spd!=null&&LL.spd>=30);
+  const live=useSen||(LL&&LL.spd!=null&&LL.spd>=30&&!(tko&&tkStale()));
   const v=vsFpm(),fpa=LL&&LL.spd>30&&v!=null?deg(Math.atan2(v/196.85,LL.spd)):null;
   const tS=LL&&LL.spd!=null?fSpd(LL.spd):null,tA=LL&&LL.alt!=null?fAlt(LL.alt):null;
   dispS=tS==null?null:(dispS==null||Math.abs(tS-dispS)>60?tS:dispS+(tS-dispS)*0.18);
@@ -349,7 +352,7 @@ function hudLoop(now){
   /* v18: backdrop pitches and banks with the horizon (same scale as the ladder), capped; static with reduced motion */
   {const bp=Math.max(-25,Math.min(25,adiP)),br=Math.max(-60,Math.min(60,adiR));const xf=reduceMo||!live?"":`rotate(${(-br).toFixed(1)} 180 150) translate(0 ${(bp*PX).toFixed(1)})`;
    if(xf!==bgXf){bgXf=xf;const g=$("bgG");if(xf)g.setAttribute("transform",xf);else g.removeAttribute("transform")}}
-  const bk=live?(Math.abs(adiR)<1?"LVL":Math.round(Math.abs(adiR))+"° "+(adiR>0?"R":"L")):"---",pt=live?(adiP>=0?"+":"")+adiP.toFixed(1)+"°":"---",tr=!useSen&&att.rate!=null?Math.abs(att.rate).toFixed(1)+"°/s":"---";
+  const bk=live?(Math.abs(adiR)<1?"LVL":Math.round(Math.abs(adiR))+"° "+(adiR>0?"R":"L")):"---",pt=live?(adiP>=0?"+":"")+adiP.toFixed(1)+"°":"---",tr=!useSen&&ta.rate!=null?Math.abs(ta.rate).toFixed(1)+"°/s":"---";
   if($("bank").textContent!==bk)$("bank").textContent=bk;if($("pitch").textContent!==pt)$("pitch").textContent=pt;if($("trate").textContent!==tr)$("trate").textContent=tr;
 }
 requestAnimationFrame(hudLoop);
@@ -1113,16 +1116,20 @@ $("voiceBtn").onclick=()=>setVoice(!voiceOn);
 let hfOn=false,hfGps=false,hfMine={};
 function hfUI(){$("hfBtn").classList.toggle("on",hfOn);$("hfBtn").textContent=hfOn?"Hands-free on":"Hands-free"}
 function hfSet(on){
-  if(on){unlockAudio();hfMine={voice:!voiceOn,g:!gOn,wake:!wantWake};
+  if(on){unlockAudio();hfMine={voice:!voiceOn,g:!gOn,wake:!wantWake,vox:S.vox==="off"?"off":""};
+    if(S.vox==="off"){S.vox="system";applySeg()}
     if(!voiceOn)setVoice(true);if(!gOn)$("gBtn").click();if(!wantWake)$("wakeBtn").click();
     if(watchId==null&&!demo&&!REPLAY){startGPS();hfGps=true}}
   else{if(hfMine.voice&&voiceOn)setVoice(false);if(hfMine.g&&gOn)$("gBtn").click();if(hfMine.wake&&wantWake)$("wakeBtn").click();
-    if(hfGps&&watchId!=null)startGPS();hfGps=false;hfMine={}}
+    if(hfGps&&watchId!=null)startGPS();if(hfMine.vox){S.vox=hfMine.vox;applySeg()}hfGps=false;hfMine={}}
   hfOn=on;S.hf=on?"on":"off";saveS();hfUI();
 }
 $("hfBtn").onclick=()=>hfSet(!hfOn);
-if(S.hf==="on"){hfOn=true;hfUI();$("hfBtn").textContent="Hands-free on · tap screen to resume";
-  document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#hfBtn"))return;hfSet(true)},{once:true,capture:true})}
+/* v24: after a reload hands-free was shown as on but nothing was running, and tapping the button then switched it off.
+   Now it stays off until the first tap anywhere (iOS needs a tap for sound and motion), which switches it all back on. */
+if(S.hf==="on"){$("hfBtn").textContent="Hands-free · tap to resume";
+  document.addEventListener("click",e=>{if(hfOn||(e.target.closest&&e.target.closest("#hfBtn")))return;hfSet(true)},{once:true,capture:true})}
+window.cpHF=()=>({on:hfOn,voice:voiceOn,vox:S.vox,motion:gOn,wake:wantWake,gps:watchId!=null,saved:S.hf});
 
 /* ---------- demo flight ---------- */
 function stopDemo(){if(demo){clearInterval(demo.iv);demo=null;$("demoTag").style.display="none";$("demoBtn").classList.remove("on");$("demoBtn").textContent="Demo flight"}}
@@ -1696,16 +1703,16 @@ function retroVisible(){if(!retroOn()||document.hidden)return false;if(fhOn)retu
 function retroKick(){if(!RET.raf&&retroVisible())RET.raf=requestAnimationFrame(retroFrame)}
 setInterval(retroKick,1000);document.addEventListener("visibilitychange",retroKick);$("pages").addEventListener("scroll",()=>setTimeout(retroKick,120),{passive:true});
 /* live values (GPS ground speed stands in for airspeed) */
-function retroData(dt){const L=viewL()||last,now=Date.now(),V=RET.v,useSen=S.att==="sen"&&sen.on;
+function retroData(dt){const tko=tkOn(),L=viewL()||last,now=Date.now(),V=RET.v,useSen=!tko&&S.att==="sen"&&sen.on,ta=tko?tkAtt():att;
   const kt=L&&L.spd!=null?L.spd*1.94384:0,ft=L&&L.alt!=null?L.alt*FT:0,vs=(L&&vsFpm())||0,trk=L&&L.trk!=null?L.trk:(V.trk||0),dec=L?(cmpDecl(L)||0):0;
-  const pit=useSen?sen.p:att.p,rol=useSen?sen.r:att.r,rate=att.rate||0,p=PH.p,eng=!(p==="parked"&&kt<2&&!(PH.ev&&PH.ev.on==null&&PH.ev.roll));
+  const pit=useSen?sen.p:ta.p,rol=useSen?sen.r:ta.r,rate=ta.rate||0,p=tko?tkPhase():PH.p,eng=!(p==="parked"&&kt<2&&!(PH.ev&&PH.ev.on==null&&PH.ev.roll));
   const tbl={parked:[eng?1000:0,eng?18:29.9-ft/1000],taxi:[1150,20],roll:[3000,61],climb:[2700,46],cruise:[2400,34+Math.min(4,ft/10000)],descent:[2100,24],approach:[2300,22],landed:[1200,18]}[p]||[0,29.9];
   const aoaT={parked:0,taxi:1,roll:4,climb:10,cruise:6.5,descent:5,approach:19,landed:2}[p];
   const T0=Math.max(216.65,288.15-0.0019812*ft),mach=kt/(38.967854*Math.sqrt(T0));
   let gg=gOn&&gS!=null?gS:1/Math.cos(rad(Math.max(-70,Math.min(70,rol))));RET.gmax=Math.max(RET.gmax,gg);RET.gmin=Math.min(RET.gmin,gg);
   const evs=PH.ev?Object.values(PH.ev).filter(v=>typeof v==="number"):[],t0=evs.length?Math.min(...evs):null,eh=t0?(now-t0)/3600000:0;
   const tgt={kt,mph:kt*1.15078,ft,vs,pit,rol,rate,trk,mag:((trk-dec)%360+360)%360,g:gg,aoa:(aoaT==null?0:aoaT)+(p==="cruise"||p==="climb"?pit*0.3:0),rpm:tbl[0],mp:Math.max(8,tbl[1]),fuel:Math.max(8,88-eh*30),mach,
-    crs:(()=>{const to=apBy(S.to);return L&&to?brg(L,to):trk})(),dme:(()=>{const to=apBy(S.to);return L&&to?dist(L,to)/NMm:0})()};
+    crs:(()=>{const to=tko?tkTo():apBy(S.to);return L&&to?brg(L,to):trk})(),dme:(()=>{const to=tko?tkTo():apBy(S.to);return L&&to?dist(L,to)/NMm:0})()};
   const k=dt?Math.min(1,dt*3.5):1,ang=new Set(["trk","mag","crs"]);
   for(const n in tgt){if(V[n]==null||!isFinite(V[n])){V[n]=tgt[n];continue}V[n]=ang.has(n)?((V[n]+k*w180(tgt[n]-V[n]))%360+360)%360:V[n]+(n==="mag"?k*0.4:k)*(tgt[n]-V[n])}
   V.slip=Math.sin(now/2300)*0.6+Math.sin(now/870)*0.3;return V}
@@ -1843,7 +1850,7 @@ Object.assign(SCNN,{"wx-sct":"SCATTERED","wx-bkn":"BROKEN","wx-tops":"ABOVE CLOU
 if(S.wxs==null)S.wxs="on";
 let WXF=null,WXO=null,wxLab="",wxCur={k:"",cond:"",drops:"",tint:"",src:""};
 /* forecast sample for where we are now: nearest route-pack point by route fraction, ignored if far off the route or more than 12 h from its forecast hour */
-function wxNow(){if(WXF)return WXF;const pk=packGet(),L=last;if(!pk||!Array.isArray(pk.smp)||!pk.smp.length||!L)return null;
+function wxNow(){if(WXF)return WXF;const pk=packGet(),L=tkOn()?tkLive():last;if(!pk||!Array.isArray(pk.smp)||!pk.smp.length||!L)return null;
   const fr=apBy(pk.from),to=apBy(pk.to);if(!fr||!to)return null;const tot=dist(fr,to),f=Math.max(0,Math.min(1,1-dist(L,to)/tot));
   let q=null,bd=9;for(const s of pk.smp){const d=Math.abs(s.f-f);if(d<bd){bd=d;q=s}}
   if(!q||dist(L,q)>250000)return null;if(!demo&&!REPLAY&&q.t&&Math.abs(Date.now()-q.t)>12*3600000)return null;return q}
@@ -1906,7 +1913,34 @@ function tkNormReg(s){s=String(s||"").toUpperCase().replace(/[^A-Z0-9-]/g,"");if
 function tkSave(){if(!TKS)return;const c=Object.assign({},TKS);if(c.trail&&c.trail.length>1500)c.trail=c.trail.slice(-1500);store.set("tk",c)}
 function tkOwnGround(){return !last||GROUND.includes(PH.p)||(Date.now()-last.t)>180000}
 function tkOn(){return !!(TKS&&TKS.on&&TKS.L&&S.tkShow!=="off"&&!demo&&!REPLAY&&tkOwnGround()&&Date.now()-TKS.L.t<6*3600000)}
-function tkVs(){const L=TKS&&TKS.L;return L&&L.vs!=null?L.vs:null}
+function tkVs(){const L=TKS&&TKS.L;if(!L||tkStale())return null;return L.vsS!=null?L.vsS:L.vs!=null?L.vs:null}
+/* v24: a tracked fix older than 3 min (or flagged old: not seen / offline) is stale: no extrapolation, no attitude */
+function tkStale(){const L=TKS&&TKS.L;return !L||!!L.old||(Date.now()-L.t)>180000}
+function tkMove(p,b,d){const dr=d/R,t=rad(b),p1=rad(p.lat),l1=rad(p.lon),p2=Math.asin(Math.sin(p1)*Math.cos(dr)+Math.cos(p1)*Math.sin(dr)*Math.cos(t)),l2=l1+Math.atan2(Math.sin(t)*Math.sin(dr)*Math.cos(p1),Math.cos(dr)-Math.sin(p1)*Math.sin(p2));return {lat:deg(p2),lon:((deg(l2)+540)%360)-180}}
+/* v24: between polls (15-90 s apart) move the tracked aircraft on along its track at its groundspeed, turning at its
+   turn rate and climbing at its vertical rate, for up to 30 seconds, so the gauges, HUD, map and 3D view keep moving.
+   Display only; the raw fix stays in TKS.L. Marked dr (EST) once it is more than 20 s past the last report. */
+let TKDR={k:0,t:0,v:null};
+function tkLive(){const L=TKS&&TKS.L;if(!L)return null;const now=Date.now();
+  if(TKDR.v&&TKDR.k===L&&now-TKDR.t<200)return TKDR.v;
+  let dt=(now-L.t)/1000;if(tkStale()||L.gnd||L.spd==null||L.spd<15||L.trk==null||!(dt>0.5)){TKDR={k:L,t:now,v:L};return L}
+  dt=Math.min(dt,30);const rate=L.rate!=null&&Math.abs(L.rate)<=4?L.rate:0,n=6,h=dt/n;let p={lat:L.lat,lon:L.lon},trk=L.trk;
+  for(let i=0;i<n;i++){trk=(trk+rate*h/2+360)%360;p=tkMove(p,trk,L.spd*h);trk=(trk+rate*h/2+360)%360}
+  let alt=L.alt,ft=L.ft;const vs=tkVs();if(vs!=null&&alt!=null&&Math.abs(vs)>=150){const da=vs/196.85*dt;let fl=0;if(vs<0){const na=nearestAp(p);if(na&&na.d<15000)fl=(na.a[4]||0)/FT}alt=Math.max(fl,alt+da);if(ft!=null)ft=Math.max(fl*FT,ft+da*FT)}
+  const v=Object.assign({},L,{lat:p.lat,lon:p.lon,trk,alt,ft,dr:dt>20,drS:Math.round(dt)});TKDR={k:L,t:now,v};return v}
+/* v24: the tracked aircraft's own phase (for scenery and the retro engine gauges); never touches PH */
+function tkPhase(){const L=TKS&&TKS.L;if(!L)return "parked";const kt=L.spd==null?0:L.spd*3600/NMm,vs=tkVs();
+  if(L.gnd||(L.ft!=null&&L.ft<(tkAp().el||0)+150&&kt<60))return kt>45?"roll":kt>3?"taxi":"parked";
+  if(vs!=null&&vs>400)return "climb";if(vs!=null&&vs<-400)return (L.ft||0)<9000?"approach":"descent";return "cruise"}
+/* v24: attitude from ADS-B: bank = reported roll (or from the turn rate), pitch = flight-path angle from the vertical rate */
+function tkAtt(){const L=tkLive();if(!L||tkStale()||L.gnd||L.spd==null||L.spd<30)return {p:0,r:0,rate:null};
+  const rate=L.rate!=null?L.rate:(L.roll!=null?deg(9.80665*Math.tan(rad(L.roll))/L.spd):null);
+  const r=L.roll!=null?L.roll:(rate!=null?deg(Math.atan(L.spd*rad(rate)/9.80665)):0),vs=tkVs(),fpa=vs==null?0:deg(Math.atan2(vs/196.85,L.spd));
+  return {p:Math.max(-20,Math.min(25,fpa+(L.spd>60?2.5:0))),r:Math.max(-60,Math.min(60,r)),rate}}
+/* v24: where the tracked aircraft is going: your airport if it's heading there (or close), else your route's destination
+   if it's heading there, else unknown (no made-up ETA for an aircraft flying away) */
+function tkHeadingTo(L,a){if(!L||!a)return false;if(L.gnd||L.trk==null)return true;const d=dist(L,a);if(d<30000)return true;return Math.abs(w180(brg(L,a)-L.trk))<100}
+function tkTo(){const L=tkLive(),A=tkAp();if(!L)return A;if(tkHeadingTo(L,A))return A;const B=apBy(S.to);if(B&&B.c!==A.c&&tkHeadingTo(L,B))return B;return null}
 function tkTz(lat,lon,c){const a=c&&apBy(c);if(a&&a.tz)return a.tz;try{return "Australia/"+STZ[stateAt(lat,lon)]}catch(e){return "Australia/Sydney"}}
 function tkAp(){const c=(TKS&&TKS.ap)||S.from||"SYD";const a=apBy(c);if(a)return {c:a.c,n:a.n,lat:a.lat,lon:a.lon,tz:a.tz||tkTz(a.lat,a.lon,a.c),el:(apInfo(a.c)||[])[4]||0};
   const r=AP2.find(x=>x[0]===c||x[5]===c);if(r)return {c:r[0],n:r[1],lat:r[2],lon:r[3],tz:tkTz(r[2],r[3]),el:r[4]||0};const s=apBy("SYD");return {c:"SYD",n:s.n,lat:s.lat,lon:s.lon,tz:"Australia/Sydney",el:21}}
@@ -1924,6 +1958,7 @@ function tkFix(a,tms){if(!a||typeof a.lat!=="number"||typeof a.lon!=="number")re
   let alt=ft==null?null:ft/FT;if(gnd){const n=nearestAp({lat:a.lat,lon:a.lon});alt=n&&n.d<8000?(n.a[4]||0)/FT:0}
   const seen=typeof a.seen_pos==="number"?a.seen_pos:typeof a.seen==="number"?a.seen:0;
   return {lat:a.lat,lon:a.lon,alt,ft,gnd,spd:typeof a.gs==="number"?a.gs*NMm/3600:null,trk:typeof a.track==="number"?a.track:(typeof a.true_heading==="number"?a.true_heading:null),
+    roll:typeof a.roll==="number"&&Math.abs(a.roll)<=90?a.roll:null,rate:null,
     vs:typeof a.baro_rate==="number"?a.baro_rate:typeof a.geom_rate==="number"?a.geom_rate:null,sq:a.squawk||"",cs:String(a.flight||"").trim(),em:a.emergency&&a.emergency!=="none"?a.emergency:"",
     t:Math.round((tms||Date.now())-seen*1000),acc:null,altAcc:null,tk:true}}
 function tkNoteCs(cs,t){if(!cs||!TKS)return;const l=TKS.cs||(TKS.cs=[]);const z=l[l.length-1];if(z&&z.cs===cs){z.t1=Math.max(z.t1||t,t);return}
@@ -1940,7 +1975,7 @@ function tkLegState(){if(!TKS||!TKS.L)return;const A=tkAp(),L=TKS.L,d=dist(L,A),
 function tkArrFromTrail(){if(!TKS||!TKS.trail)return;const A=tkAp(),tr=TKS.trail;let air=-1;for(let i=tr.length-1;i>=0;i--){if(tr[i][3]!=null&&tr[i][3]>=0&&tr[i][3]>A.el+800){air=i;break}}
   if(air<0||air===tr.length-1)return;for(let i=air+1;i<tr.length;i++){const q=tr[i];if((q[3]===-1||(q[4]!=null&&q[4]<60))&&dist({lat:q[1],lon:q[2]},A)<7000){if(!TKS.arrAt||TKS.arrAt>q[0])TKS.arrAt=q[0];TKS.arrAp=A.c;return}}}
 /* ETA to the user's airport: great circle at groundspeed, slower for the last 150 km (descent and approach) */
-function tkEta(){if(!TKS||!TKS.L)return null;const L=TKS.L,A=tkAp();if(L.gnd||L.spd==null||L.spd<40)return null;const d=dist(L,A);if(d<2000)return null;
+function tkEta(){if(!TKS||!TKS.L)return null;const L=TKS.L,A=tkAp();if(L.gnd||L.spd==null||L.spd<40)return null;const d=dist(L,A);if(d<2000||!tkHeadingTo(L,A))return null;
   const gs=L.spd,D=Math.min(d,150000),vD=Math.min(gs,Math.max(72,gs*0.62));const s=(d-D)/gs+D/vD+(d>25000?120:0);return {d,sec:s,at:L.t+s*1000}}
 /* turnaround estimate vs the user's departure. Rough: on-blocks 5 min after touchdown, then the minimum turn. */
 function tkDelay(){if(!TKS||!TKS.dep)return null;const A=tkAp(),dep=tkLocalMs(TKS.dep,A.tz);if(dep==null)return null;const turn=Math.max(10,Math.min(240,+TKS.turn||30))*60000;let land=null,how="";
@@ -1979,22 +2014,26 @@ async function tkTrace(){if(!TKS||!TKS.hex)return;let j;try{j=await tkGet("/1/tr
   const keep=(TKS.trail||[]).filter(q=>!thin.length||q[0]>thin[thin.length-1][0]);TKS.trail=thin.concat(keep).slice(-2000);TKS.traceAt=Date.now();
   if(!TKS.L&&thin.length){const z=thin[thin.length-1];TKS.L={lat:z[1],lon:z[2],alt:z[3]>0?z[3]/FT:0,ft:z[3]>=0?z[3]:null,gnd:z[3]===-1,spd:z[4]==null?null:z[4]*NMm/3600,trk:null,vs:null,sq:"",cs:(TKS.cs&&TKS.cs.length?TKS.cs[TKS.cs.length-1].cs:""),t:z[0],acc:null,altAcc:null,tk:true,old:true}}
   tkArrFromTrail()}
-async function tkPoll(){if(!TKS||!TKS.on||TKX.busy)return;TKX.busy=true;TKX.lastPoll=Date.now();let gap=null;
+async function tkPoll(){if(!TKS||!TKS.on||TKX.busy)return;TKX.busy=true;TKX.lastPoll=Date.now();const ses=TKS;let gap=null;
   try{if(!cfOk())throw Object.assign(new Error("offline"),{off:true});
     const q=tkQuota(0);if(q>=470){TKX.err="Daily free ADS-B allowance nearly used on this phone ("+q+" lookups today; adsb.lol allows about 500 a day per proxy address). Polling paused until tomorrow.";gap=30*60000;return}
     let j=null;if(TKS.hex)j=await tkGet("/v2/hex/"+TKS.hex);else if(TKS.reg)j=await tkGet("/v2/reg/"+encodeURIComponent(TKS.reg));
-    let ac=(j&&Array.isArray(j.ac)?j.ac:[]).filter(a=>a&&typeof a.lat==="number");
+    if(TKS!==ses)return;let ac=(j&&Array.isArray(j.ac)?j.ac:[]).filter(a=>a&&typeof a.lat==="number");
     if(!ac.length&&!TKS.hex&&TKS.flt){const cs=toCallsign(TKS.flt);if(cs&&cs.cs){const k=await tkGet("/v2/callsign/"+cs.cs);ac=(k&&Array.isArray(k.ac)?k.ac:[]).filter(a=>a&&typeof a.lat==="number")}}
-    const a=ac.find(x=>TKS.hex&&x.hex===TKS.hex)||ac.find(x=>tkNormReg(x.r)===TKS.reg)||ac[0];
-    if(a){if(a.hex&&!TKS.hex){TKS.hex=String(a.hex).toLowerCase();if(!TKS.traceAt)await tkTrace()}if(a.r&&!TKS.reg)TKS.reg=tkNormReg(a.r);
-      if(a.t)TKS.type=TKS.type||a.t;if(a.desc)TKS.desc=TKS.desc||a.desc;const f=tkFix(a,j&&j.now||Date.now());if(f){TKS.L=f;TKS.seen=Date.now();tkNoteCs(f.cs,f.t);tkPush(f);tkLegState()}TKX.err="";TKX.back=0}
+    if(TKS!==ses)return;const a=ac.find(x=>TKS.hex&&x.hex===TKS.hex)||ac.find(x=>tkNormReg(x.r)===TKS.reg)||ac[0];
+    if(a){if(a.hex&&!TKS.hex){TKS.hex=String(a.hex).toLowerCase();if(!TKS.traceAt)await tkTrace()}if(TKS!==ses)return;if(a.r&&!TKS.reg)TKS.reg=tkNormReg(a.r);
+      if(a.t)TKS.type=TKS.type||a.t;if(a.desc)TKS.desc=TKS.desc||a.desc;const f=tkFix(a,j&&j.now||Date.now());if(f){const pv=TKS.L,dt=pv?(f.t-pv.t)/1000:0;
+        if(pv&&!pv.old&&dt>1&&dt<=120){if(f.trk!=null&&pv.trk!=null&&f.roll==null){const r=w180(f.trk-pv.trk)/dt;if(Math.abs(r)<=4)f.rate=r}
+          if(f.vs!=null&&pv.vs!=null){const q=pv.vsS!=null?pv.vsS:pv.vs;f.vsS=Math.abs(f.vs-q)<300?(f.vs+q)/2:f.vs}else if(f.vs==null&&f.ft!=null&&pv.ft!=null)f.vs=(f.ft-pv.ft)/dt*60}
+        else if(pv&&f.t<=pv.t&&!pv.old){f.rate=pv.rate;f.vsS=pv.vsS}
+        TKS.L=f;TKS.seen=Date.now();tkNoteCs(f.cs,f.t);tkPush(f);tkLegState()}TKX.err="";TKX.back=0}
     else{TKX.err="Not seen right now by adsb.lol receivers: it may be parked with the transponder off, outside receiver coverage (common over remote areas and the ocean) or hidden from public feeds."+(TKS.L?" Showing the last known position.":"");if(TKS.L)TKS.L.old=true}
-  }catch(e){if(e.off){TKX.err="Offline: showing the last known position"+(TKS&&TKS.L?" from "+tkTime(TKS.L.t,tkAp().tz):"")+". Tracking needs internet.";gap=60000}
+  }catch(e){if(e.off){if(TKS&&TKS.L)TKS.L.old=true;TKX.err="Offline: showing the last known position"+(TKS&&TKS.L?" from "+tkTime(TKS.L.t,tkAp().tz):"")+". Tracking needs internet.";gap=60000}
     else if(e.rl!=null){TKX.back=Math.min(600000,Math.max(60000,(TKX.back||30000)*2,e.rl*1000));gap=TKX.back;TKX.err="adsb.lol is limiting requests right now; trying again in "+Math.round(gap/60000)+" min."}
     else{TKX.back=Math.min(300000,Math.max(30000,(TKX.back||15000)*2));gap=TKX.back;TKX.err="Couldn't reach the live ADS-B data ("+(e&&e.name==="AbortError"?"timed out":(e&&e.message)||e)+"). Retrying.";if(TKS&&TKS.L)TKS.L.old=true}}
-  finally{TKX.busy=false;tkSave();tkSched(gap);tkRender();try{render();drawMap()}catch(e){}tkWxMaybe()}}
+  finally{TKX.busy=false;if(TKS!==ses){if(TKS&&TKS.on)tkSched(800);return}tkSave();tkSched(gap);tkRender();try{render();drawMap();pickScene()}catch(e){}tkWxMaybe()}}
 function tkInterval(){if(!TKS||!TKS.L)return 30000;const L=TKS.L,A=tkAp(),d=dist(L,A),e=tkEta();
-  if(TKS.arrAt&&!TKS.depAt)return 60000;if(L.gnd||L.spd==null||L.spd<40)return d<7000?30000:90000;if((e&&e.sec<45*60)||d<200000)return 15000;return 30000}
+  if(TKS.arrAt&&!TKS.depAt)return 60000;if(L.gnd||L.spd==null||L.spd<40)return d<7000?30000:90000;if((e&&e.sec<45*60)||d<200000)return 15000;{const na=nearestAp(L);if(na&&na.d<40000&&(L.ft||0)<10000)return 15000}return 30000}
 function tkSched(gap){clearTimeout(TKT);TKT=0;if(!TKS||!TKS.on)return;let ms=gap!=null?gap:tkInterval();if(document.hidden)ms=Math.max(ms,300000);TKX.next=Date.now()+ms;TKT=setTimeout(tkPoll,ms)}
 document.addEventListener("visibilitychange",()=>{if(!TKS||!TKS.on)return;if(document.hidden)tkSched(Math.max(300000,TKX.next-Date.now()));else if(Date.now()-TKX.lastPoll>tkInterval())tkPoll();else tkSched(Math.max(1000,TKX.lastPoll+tkInterval()-Date.now()))});
 window.addEventListener("online",()=>{if(TKS&&TKS.on)tkPoll()});
@@ -2026,13 +2065,17 @@ function tkWxText(){const W=TKS&&TKS.wx;if(!W)return "";const A=tkAp(),parts=[];
   return s}
 function tkApWx(w){if(!w)return "";const k=v=>v==null?"--":Math.round(v);return (w.T!=null?Math.round(w.T)+"°C, ":"")+(TKWW(w.wc)||"")+(w.storm&&w.wc<95?", storms possible":"")+(w.pr?", "+w.pr+" mm/h":"")+", wind "+k(w.w10)+" kt"+(w.g10&&w.g10>(w.w10||0)+8?" gusting "+k(w.g10):"")}
 /* ---------- UI ---------- */
+/* v24: Open takes you to the details and folds the banner into a slim chip (tap the chip to unfold); Stop is always there */
 function tkRender(){const ban=$("tkBan"),box=$("tkOut"),st=$("tkSt");const on=TKS&&TKS.on;$("tkGo").textContent=on?"Update":"Track";$("tkStop").style.display=on?"":"none";
   if(!on){ban.style.display="none";box.innerHTML="";st.textContent=TKX.err||"Needs internet. Enter the registration painted on the aircraft (for example VH-YIA). Display only: it never changes your own flight, phases or logbook.";document.body.classList.remove("tking");return}
   const A=tkAp(),L=TKS.L,age=L?Math.max(0,(Date.now()-L.t)/1000):null,cs=L&&L.cs||(TKS.cs&&TKS.cs.length?TKS.cs[TKS.cs.length-1].cs:"");
   const ageT=age==null?"":age<90?Math.round(age)+" s ago":age<5400?Math.round(age/60)+" min ago":(age/3600).toFixed(1)+" h ago";
   const shown=tkOn();document.body.classList.toggle("tking",shown);
-  ban.style.display="";ban.innerHTML=`<span>${shown?"TRACKING ":"WATCHING "}${esc(TKS.reg)}${cs?" · "+esc(cs):""}${L&&L.sq?" · SQK "+esc(L.sq):""}${L?" · "+(L.gnd?"ON GROUND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")):""}${age!=null&&age>60?" · LAST SEEN "+esc(ageT.toUpperCase()):""}</span><small>${shown?"Gauges, HUD and map show this aircraft, not your GPS":"Your own GPS is in use (you are not on the ground)"}</small><button id="tkBanGo">Open</button><button id="tkBanStop">Stop</button>`;
-  $("tkBanGo").onclick=()=>{try{pgGo(PG.els.findIndex(e=>e.id==="pg-route"))}catch(e){}setTimeout(()=>$("tkTile").scrollIntoView({block:"start"}),400)};$("tkBanStop").onclick=tkStop;
+  const fl=L?(L.gnd?"GND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")):"";ban.classList.toggle("slim",S.tkMini==="on");ban.style.display="";
+  if(S.tkMini==="on"){ban.innerHTML=`<button id="tkBanChip" aria-expanded="false" aria-label="Tracking ${esc(TKS.reg)}: show the tracking bar">● ${shown?"TRK":"WATCH"} ${esc(TKS.reg)}${fl?" · "+fl:""}${age!=null&&age>180?" · OLD":""} ▾</button><button id="tkBanStop" aria-label="Stop tracking">Stop</button>`;
+    $("tkBanChip").onclick=()=>{S.tkMini="off";saveS();tkRender()};$("tkBanStop").onclick=tkStop}
+  else ban.innerHTML=`<span>${shown?"TRACKING ":"WATCHING "}${esc(TKS.reg)}${cs?" · "+esc(cs):""}${L&&L.sq?" · SQK "+esc(L.sq):""}${L?" · "+(L.gnd?"ON GROUND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")):""}${age!=null&&age>60?" · LAST SEEN "+esc(ageT.toUpperCase()):""}</span><small>${shown?"Gauges, HUD and map show this aircraft, not your GPS":"Your own GPS is in use (you are not on the ground)"}</small><button id="tkBanGo" aria-label="Open tracking details">Open</button><button id="tkBanStop">Stop</button>`;
+  if(S.tkMini!=="on"){$("tkBanGo").onclick=tkOpenDetails;$("tkBanStop").onclick=tkStop}
   st.textContent=TKX.err||(L?"Live from adsb.lol"+(TKS.via==="relay"?" via the public cors.dev relay (private proxy unavailable)":TKS.via==="proxy"?(tkPxOk(String(S.tkProxy||"").trim())?" via your proxy":" via Cabin Panel's private proxy"):"")+" · updated "+ageT+(TKX.next?" · next check "+tkTime(TKX.next,A.tz):""):"Looking for "+TKS.reg+"…");
   const rows=[];const li=(k,v,c)=>rows.push(`<li${c?` class="${c}"`:""}><span>${k}</span><b>${v}</b></li>`);
   li("Aircraft",esc(TKS.reg)+(TKS.type?" · "+esc(TKS.type):"")+(TKS.hex?" · "+esc(TKS.hex.toUpperCase()):""));
@@ -2046,6 +2089,8 @@ function tkRender(){const ban=$("tkBan"),box=$("tkOut"),st=$("tkSt");const on=TK
   const W=TKS.wx;if(W){li("Weather it flew through",esc(tkWxText()));if(W.ap.now)li(esc(A.c)+" now",esc(tkApWx(W.ap.now)));if(W.ap.arr)li(esc(A.c)+" at its arrival",esc(tkApWx(W.ap.arr)));if(W.ap.dep)li(esc(A.c)+" at your departure",esc(tkApWx(W.ap.dep)))}
   else if(TKS.wxErr)li("Weather","couldn't download ("+esc(TKS.wxErr)+")");
   box.innerHTML=rows.join("")}
+function tkOpenDetails(){S.tkMini="on";saveS();tkRender();const i=PG.els.findIndex(e=>e.id==="pg-route");try{pgGo(i,true)}catch(e){}
+  setTimeout(()=>{const t=$("tkTile"),pg=PG.els[i];if(pg)pg.scrollTop=Math.max(0,t.getBoundingClientRect().top-pg.getBoundingClientRect().top+pg.scrollTop-8);try{pgGo(i,true)}catch(e){}t.classList.add("flash");setTimeout(()=>t.classList.remove("flash"),1600)},120)}
 async function tkStart(){const reg=tkNormReg($("tkReg").value),flt=String($("tkFlt").value||"").toUpperCase().replace(/\s+/g,""),dep=$("tkDep").value,ap=String($("tkAp").value||"").toUpperCase().trim(),turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));
   if(!reg&&!flt){TKX.err="Enter a registration (tail number), for example VH-YIA.";tkRender();return}
   const same=TKS&&TKS.reg===reg&&TKS.on;
@@ -2054,7 +2099,7 @@ async function tkStart(){const reg=tkNormReg($("tkReg").value),flt=String($("tkF
   TKX.err="";TKX.back=0;tkSave();tkRender();hap(15);
   if(!same&&TKS.reg){const h=await tkHexOf(TKS.reg);if(h&&TKS){TKS.hex=h.hex;TKS.type=h.type||TKS.type;TKS.desc=h.desc||"";TKS.op=h.op||""}if(TKS&&TKS.hex)await tkTrace()}
   if(TKS&&TKS.wx)TKS.wx.at=0;await tkPoll()}
-function tkStop(){clearTimeout(TKT);TKT=0;TKS=null;store.set("tk",null);TKX.err="";document.body.classList.remove("tking");tkRender();try{render();drawMap()}catch(e){};hap(10)}
+function tkStop(){clearTimeout(TKT);TKT=0;TKS=null;S.tkMini="off";saveS();store.set("tk",null);TKX.err="";document.body.classList.remove("tking");tkRender();try{render();drawMap()}catch(e){};hap(10)}
 $("tkGo").onclick=tkStart;$("tkStop").onclick=tkStop;$("tkReg").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();tkStart()}});
 $("tkReg").addEventListener("blur",()=>{const v=tkNormReg($("tkReg").value);if(v)$("tkReg").value=v});
 for(const id of ["tkDep","tkTurn","tkAp"])$(id).addEventListener("change",()=>{if(!TKS||!TKS.on)return;TKS.dep=$("tkDep").value;TKS.turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));const v=String($("tkAp").value||"").toUpperCase().trim();if(v)TKS.ap=v;TKS.arrAt=null;TKS.depAt=null;tkArrFromTrail();tkLegState();tkSave();tkRender();tkWxMaybe(true)});
@@ -2067,10 +2112,10 @@ $("tkProxy").value=S.tkProxy||"";$("tkProxy").onchange=()=>{const v=$("tkProxy")
 function tkHudBan(cx,T){const L=TKS.L,age=(Date.now()-L.t)/1000,cs=L.cs||"";
   return `<rect x="${cx-92}" y="38" width="184" height="30" fill="#000" fill-opacity=".72" stroke="#ff8a1f" stroke-width="1.4"/>`+
     `<text x="${cx}" y="51" fill="#ff8a1f" stroke="none" font-size="11" font-weight="700" text-anchor="middle">TRACKING ${esc(TKS.reg)}${cs?" "+esc(cs):""}</text>`+
-    `<text x="${cx}" y="63" fill="#ff8a1f" stroke="none" font-size="9" font-weight="700" text-anchor="middle">NOT YOUR GPS${L.sq?" · SQK "+esc(L.sq):""}${age>60?" · "+(age<5400?Math.round(age/60)+"M":Math.round(age/3600)+"H")+" OLD":""}${L.gnd?" · ON GND":""}</text>`}
-function tkZoom(W,H){if(!tkOn())return null;const L=TKS.L,A=tkAp(),d=dist(L,A)/1000;ZM.why="track";
+    `<text x="${cx}" y="63" fill="#ff8a1f" stroke="none" font-size="9" font-weight="700" text-anchor="middle">${tkStale()?"STALE · ":(Date.now()-L.t)>20000?"EST · ":""}NOT YOUR GPS${L.sq?" · SQK "+esc(L.sq):""}${age>60?" · "+(age<5400?Math.round(age/60)+"M":Math.round(age/3600)+"H")+" OLD":""}${L.gnd?" · ON GND":""}</text>`}
+function tkZoom(W,H){if(!tkOn())return null;const L=tkLive()||TKS.L,A=tkAp(),d=dist(L,A)/1000;ZM.why="track";
   if(d<6){ZM.mode="track";return vOf(L.gnd||d<3?A:L,7,W,H)}ZM.mode="track";const m=gcPoint(L,A,0.5);return vOf(m,Math.max(20,Math.min(4500,d*1.35+15)),W,H)}
-function tkMapDraw(x,P,sc,W,H,col,glow){if(!TKS||!TKS.on||!TKS.L)return;const nvg=S.disp==="nvg",c=nvg?col("--ink"):"#ff8a1f",L=TKS.L,A=tkAp();
+function tkMapDraw(x,P,sc,W,H,col,glow){if(!TKS||!TKS.on||!TKS.L)return;const nvg=S.disp==="nvg",c=nvg?col("--ink"):"#ff8a1f",L=(tkOn()&&tkLive())||TKS.L,A=tkAp();
   x.save();const tr=TKS.trail||[];if(tr.length>1){x.strokeStyle=c;x.lineWidth=2.6;x.lineJoin="round";if(glow){x.shadowColor=c;x.shadowBlur=7}x.globalAlpha=.9;x.beginPath();let pen=false,pt=0;
     for(const q of tr){const [px,py]=P({lat:q[1],lon:q[2]});if(pen&&q[0]-pt>45*60000){x.moveTo(px,py)}else if(pen)x.lineTo(px,py);else{x.moveTo(px,py);pen=true}pt=q[0]}
     const [lx,ly]=P(L);x.lineTo(lx,ly);x.stroke()}
@@ -2089,15 +2134,16 @@ window.cpTkPoll=()=>tkPoll();window.cpTkNorm=tkNormReg;window.cpTkLocal=(h,tz,n)
 {const s=store.get("tk",null);if(s&&s.on&&(s.reg||s.flt)&&Date.now()-(s.at||0)<36*3600000){TKS=s;$("tkReg").value=s.reg||"";$("tkFlt").value=s.flt||"";$("tkDep").value=s.dep||"";$("tkAp").value=s.ap||"";$("tkTurn").value=s.turn||30;setTimeout(tkPoll,1500)}
   else if(s)store.set("tk",null);tkRender()}
 setInterval(()=>{if(TKS&&TKS.on&&!document.hidden){tkRender()}},15000);
+let tkTick=0;setInterval(()=>{if(document.hidden||!tkOn())return;tkTick++;try{render()}catch(e){}if(tkTick%2===0){try{drawMap()}catch(e){}}if(tkTick%5===0){try{pickScene()}catch(e){}}},1000);
 /* ===== v23: synthetic 3D window view + 3D route pack =====
    Display only: svState() reads the position, attitude, sun and pack weather; nothing here writes PH, LOG, BOOK or the GPS state.
    three.js (sv3d.js + three.module.min.js) is only loaded when the 3D view is opened. */
 if(S.svfx==null)S.svfx="none";if(S.svview==null)S.svview="fwd";if(S.svfps==null)S.svfps="30";if(S.svwx==null)S.svwx="on";applySeg();
 const SV={on:false,ctl:null,mod:null,pk:null,force:null,cov:{at:0,ids:[]},hudAt:0,msg:""};
 const svPack=()=>SV.pk||(SV.pk=import("./svpack.js"));
-function svState(){if(SV.force)return SV.force;const L=tkOn()?last:viewL();if(!L||L.lat==null)return null;let sun=null;try{sun=sunPos(Date.now(),L.lat,L.lon)}catch(e){}
+function svState(){if(SV.force)return SV.force;const tko=tkOn(),L=viewL();if(!L||L.lat==null)return null;let sun=null;try{sun=sunPos(Date.now(),L.lat,L.lon)}catch(e){}
   let wx=null;if(S.wxs!=="off"&&S.svwx!=="off"){try{const q=wxNow();if(q)wx={cls:wxClass(q),vis:q.vis,cc:q.cc,ccl:q.ccl,pr:q.pr}}catch(e){}}
-  return {lat:L.lat,lon:L.lon,alt:L.alt,trk:L.trk,spd:L.spd,pitch:att.p||0,bank:att.r||0,sun,wx,ph:PH.p}}
+  const ta=tko?tkAtt():att;return {lat:L.lat,lon:L.lon,alt:L.alt,trk:L.trk,spd:L.spd,pitch:ta.p||0,bank:ta.r||0,sun,wx,ph:tko?tkPhase():PH.p,tk:tko?TKS.reg:""}}
 function svMsg(t){SV.msg=t||"";const m=$("svMsg");m.textContent=SV.msg;m.style.display=SV.msg?"block":"none"}
 function svHud(st,p){const c=$("svHud"),pr=Math.min(2,window.devicePixelRatio||1),w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;
   if(c.width!==Math.round(w*pr)||c.height!==Math.round(h*pr)){c.width=Math.round(w*pr);c.height=Math.round(h*pr)}
@@ -2108,7 +2154,7 @@ function svHud(st,p){const c=$("svHud"),pr=Math.min(2,window.devicePixelRatio||1
   x.textAlign="left";const s=fSpd(p.spd);x.fillText((s==null?"---":Math.round(s))+" "+(S.spd==="kmh"?"KM/H":S.spd.toUpperCase()),12,cy+40);
   x.textAlign="right";const a=p.alt==null?null:fAlt(p.alt);x.fillText((a==null?"---":(Math.round(a/(S.alt==="ft"?10:1))*(S.alt==="ft"?10:1)).toLocaleString())+" "+S.alt.toUpperCase(),w-12,cy+40);
   x.font="600 11px \"B612 Mono\",ui-monospace,monospace";x.textAlign="center";x.globalAlpha=.85;x.fillText("SYNTHETIC VIEW · "+({none:"NORMAL",nvg:"NVG",flir:"FLIR",crt:"CRT"}[S.svfx]||"")+" · OFFLINE",w/2,top+20);x.globalAlpha=1}
-function svFrame(st,p){const now=Date.now();if(SV.snapReq){SV.snapReq=false;try{snapTake()}catch(e){}}{const ph=PHN[p.ph||PH.p]||"";if($("svPhase").textContent!==ph)$("svPhase").textContent=ph}
+function svFrame(st,p){const now=Date.now();if(SV.snapReq){SV.snapReq=false;try{snapTake()}catch(e){}}{const ph=(tkOn()?"TRACKING "+TKS.reg+" · "+(PHN[tkPhase()]||""):(PHN[p.ph||PH.p]||""));if($("svPhase").textContent!==ph)$("svPhase").textContent=ph}
   if(now-SV.cov.at>4000){SV.cov.at=now;svPack().then(pk=>{SV.cov.ids=pk.covers(p.lat,p.lon)}).catch(()=>{})}
   if(now-SV.hudAt>66){SV.hudAt=now;try{svHud(st,p)}catch(e){}}
   const L=st.lit;const dr=$("svDrops");const rain=L&&L.rain&&S.svfx==="none";dr.style.display=rain?"block":"none";if(rain)dr.style.backgroundImage="url("+(L.rain>1?"drops-heavy.webp":"drops-light.webp")+")";
@@ -2118,7 +2164,7 @@ async function svOpen(){if(SV.on)return;try{if(arOn)arClose();if(fhOn)fhExit();i
   try{const [m]=await Promise.all([SV.mod||(SV.mod=import("./sv3d.js")),svPack()]);if(!SV.on)return;
     const lowGpu=(navigator.hardwareConcurrency||4)<=2;
     SV.ctl=m.create($("svCv"),{state:svState,frame:svFrame,err:t=>svMsg(t)},{fx:S.svfx,view:S.svview,fps:+S.svfps||30,wx:S.svwx!=="off",low:lowGpu,dpr:1.5});
-    if(!svState())svMsg("Waiting for a GPS fix. Tap Start GPS on the HUD page, or run the Demo flight.");else svMsg("")}
+    if(!svState())svMsg("Waiting for a GPS fix. Tap Start GPS on the HUD page, track an aircraft on the Route page, or run the Demo flight.");else svMsg("")}
   catch(e){SV.mod=null;svMsg("The 3D view could not start: "+(e&&e.message||e))}
   try{wantWake||$("wakeBtn").click()}catch(e){}try{$("svExit").focus()}catch(e){}}
 function svClose(){if(!SV.on)return;SV.on=false;document.body.classList.remove("sv","svh");if(SV.ctl){try{SV.ctl.close()}catch(e){}SV.ctl=null}svMsg("");try{$("svBtn").focus()}catch(e){}setTimeout(()=>{try{landCheck()}catch(e){}},50)}
@@ -2135,32 +2181,43 @@ async function svpEst(){svpSel();const pk=await svPack();const fr=apBy($("svpFro
   const by=l=>P.rows.filter(r=>r.l===l).reduce((s,r)=>s+r.est,0);
   if(!SVP.run)$("svpTxt").textContent=`${fr.c} → ${to.c} (${P.km.toLocaleString()} km): about ${pk.fmtMB(P.est+P.aspEst)} for ${P.keys.length.toLocaleString()} tiles (terrain ${pk.fmtMB(by("d"))}, imagery ${pk.fmtMB(by("i"))}${P.bm?", night lights "+pk.fmtMB(by("n")):""}${P.asp?", airspace file about 8 MB, stored much smaller":""}).`+(P.need<P.est*0.98?` About ${pk.fmtMB(P.need+P.aspEst)} is new; the rest is already on the phone.`:"")+" Download on Wi-Fi if you can.";
   svpList()}
-async function svpList(){const pk=await svPack();const all=Object.values(pk.packs());const ul=$("svpList");
-  ul.innerHTML=all.length?all.map(p=>`<li class="rt"><div><b>${esc(p.from)} → ${esc(p.to)}</b><span class="sub" style="display:block">${pk.fmtMB(pk.packBytes(p))} · ${p.w==="wide"?"wide":"standard"}${p.bm?" · night lights":""}${p.aspB?" · airspace":p.asp&&p.aspErr?" · airspace unavailable":""} · ${p.done?"complete":"incomplete, tap Resume"}</span></div><div class="row">${p.done?"":`<button data-a="res" data-net data-id="${esc(p.id)}">Resume</button>`}<button data-a="del" data-id="${esc(p.id)}" aria-label="Delete 3D pack ${esc(p.from)} to ${esc(p.to)}">Delete</button></div></li>`).join(""):'<li><span>No 3D packs on this phone yet.</span></li>';
+async function svpList(){const pk=await svPack();const all=Object.values(pk.packs()),rn=pk.running();const ul=$("svpList");
+  ul.innerHTML=all.length?all.map(p=>`<li class="rt"><div><b>${esc(p.from)} → ${esc(p.to)}</b><span class="sub" style="display:block">${pk.fmtMB(pk.packBytes(p))} · ${p.w==="wide"?"wide":"standard"}${p.bm?" · night lights":""}${p.aspB?" · airspace":p.asp&&p.aspErr?" · airspace unavailable":""} · ${rn&&rn.id===p.id?"downloading "+Math.round(100*rn.done/Math.max(1,rn.total))+"%":p.done?"complete":"incomplete, tap Resume"}</span></div><div class="row"><button data-a="v3d" data-id="${esc(p.id)}" class="pri" aria-label="Open the 3D window view for ${esc(p.from)} to ${esc(p.to)}">3D view</button>${p.done||(rn&&rn.id===p.id)?"":`<button data-a="res" data-net data-id="${esc(p.id)}">Resume</button>`}<button data-a="del" data-id="${esc(p.id)}" aria-label="Delete 3D pack ${esc(p.from)} to ${esc(p.to)}">Delete</button></div></li>`).join(""):'<li><span>No 3D packs on this phone yet.</span></li>';
   let q="";try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();if(e&&e.quota)q=` Browser storage in use: ${pk.fmtMB(e.usage||0)} of about ${pk.fmtMB(e.quota)} allowed.`}}catch(e){}
-  $("svpStore").textContent=`3D packs use ${pk.fmtMB(pk.used())} on this phone.`+q;$("svpUse").textContent=all.length?all.length+" saved":""}
-async function svpGo(P){const pk=await svPack();if(SVP.run||!P)return;SVP.run=true;$("svpGo").disabled=true;$("svpStop").style.display="";$("svpBar").style.display="block";
+  $("svpStore").textContent=`3D packs use ${pk.fmtMB(pk.used())} on this phone.`+q;$("svpUse").textContent=all.length?all.length+" saved":"";
+  const dn=all.filter(p=>p.done).map(p=>p.from+" → "+p.to);$("svPk").textContent=all.length?"3D route packs on this phone: "+all.map(p=>p.from+" → "+p.to+(p.done?"":rn&&rn.id===p.id?" (downloading)":" (incomplete)")).join(", ")+". Open the 3D view any time; over a covered route you see terrain and satellite imagery.":"No 3D route pack on this phone yet: download one on the Route page (Terrain and satellite for the 3D view).";
+  $("svpOpen").style.display=all.length?"":"none"}
+async function svpGo(P,auto){const pk=await svPack();if(SVP.run||!P)return;SVP.run=true;SVP.auto=!!auto;SVP.want=P;$("svpGo").disabled=true;$("svpStop").style.display="";$("svpBar").style.display="block";
   const bar=$("svpBar").firstElementChild;let t0=Date.now();
-  try{const r=await pk.download(P,s=>{bar.style.width=Math.round(100*s.done/Math.max(1,s.total))+"%";if(Date.now()-t0>250){t0=Date.now();$("svpTxt").textContent=`Downloading the 3D pack ${P.from} → ${P.to}: ${s.done.toLocaleString()} of ${s.total.toLocaleString()} · ${pk.fmtMB(s.bytes)} so far${s.fail?" · "+s.fail+" failed":""}. Keep this screen open.`}},
+  try{const r=await pk.download(P,s=>{bar.style.width=Math.round(100*s.done/Math.max(1,s.total))+"%";if(Date.now()-t0>250){t0=Date.now();$("svpTxt").textContent=`Downloading the 3D pack ${P.from} → ${P.to}: ${s.done.toLocaleString()} of ${s.total.toLocaleString()} · ${pk.fmtMB(s.bytes)} so far${s.fail?" · "+s.fail+" failed":""}. You can use the other screens. If you leave the app or lock the phone it pauses, then carries on by itself when you come back.`;if(Date.now()-(SVP.lt||0)>2000){SVP.lt=Date.now();svpList()}}},
       {proxy:(($("tkProxy")&&$("tkProxy").value.trim())||TK_PROXY)});
     const tot=pk.packBytes(pk.packs()[P.id]||{});
     $("svpTxt").textContent=r.stopped?`Paused. ${P.from} → ${P.to} is partly saved; tap Resume to carry on.`:r.ok?`✓ 3D pack saved for ${P.from} → ${P.to}: ${pk.fmtMB(tot)} on the phone. Works offline in the 3D window view.`+(r.aspErr?" Airspace was skipped: "+r.aspErr+".":""):`Saved most of ${P.from} → ${P.to}, but ${r.fail} tiles failed (${r.err}). Tap Resume when you have a better connection.`+(r.aspErr?" Airspace: "+r.aspErr+".":"");
-    if(r.ok)hap(20)}
+    if(r.ok){hap(20);SVP.want=null;SVP.retry=0}else if(r.stopped)SVP.want=null;
+    else if(r.fail&&(SVP.retry=(SVP.retry||0)+1)<=3&&!document.hidden&&cfOk()){$("svpTxt").textContent+=" Retrying the missing tiles…";setTimeout(()=>{if(!SVP.run&&SVP.want)svpGo(SVP.want,true)},4000)}}
   catch(e){$("svpTxt").textContent="3D pack download stopped: "+(e&&e.message||e)}
   finally{SVP.run=false;$("svpGo").disabled=false;$("svpStop").style.display="none";setTimeout(()=>{$("svpBar").style.display="none"},1500);svpList()}}
 $("svpGo").onclick=async()=>{await svpEst();if(!SVP.plan){$("svpTxt").textContent="Pick a departure and destination for the 3D pack.";return}svpGo(SVP.plan)};
-$("svpStop").onclick=async()=>{(await svPack()).stop()};
+$("svpStop").onclick=async()=>{SVP.want=null;const pk=await svPack();pk.stop();pk.pause(pk.running()&&pk.running().id,true)};
+/* v24: carry on an unfinished pack by itself when the app comes back (iOS pauses web pages in the background) */
+async function svpAuto(){if(SVP.run||document.hidden||!cfOk()||S.net==="off")return;const pk=await svPack();const p=Object.values(pk.packs()).find(q=>!q.done&&!q.paused&&q.keys&&q.keys.length&&Date.now()-(q.started||0)<3*86400000);
+  if(!p)return;const fr=apBy(p.from),to=apBy(p.to);if(fr&&to){$("svpTxt").textContent="Carrying on the 3D pack "+p.from+" → "+p.to+"…";svpGo(pk.plan(fr,to,{w:p.w,bm:p.bm,asp:p.asp}),true)}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(svpAuto,2500)});window.addEventListener("online",()=>setTimeout(svpAuto,2500));setTimeout(svpAuto,6000);
+$("svpOpen").onclick=()=>{hap(10);svOpen()};
+$("svGoPack").onclick=()=>{try{pgGo(PG.els.findIndex(e=>e.id==="pg-route"))}catch(e){}setTimeout(()=>{$("svpTile").scrollIntoView({block:"start"})},400)};
 for(const id of ["svpFrom","svpTo","svpW","svpBm","svpAsp"])$(id).addEventListener("change",()=>svpEst());
 $("svpList").onclick=async e=>{const b=e.target.closest("button");if(!b)return;const pk=await svPack();const p=pk.packs()[b.dataset.id];if(!p)return;
+  if(b.dataset.a==="v3d"){hap(10);svOpen();return}
   if(b.dataset.a==="del"){if(SVP.run)return;const fr=await pk.remove(p.id);$("svpTxt").textContent=`Deleted the 3D pack ${p.from} → ${p.to}; freed ${pk.fmtMB(fr)}.`;svpList()}
-  else if(b.dataset.a==="res"){const fr=apBy(p.from),to=apBy(p.to);if(fr&&to)svpGo(pk.plan(fr,to,{w:p.w,bm:p.bm,asp:p.asp}))}};
+  else if(b.dataset.a==="res"){pk.pause(p.id,false);const fr=apBy(p.from),to=apBy(p.to);if(fr&&to)svpGo(pk.plan(fr,to,{w:p.w,bm:p.bm,asp:p.asp}))}};
 $("from").addEventListener("change",()=>{$("svpFrom").value=$("from").value;svpEst()});$("to").addEventListener("change",()=>{$("svpTo").value=$("to").value;svpEst()});
 /* load the small pack module only when the tile comes into view */
 try{new IntersectionObserver((en,ob)=>{if(en.some(x=>x.isIntersecting)){ob.disconnect();svpSel();svpEst()}}).observe($("svpTile").closest(".page")||$("svpTile"))}catch(e){svpSel();svpEst()}
+try{new IntersectionObserver(en=>{if(en.some(x=>x.isIntersecting))svpList()}).observe($("svTile"))}catch(e){}
 /* test hooks */
 window.cpSV={open:svOpen,close:svClose,on:()=>SV.on,status:()=>SV.ctl?SV.ctl.status():null,probe:()=>SV.ctl?SV.ctl.probe():null,ready:()=>!!(SV.ctl&&SV.ctl.ready()),
   force:o=>{SV.force=o||null},msg:()=>SV.msg,state:()=>svState(),est:async(a,b,o)=>{const pk=await svPack();const P=pk.plan(apBy(a),apBy(b),o||{});return {km:P.km,tiles:P.keys.length,est:P.est,rows:P.rows.map(r=>({l:r.l,z:r.z,n:r.keys.length,est:r.est}))}},
-  pack:async()=>{const pk=await svPack();return {packs:pk.packs(),used:pk.used(),run:pk.running()}},refresh:()=>svpEst()};
+  pack:async()=>{const pk=await svPack();return {packs:pk.packs(),used:pk.used(),run:pk.running()}},refresh:()=>svpEst(),list:()=>svpList(),auto:()=>svpAuto()};
 /* ===== v23 features (built 21 Nov 2026): window seat guide, AR identify, replay+, stats and badges, turbulence master warning,
    bumps felt, arrival helper+, flight card+, live flight sharing / follow along, connected features, flight diary, body clock,
    landing score, top of descent, sunrise/sunset at altitude, spot the other plane.
@@ -2595,33 +2652,46 @@ window.cpReplay={start:i=>{const en=BOOK[i];if(en)replayStart(en.pts,en);return 
 /* ================= 8) Share live flight / follow along (opt-in; only while connected) =================
    The Worker keeps one record per share: an unguessable 22-character id for followers and a separate 43-character
    write token that stays on this phone. Expires after 24 h; Stop sharing ends it at once. Stored: position, height,
-   speed, track, route codes, ETA and an optional first name. */
-let SH=Object.assign({on:false,id:"",token:"",exp:0,n:"",buf:[],lastS:0,lastT:0,sent:0,err:""},store.get("share",{}),{buf:[]});
-const shSave=()=>store.set("share",{on:SH.on,id:SH.id,token:SH.token,exp:SH.exp,n:SH.n,sent:SH.sent});
+   speed, track, route codes and ETA. v24: no name (the old optional first name is never sent and is cleared on the
+   server with every update; follower pages ignore it). */
+let SH=Object.assign({on:false,id:"",token:"",exp:0,buf:[],lastS:0,lastT:0,sent:0,err:"",held:0},store.get("share",{}),{buf:[],n:""});
+if(S.shName!=null){delete S.shName;saveS()}
+const shSave=()=>store.set("share",{on:SH.on,id:SH.id,token:SH.token,exp:SH.exp,sent:SH.sent});
+shSave();
 const shLink=id=>shLink2(id);
 function shUI(){const on=SH.on&&SH.exp>Date.now();const t=$("shTag");if(t)t.style.display=on?"":"none";if(!$("shTile"))return;
-  $("shStart").style.display=on?"none":"";$("shStop").style.display=on?"":"none";$("shLinkRow").style.display=on?"":"none";$("shName").disabled=on;
-  if(on){$("shLink").value=shLink(SH.id);setTx($("shSt"),"Sharing on · "+(SH.sent?"last update sent "+hhmm(SH.sent):"waiting for the first update")+" · stops by itself at "+hhmm(SH.exp)+(cfOk()?"":" · offline: updates resume when you're connected")+(SH.err?" · "+SH.err:""))}
+  $("shStart").style.display=on?"none":"";$("shStop").style.display=on?"":"none";$("shLinkRow").style.display=on?"":"none";
+  if(on){$("shLink").value=shLink(SH.id);setTx($("shSt"),"Sharing on · "+(SH.sent?"last update sent "+hhmm(SH.sent):"waiting for the first update")+" · stops by itself at "+hhmm(SH.exp)+(SH.held&&Date.now()-SH.held<60000?" · position held back: you are not at an airport or moving (privacy)":"")+(cfOk()?"":" · offline: updates resume when you're connected")+(SH.err?" · "+SH.err:""))}
   else setTx($("shSt"),"Off. Nothing is shared until you tap Start sharing.")}
-async function shStart(){if(!cfOk()){say(cfWhy()+".");return}const n=String($("shName").value||"").replace(/[^\p{L} '\-]/gu,"").trim().slice(0,20);SH.n=n;S.shName=n;saveS();
+async function shStart(){if(!cfOk()){say(cfWhy()+".");return false}const n="";
   $("shStart").disabled=true;$("shStart").dataset.busy="1";
-  try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n,fr:S.from||"",to:S.to||""})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
-    const j=await r.json();Object.assign(SH,{on:true,id:j.id,token:j.token,exp:j.exp,sent:0,err:"",buf:[]});shSave();shUI();shSample(true);shSend(true);hap(20)}
-  catch(e){setTx($("shSt"),"Couldn't start sharing: "+((e&&e.message)||e)+".")}finally{delete $("shStart").dataset.busy;$("shStart").disabled=false;cfApply()}}
-async function shStop(){const id=SH.id,tok=SH.token;Object.assign(SH,{on:false,id:"",token:"",exp:0,buf:[]});shSave();shUI();
-  if(id&&tok&&cfOk()){try{await svcFetch(SVC.share+"/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+tok}},10000)}catch(e){}}}
-function shSample(force){if(!SH.on)return;const L=last;if(!L||L.lat==null)return;const p=SH.buf[SH.buf.length-1];if(!force&&p&&p[0]===L.t)return;
+  try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n:"",fr:S.from||"",to:S.to||""})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
+    const j=await r.json();Object.assign(SH,{on:true,id:j.id,token:j.token,exp:j.exp,sent:0,err:"",buf:[]});shSave();shUI();shSample(true);shSend(true);hap(20);return true}
+  catch(e){setTx($("shSt"),"Couldn't start sharing: "+((e&&e.message)||e)+".");return false}finally{delete $("shStart").dataset.busy;$("shStart").disabled=false;cfApply()}}
+async function shStop(){const id=SH.id,tok=SH.token;
+  if(id&&tok){try{if(!cfOk())throw new Error("offline");const r=await svcFetch(SVC.share+"/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+tok}},10000);if(!r.ok&&r.status!==404&&r.status!==410)throw new Error("answered "+r.status)}
+    catch(e){SH.err="Could not end the old link ("+e.message+"). Try Stop sharing again while connected; until then the old link still works (it ends by itself after 24 h).";shSave();shUI();return false}}
+  Object.assign(SH,{on:false,id:"",token:"",exp:0,buf:[],err:""});shSave();shUI();return true}
+
+/* v24 privacy: your own phone's position is only shared at an airport (within 4 km) or once moving faster than 50 kt,
+   so a share started at home or the office never shows where you are. While tracking an aircraft from the ground,
+   sharing follows that aircraft (what your gauges show), never a stale phone position. */
+function shPrivOk(L){if(!L)return false;if(L.tk)return !tkStale();if(L.spd!=null&&L.spd>25.7)return true;const n=nearestAp(L);return !!(n&&n.d<4000)}
+function shSample(force){if(!SH.on)return;const L=tkOn()?TKS.L:last;if(!L||L.lat==null)return;if(!shPrivOk(L)){SH.held=Date.now();return}SH.held=0;const p=SH.buf[SH.buf.length-1];if(!force&&p&&p[0]===L.t)return;
   SH.buf.push([L.t||Date.now(),+L.lat.toFixed(5),+L.lon.toFixed(5),L.alt!=null?Math.round(L.alt):null,L.spd!=null?+L.spd.toFixed(1):null,L.trk!=null?Math.round(L.trk):null]);if(SH.buf.length>40)SH.buf=thin(SH.buf,20)}
 async function shSend(force){if(!SH.on||SH.busy)return;if(SH.exp<=Date.now()){Object.assign(SH,{on:false});shSave();shUI();return}
   if(!cfOk()||!SH.buf.length||(!force&&Date.now()-SH.lastT<SVC.shareSendMs))return;SH.busy=true;SH.lastT=Date.now();
-  const pts=SH.buf.length>12?thin(SH.buf,12):SH.buf.slice(),to=apBy(S.to),n=navT(viewL()||last,to);
-  try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,fr:S.from||"",to:S.to||"",eta:n?Math.round(Date.now()+n.sec*1000):null})},12000);
+  const pts=SH.buf.length>12?thin(SH.buf,12):SH.buf.slice(),to=apBy(S.to),n=tkOn()?null:navT(viewL()||last,to);
+  try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,n:"",fr:S.from||"",to:S.to||"",eta:n?Math.round(Date.now()+n.sec*1000):null})},12000);
     if(r.status===404||r.status===410||r.status===403){Object.assign(SH,{on:false,err:"share ended"});shSave()}
     else if(r.ok){SH.buf=SH.buf.filter(q=>q[0]>pts[pts.length-1][0]);SH.sent=Date.now();SH.err="";shSave()}else SH.err="update failed ("+r.status+")"}
   catch(e){SH.err="no connection"}finally{SH.busy=false;shUI()}}
 setInterval(()=>{shSample(false)},SVC.shareSampleMs);setInterval(()=>{shSend(false)},5000);window.addEventListener("cp-online",()=>shSend(true));
-if($("shStart")){$("shName").value=S.shName||"";$("shStart").onclick=shStart;$("shStop").onclick=()=>{if(confirm("Stop sharing your flight? Followers will see that sharing has ended."))shStop()};
-  $("shShare").onclick=async()=>{const u=shLink(SH.id);try{if(navigator.share){await navigator.share({title:"Follow my flight",text:(SH.n?SH.n+"'s":"My")+" flight"+(S.from&&S.to?" "+S.from+" → "+S.to:"")+" on Cabin Panel",url:u});return}}catch(e){if(e&&e.name==="AbortError")return}
+if($("shStart")){$("shStart").onclick=shStart;$("shStop").onclick=()=>{if(confirm("Stop sharing your flight? Followers will see that sharing has ended."))shStop()};
+  /* v24: New link: end the old share (its link stops showing your flight) and start a fresh one with a new random id */
+  $("shNew").onclick=async()=>{if(!cfOk()){say(cfWhy()+".");return}if(!confirm("Make a new follow link? The old link stops working straight away; send the new one to your family."))return;
+    $("shNew").disabled=true;try{if(await shStop())await shStart()}finally{$("shNew").disabled=false;shUI()}};
+  $("shShare").onclick=async()=>{const u=shLink(SH.id);try{if(navigator.share){await navigator.share({title:"Follow my flight",text:"Follow my flight"+(S.from&&S.to?" "+S.from+" → "+S.to:"")+" on Cabin Panel",url:u});return}}catch(e){if(e&&e.name==="AbortError")return}
     try{await navigator.clipboard.writeText(u);setTx($("shSt"),"Link copied.")}catch(e){$("shLink").select()}};}
 window.cpShare={state:()=>({on:SH.on,id:SH.id?SH.id.slice(0,4)+"…":"",hasToken:!!SH.token,exp:SH.exp,sent:SH.sent,buf:SH.buf.length,err:SH.err,link:SH.id?shLink(SH.id):""}),send:()=>shSend(true),sample:()=>shSample(true),stop:()=>shStop(),start:()=>shStart(),rawId:()=>SH.id};
 
@@ -2631,7 +2701,7 @@ function fwParse(s){s=String(s||"").trim();const m=s.match(/[#?&](?:follow|id)=(
 async function fwPoll(){if(!FW.id||FW.busy)return;if(!cfOk()){FW.err="offline";fwDraw();return}FW.busy=true;
   try{const r=await svcFetch(SVC.share+"/"+FW.id,{},12000);if(r.status===404){FW.err="This shared flight has ended or the link is wrong.";FW.d=null}else if(!r.ok)throw new Error("answered "+r.status);else{FW.d=await r.json();FW.at=Date.now();FW.err=""}}
   catch(e){FW.err="Couldn't reach the share service ("+((e&&e.message)||e)+")."}finally{FW.busy=false;fwDraw()}}
-function fwOpen(id){if(!FEAT.follow)return;FW={id,d:null,at:0,err:"",iv:0,busy:false};$("fwOv").style.display="flex";document.body.classList.add("fw");fwDraw();fwPoll();clearInterval(FW.iv);FW.iv=setInterval(fwPoll,SVC.followPollMs);try{$("fwExit").focus()}catch(e){}}
+function fwOpen(id){if(!FEAT.follow)return;clearInterval(FW.iv);FW={id,d:null,at:0,err:"",iv:0,busy:false};$("fwOv").style.display="flex";document.body.classList.add("fw");fwDraw();fwPoll();clearInterval(FW.iv);FW.iv=setInterval(fwPoll,SVC.followPollMs);try{$("fwExit").focus()}catch(e){}}
 function fwClose(){clearInterval(FW.iv);FW.id="";$("fwOv").style.display="none";document.body.classList.remove("fw");if(/follow=/.test(location.hash))try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}}
 function fwDraw(){const cv=$("fwCv");if(!cv||!FW.id)return;const W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;const pr=Math.min(2,window.devicePixelRatio||1);if(cv.width!==Math.round(W*pr)){cv.width=Math.round(W*pr);cv.height=Math.round(H*pr)}
   const x=cv.getContext("2d");x.setTransform(pr,0,0,pr,0,0);x.fillStyle="#020a0f";x.fillRect(0,0,W,H);const d=FW.d,info=$("fwInfo");
@@ -2645,7 +2715,7 @@ function fwDraw(){const cv=$("fwCv");if(!cv||!FW.id)return;const W=cv.clientWidt
   x.strokeStyle="#3dff6e";x.lineWidth=3;x.beginPath();pts.forEach((p,i)=>{const [X,Y]=P(p.lat,p.lon);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke();
   x.font='700 13px "B612 Mono",monospace';for(const a of [fr,to]){if(!a)continue;const [X,Y]=P(a.lat,a.lon);x.fillStyle="#3dff6e";x.beginPath();x.arc(X,Y,5,0,7);x.fill();x.fillText(a.c,X+8,Y-6)}
   if(lp){const [X,Y]=P(lp.lat,lp.lon);x.save();x.translate(X,Y);x.rotate(rad(lp.trk||0));x.fillStyle="#ffd400";x.strokeStyle="#000";x.lineWidth=1.5;x.beginPath();x.moveTo(0,-13);x.lineTo(9,10);x.lineTo(0,5);x.lineTo(-9,10);x.closePath();x.fill();x.stroke();x.restore()}
-  setTx($("fwHead"),(d.n?d.n+"'s flight":"Shared flight")+(d.fr&&d.to?" · "+d.fr+" → "+d.to:""));
+  setTx($("fwHead"),"Shared flight"+(d.fr&&d.to?" · "+d.fr+" → "+d.to:""));
   const age=lp?Math.round((Date.now()-lp.t)/60000):null,tz=to?to.tz:undefined;
   setTx(info,d.st?"Sharing has ended."+(lp?" Last position "+hhmm(lp.t)+".":""):(lp?[lp.alt!=null?Math.round(fAlt(lp.alt)/100)*100+" "+S.alt:"",lp.spd!=null?Math.round(fSpd(lp.spd))+" "+S.spd:"",d.eta?"ETA "+hhmm(d.eta,tz)+(to?" "+to.c+" time":""):"","updated "+(age<1?"just now":age+" min ago")].filter(Boolean).join(" · "):"Waiting for the first position.")+(FW.err==="offline"?" · You're offline: showing the last update.":FW.err?" · "+FW.err:"")+" · Positions arrive only while the sharer has internet. Entertainment only.")}
 if($("fwExit")){$("fwExit").onclick=fwClose;$("fwGo").onclick=()=>{const id=fwParse($("fwIn").value);if(!id){setTx($("fwTxt"),"Paste the link you were sent (it contains #follow=…).");return}fwOpen(id)};window.addEventListener("resize",()=>{if(FW.id)fwDraw()})}
@@ -2669,9 +2739,9 @@ window.cpV23f={seatRender,bodyRender,statsRender,sunAltRender,todRender,FEAT,SVC
 /* ===================== v23 features 16-20 (display only: none of this changes phases or the logbook) ===================== */
 /* ---- 16 Glance mode: big, high-contrast numbers for a propped-up phone ---- */
 const GL={on:false,dim:!!store.get("gldim",false),tm:0};
-function glData(){const L=viewL()||last,to=apBy(S.to),n=L&&to?navT(L,to):null,ft=S.alt==="ft";
+function glData(){const tko=tkOn(),L=viewL()||last,to=tko?tkTo():apBy(S.to),n=L&&to?navT(L,to):null,ft=S.alt==="ft";
   return {eta:n?n.eta:"--:--",rem:n?remS(n.sec):"--",alt:L&&L.alt!=null?Math.round(fAlt(L.alt)/(ft?100:10))*(ft?100:10):null,spd:L&&L.spd!=null?Math.round(fSpd(L.spd)):null,
-    dtg:L&&to?Math.round(fDst(dist(L,to))):null,to:to?to.c:"",ph:PHN[PH.p]||"",age:L?Math.round((Date.now()-L.t)/1000):null}}
+    dtg:L&&to?Math.round(fDst(dist(L,to))):null,to:to?to.c:"",ph:tko?"TRACKING "+TKS.reg:(PHN[PH.p]||""),age:L?Math.round((Date.now()-L.t)/1000):null}}
 function glRender(){if(!GL.on)return;const g=glData(),u={kt:"KT",kmh:"KM/H",mph:"MPH"}[S.spd]||"KT";
   setTx($("glEta"),g.eta);setTx($("glEtaS"),g.to?"ETA "+g.to+" local · "+g.rem.replace("H","h ").replace("M","m")+" to go":"Set your route on the Route page");
   setTx($("glAlt"),g.alt==null?"---":g.alt.toLocaleString("en-AU"));setTx($("glAltU"),S.alt==="ft"?"FT":"M");

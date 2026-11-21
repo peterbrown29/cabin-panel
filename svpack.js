@@ -55,7 +55,7 @@ export function plan(fr,to,o={}){const wide=o.w==="wide",rows=[];
   for(const k of keys)if(!known(k)){const [l,z]=k.split("/");need+=AVG[l+z]}
   const aspEst=o.asp?8000000:0;
   return {_fr:fr,_to:to,id:fr.c+"-"+to.c,from:fr.c,to:to.c,w:wide?"wide":"std",bm:o.bm!==false,asp:!!o.asp,km:Math.round(dist(fr,to)/1000),rows,keys,est,need,aspEst}}
-export function fmtMB(b){return b>=1e6?(b/1e6).toFixed(b>=1e7?0:1)+" MB":Math.max(1,Math.round(b/1e3))+" kB"}
+export function fmtMB(b){if(!(b>0))return "0 MB";return b>=1e6?(b/1e6).toFixed(b>=1e7?0:1)+" MB":Math.max(1,Math.round(b/1e3))+" kB"}
 /* bytes on the phone used by all 3D packs (unique tiles) */
 export function used(){let t=0;for(const v of Object.values(szm()))t+=v>0?v:0;for(const p of Object.values(packs()))t+=p.aspB||0;return t}
 export function packBytes(p){let t=0;const m=szm();for(const k of p.keys||[])t+=m[k]>0?m[k]:0;return t+(p.aspB||0)}
@@ -63,6 +63,8 @@ export function packBytes(p){let t=0;const m=szm();for(const k of p.keys||[])t+=
 let RUN=null;
 export const running=()=>RUN?{id:RUN.id,done:RUN.done,total:RUN.total,bytes:RUN.bytes}:null;
 export function stop(){if(RUN)RUN.stop=true}
+/* v24: remember that the user paused a pack, so it isn't carried on by itself */
+export function pause(id,on){if(!id)return;const all=packs();if(all[id]){all[id].paused=!!on;packsSave(all)}}
 async function fetchTile(url,ms){for(let a=0;a<3;a++){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
     try{const r=await fetch(url,{mode:"cors",credentials:"omit",cache:"no-store",signal:c.signal});clearTimeout(t);
       if(r.status===404||r.status===204)return {miss:true};
@@ -78,7 +80,7 @@ export async function download(P,onp,opt={}){
   const conc=Math.max(1,Math.min(4,opt.conc||4));
   const run=RUN={id:P.id,done:0,total:P.keys.length+(P.asp?1:0),bytes:0,stop:false,fail:0,err:""};
   try{if(navigator.storage&&navigator.storage.persist)await navigator.storage.persist()}catch(e){}
-  const all=packs();const rec=all[P.id]||{};Object.assign(rec,{id:P.id,from:P.from,to:P.to,w:P.w,bm:P.bm,asp:P.asp,keys:P.keys,at:rec.at||0,started:Date.now(),done:false});all[P.id]=rec;packsSave(all);
+  const all=packs();const rec=all[P.id]||{};Object.assign(rec,{id:P.id,from:P.from,to:P.to,w:P.w,bm:P.bm,asp:P.asp,keys:P.keys,at:rec.at||0,started:Date.now(),done:false,paused:false});all[P.id]=rec;packsSave(all);
   const cache=await caches.open(CACHE);const m=szm();let i=0,lastSave=0;
   const todo=P.keys.filter(k=>!known(k));run.done=P.keys.length-todo.length;onp&&onp(run);
   async function worker(){while(!run.stop&&i<todo.length){const k=todo[i++];
@@ -89,7 +91,7 @@ export async function download(P,onp,opt={}){
       await new Promise(z=>setTimeout(z,opt.gap==null?40:opt.gap))}}
   await Promise.all(Array.from({length:conc},worker));szSave();
   if(P.asp&&!run.stop){try{rec.aspB=await aspFetch(P,opt.proxy,cache);rec.aspErr=""}catch(e){rec.aspErr=String(e&&e.message||e);rec.aspB=0}run.done++;onp&&onp(run)}
-  const all2=packs();const r2=all2[P.id]||rec;Object.assign(r2,rec);r2.done=!run.stop&&run.fail===0;if(r2.done)r2.at=Date.now();r2.fail=run.fail;all2[P.id]=r2;packsSave(all2);
+  const all2=packs();const r2=all2[P.id]||rec;Object.assign(r2,rec);r2.done=!run.stop&&run.fail===0;r2.paused=!!run.stop;if(r2.done)r2.at=Date.now();r2.fail=run.fail;all2[P.id]=r2;packsSave(all2);
   RUN=null;return {ok:r2.done,stopped:run.stop,fail:run.fail,err:run.err,bytes:run.bytes,aspErr:rec.aspErr||""}}
 /* Airspace: the whole Australia export (~8 MB) is fetched once, clipped on the phone to the corridor and stored small. */
 async function aspFetch(P,proxy,cache){let r=null,last="";

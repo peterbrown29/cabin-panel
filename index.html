@@ -208,6 +208,8 @@ body.fhr #fhToast{bottom:calc(22px + env(safe-area-inset-bottom));max-width:min(
 #tkBan{margin-top:8px;padding:6px 8px;background:#000;border:1px solid #ff8a1f;color:#ff8a1f;font:700 12px var(--mono);display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 #tkBan span{flex:1 1 60%;text-transform:uppercase}#tkBan small{flex:1 1 100%;order:3;font:400 11px var(--mono);color:#ffb873}
 #tkBan button{padding:4px 9px;font-size:12px;border-color:#ff8a1f;color:#ff8a1f}
+#tkBan.slim{margin-top:4px;padding:2px 4px;gap:4px}#tkBan.slim #tkBanChip{flex:1 1 auto;text-align:left;border:0;background:none;padding:3px 4px;font:700 11px var(--mono);text-transform:uppercase}#tkBan.slim #tkBanStop{padding:2px 8px;font-size:11px}
+.tile.flash{outline:2px solid #ff8a1f;outline-offset:2px;transition:outline-color 1.4s}#hfHelp{margin:-4px 6px 10px}
 body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--ink)}body.m-nvg #tkBan small{color:var(--dim)}
 #tkTile input[type=text],#tkTile input[type=url]{flex:1 1 120px;min-width:0}#tkTile #tkAp{flex:0 0 92px;text-transform:uppercase}#tkTile #tkTurn{flex:0 0 64px}#tkTile #tkReg{text-transform:uppercase}
 #tkOut li.ok b{color:var(--ok)}#tkOut li.warn b{color:var(--warn)}#tkOut li.bad b{color:var(--bad)}#tkOut li b{text-align:right;font-weight:600}
@@ -312,7 +314,7 @@ body.arf-ir #arCv,body.arf-flir #arCv{background:radial-gradient(circle at 50% 5
 <main id="pages">
 <section class="page fill" id="pg-hud" data-t="HUD"><div class="wrap">
   <div class="row" id="startRow" style="margin-bottom:10px">
-    <button class="pri" id="hfBtn">Hands-free</button>
+    <button class="pri" id="hfBtn" aria-describedby="hfHelp">Hands-free</button>
     <button id="gpsBtn">Start GPS</button>
     <button id="voiceBtn">Voice off</button>
     <button id="wakeBtn">Keep screen on</button><button id="glBtn" aria-label="Glance mode: big numbers for a propped-up phone">Glance</button>
@@ -321,6 +323,7 @@ body.arf-ir #arCv,body.arf-flir #arCv{background:radial-gradient(circle at 50% 5
     <button id="pickBtn">Pick up current flight</button>
     <button id="endBtn" style="display:none">End flight</button>
   </div>
+  <p class="note" id="hfHelp">Hands-free: one tap turns on GPS, spoken callouts, the motion sensor (G and bumps) and Keep screen on, so you can put the phone down and listen. Tap again to undo. For big numbers on screen, use Glance.</p>
   <div class="tile" id="pickTile" style="display:none;margin:10px 6px 22px">
     <div class="lab"><span>Pick up current flight</span><span id="pickClose" role="button" tabindex="0" style="cursor:pointer">✕ Close</span></div>
     <ul class="lm" id="pickList"></ul>
@@ -404,7 +407,9 @@ body.arf-ir #arCv,body.arf-flir #arCv{background:radial-gradient(circle at 50% 5
   <h2>Out the window</h2>
   <div class="tile" id="svTile">
     <button id="svBtn" class="pri arBig" aria-label="Open 3D window view"><svg viewBox="0 0 200 90" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M4 70 L44 34 L64 50 L98 16 L132 52 L150 40 L196 70"/><path d="M4 82 H196" stroke-width="1.6"/><path d="M78 82 L94 62 H106 L122 82" stroke-width="1.6"/><path d="M100 64 V82" stroke-dasharray="3 3" stroke-width="1.4"/><circle cx="160" cy="16" r="7"/></g></svg><span>Open 3D window view</span></button>
-    <div class="note" id="svNote" style="margin:0">An offline 3D view from your position: terrain, satellite imagery, runways, sun, haze and pack weather, with NVG, FLIR and CRT looks. Download a 3D route pack on the Route page while you have internet. Works in Demo flight too. Entertainment only, not for navigation.</div>
+    <p class="note" id="svPk" style="margin:0 0 6px"></p>
+    <div class="row" style="margin-bottom:6px"><button id="svGoPack">Download or manage 3D route packs</button></div>
+    <div class="note" id="svNote" style="margin:0">An offline 3D view from your position: terrain, satellite imagery, runways, sun, haze and pack weather, with NVG, FLIR and CRT looks. Download a 3D route pack on the Route page while you have internet. Works in Demo flight too, and from a tracked aircraft (Route page, Inbound aircraft). Entertainment only, not for navigation.</div>
   </div>
   <div class="tile" id="poiTile"><div class="lab"><span id="poiHead">Coming up</span><span>Window seat guide</span></div><ul class="lm" id="poiOut"></ul><div class="note" style="margin:4px 0 0">From the built-in landmarks and the pack's places. Highlighted: your side (Settings &gt; Seat).</div></div>
   <div class="tile" id="saTile"><div class="lab"><span>Sunrise and sunset at altitude</span><span class="seg" data-k="sunAlert"><button data-v="on">Alert</button><button data-v="off">Off</button></span></div><ul class="lm" id="saOut"></ul><div class="note" style="margin:4px 0 0">From height you see over the curve of the earth (horizon dip), so the sun rises earlier and sets later than on the ground below. The alert comes about 10 minutes before.</div></div>
@@ -483,7 +488,7 @@ body.arf-ir #arCv,body.arf-flir #arCv{background:radial-gradient(circle at 50% 5
     <div class="row"><select id="svpW" aria-label="Corridor width"><option value="std">Standard corridor, 60 km wide</option><option value="wide">Wide corridor, 120 km</option></select></div>
     <label class="chk"><input type="checkbox" id="svpBm" checked> Night lights (NASA Black Marble)</label>
     <label class="chk"><input type="checkbox" id="svpAsp"> Airspace outlines (OpenAIP, personal non-commercial use)</label>
-    <div class="row"><button id="svpGo" data-net class="pri">Download route pack</button><button id="svpStop" style="display:none">Pause</button></div>
+    <div class="row"><button id="svpGo" data-net class="pri">Download route pack</button><button id="svpStop" style="display:none">Pause</button><button id="svpOpen" style="display:none">Open 3D view</button></div>
     <div id="svpBar"><i></i></div>
     <div class="note" id="svpTxt" style="margin:4px 0 0">Needs internet. Saves terrain and satellite imagery along the route, plus a sharper patch around each airport, for the 3D window view. The phone downloads it directly from each provider.</div>
     <ul class="lm" id="svpList"></ul>
@@ -499,7 +504,7 @@ body.arf-ir #arCv,body.arf-flir #arCv{background:radial-gradient(circle at 50% 5
     <div class="row" style="margin-top:6px"><input type="text" id="tkReg" placeholder="Tail number, e.g. VH-YIA" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Aircraft registration (tail number)"><input type="text" id="tkFlt" placeholder="Its flight (optional)" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="9" aria-label="The aircraft's current flight number (optional)"></div>
     <div class="row"><span class="sub">Your departure</span><input type="time" id="tkDep" aria-label="Your scheduled departure, local time at your airport"><span class="sub">from</span><input type="text" id="tkAp" list="tkApL" placeholder="SYD" maxlength="4" autocapitalize="characters" autocomplete="off" aria-label="Your airport (IATA code)"><datalist id="tkApL"></datalist></div>
     <div class="row"><span class="sub">Minimum turnaround</span><input type="number" id="tkTurn" min="10" max="240" step="5" value="30" inputmode="numeric" aria-label="Minimum turnaround, minutes"><span class="sub">min</span><button id="tkGo" data-net class="pri">Track</button><button id="tkStop" style="display:none">Stop</button></div>
-    <label class="chk"><input type="checkbox" id="tkShow" checked> Show it on the HUD, Map and Nav while I'm on the ground</label>
+    <label class="chk"><input type="checkbox" id="tkShow" checked> Show it on the HUD, gauges, Map, Nav and 3D view while my own GPS isn't flying</label>
     <div class="note" id="tkSt" style="margin:4px 0 0"></div>
     <ul class="lm" id="tkOut"></ul>
     <details><summary>Data source</summary>
@@ -520,9 +525,9 @@ body.arf-ir #arCv,body.arf-flir #arCv{background:radial-gradient(circle at 50% 5
   <h2>Share live flight</h2>
   <div class="tile" id="shTile">
     <div class="lab"><span>Let family follow along</span><span>Opt-in</span></div>
-    <p class="note" style="margin:6px 0 4px">Sends a link. Anyone who opens it sees your plane on a map with the route and ETA, updated about every 45 seconds while your phone has internet (aircraft Wi-Fi). Shared: position, height, speed, route and the first name below, nothing else. Stops by itself after 24 hours, or tap Stop sharing.</p>
-    <div class="row"><input type="text" id="shName" placeholder="First name (optional)" maxlength="20" autocomplete="off" aria-label="First name shown to followers (optional)"><button id="shStart" class="pri" data-net>Start sharing</button><button id="shStop" style="display:none">Stop sharing</button></div>
-    <div class="row" id="shLinkRow" style="display:none"><input type="text" id="shLink" readonly aria-label="Follow link"><button id="shShare" data-net>Send link</button></div>
+    <p class="note" style="margin:6px 0 4px">Sends a link. Anyone who opens it sees your plane on a map with the route and ETA, updated about every 45 seconds while your phone has internet (aircraft Wi-Fi). Shared: position, height, speed and route, nothing else. No name. Your phone's position is only sent at an airport or once you're moving fast, never from home. While you track an aircraft, sharing follows that aircraft. Stops by itself after 24 hours, or tap Stop sharing.</p>
+    <div class="row"><button id="shStart" class="pri" data-net>Start sharing</button><button id="shStop" style="display:none">Stop sharing</button></div>
+    <div class="row" id="shLinkRow" style="display:none"><input type="text" id="shLink" readonly aria-label="Follow link"><button id="shShare" data-net>Send link</button><button id="shNew" data-net aria-label="Make a new follow link; the old one stops working">New link</button></div>
     <div class="note" id="shSt" style="margin:4px 0 0"></div>
   </div>
   <h2>Follow a flight</h2>
