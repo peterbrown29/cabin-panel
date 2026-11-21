@@ -8,7 +8,24 @@ const rad=d=>d*Math.PI/180,deg=r=>r*180/Math.PI;
 const dist=(a,b)=>{const p1=rad(a.lat),p2=rad(b.lat),dp=p2-p1,dl=rad(b.lon-a.lon);const h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(h)))};
 const brg=(a,b)=>{const p1=rad(a.lat),p2=rad(b.lat),dl=rad(b.lon-a.lon);return (deg(Math.atan2(Math.sin(dl)*Math.cos(p2),Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl)))+360)%360};
 const gcPoint=(a,b,f)=>{const d=dist(a,b)/R;if(d<1e-9)return {lat:a.lat,lon:a.lon};const A=Math.sin((1-f)*d)/Math.sin(d),B=Math.sin(f*d)/Math.sin(d);const p1=rad(a.lat),l1=rad(a.lon),p2=rad(b.lat),l2=rad(b.lon);const x=A*Math.cos(p1)*Math.cos(l1)+B*Math.cos(p2)*Math.cos(l2),y=A*Math.cos(p1)*Math.sin(l1)+B*Math.cos(p2)*Math.sin(l2),z=A*Math.sin(p1)+B*Math.sin(p2);return {lat:deg(Math.atan2(z,Math.hypot(x,y))),lon:deg(Math.atan2(y,x))}};
-const store={get(k,d){try{const v=localStorage.getItem("cp_"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("cp_"+k,JSON.stringify(v));return true}catch(e){storeFail(k,e);return false}}};
+/* v24c: stored JSON may be null, old-schema or partially restored. Validate before any render can abort app boot.
+   Normalisation is in memory only: do not overwrite the original stored record during recovery. */
+function storedValue(k,v,d){
+  const obj=x=>!!x&&typeof x==="object"&&!Array.isArray(x),arr=x=>Array.isArray(x)?x:[],fin=x=>typeof x==="number"&&Number.isFinite(x);
+  if(v==null)return d;
+  if(Array.isArray(d)&&!Array.isArray(v))return d;
+  if(obj(d)&&!obj(v))return d;
+  if(k==="book")return arr(v).filter(obj).map((b,i)=>Object.assign({},b,{id:typeof b.id==="string"&&b.id?b.id:"legacy-"+i,ev:obj(b.ev)?b.ev:{},pts:arr(b.pts).filter(q=>Array.isArray(q)&&q.length>=2&&fin(q[0])&&fin(q[1])),st:arr(b.st),d:fin(b.d)?b.d:0,ma:fin(b.ma)?b.ma:0,date:fin(b.date)?b.date:0,from:typeof b.from==="string"?b.from:"",to:typeof b.to==="string"?b.to:""}));
+  if(k==="log")return Object.assign({on:false,pts:[]},v,{pts:arr(v.pts).filter(q=>Array.isArray(q)&&q.length>=2&&fin(q[0])&&fin(q[1]))});
+  if(k==="phase"){const q=Object.assign({},v);for(const x of ["ev","said","holds"])if(!obj(q[x]))q[x]={};if(!Array.isArray(q.lm))q.lm=[];return q}
+  if(k==="marks")return arr(v).filter(q=>obj(q)&&fin(q.lat)&&fin(q.lon));
+  if(k==="bumps")return arr(v).filter(q=>obj(q)&&fin(q.t)&&fin(q.g));
+  if(k==="xap")return arr(v);
+  if(k==="ls"){const q={};for(const [a,b] of Object.entries(v))if(obj(b)&&Array.isArray(b.parts)&&b.parts.every(obj))q[a]=b;return q}
+  if(k==="spot")return Object.assign({},v,{pts:fin(v.pts)?v.pts:0,caught:arr(v.caught).filter(obj),types:obj(v.types)?v.types:{},airl:obj(v.airl)?v.airl:{}});
+  return v;
+}
+const store={get(k,d){try{const v=localStorage.getItem("cp_"+k);return v?storedValue(k,JSON.parse(v),d):d}catch(e){return d}},set(k,v){try{localStorage.setItem("cp_"+k,JSON.stringify(v));return true}catch(e){storeFail(k,e);return false}}};
 let logDirty=false,sfWarned=false;
 function storeFail(k,e){const el=document.getElementById("storeTxt");if(el)el.textContent="⚠ Couldn't save "+k+" ("+((e&&e.name)||"error")+"). Storage for this app may be full. Export the logbook now, then delete old flights.";if(!sfWarned){sfWarned=true;try{say("Storage problem. Export your logbook to keep it safe.");hap([80,60,80])}catch(_){}}}
 function storeFlush(){if(logDirty&&typeof LOG!=="undefined"){if(store.set("log",LOG))logDirty=false}}
@@ -16,7 +33,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 window.addEventListener("pagehide",storeFlush);setInterval(storeFlush,30000);
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
-let S=Object.assign({spd:"kt",alt:"ft",dst:"nm",day:"0",disp:"day",scn:"auto",autofh:"on",att:"gps",from:"",to:"",seat:"both",mapAuto:"on"},store.get("settings",{}));
+let S=Object.assign({tex:"off",spd:"kt",alt:"ft",dst:"nm",day:"0",disp:"day",scn:"auto",autofh:"on",att:"gps",from:"",to:"",seat:"both",mapAuto:"on"},store.get("settings",{}));
 const esc=t=>String(t==null?"":t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 const dPt=(a,b,m)=>{const d=m/R,t=rad(b),p1=rad(a.lat),l1=rad(a.lon);const p2=Math.asin(Math.sin(p1)*Math.cos(d)+Math.cos(p1)*Math.sin(d)*Math.cos(t));const l2=l1+Math.atan2(Math.sin(t)*Math.sin(d)*Math.cos(p1),Math.cos(d)-Math.sin(p1)*Math.sin(p2));return {lat:deg(p2),lon:((deg(l2)+540)%360)-180}};
 let LOG=store.get("log",{on:false,pts:[]});
@@ -573,7 +590,7 @@ function skyInfo(){
 
 /* ================= position, arrival ================= */
 function posInfo(){
-  const L=last;if(!L){return}
+  const L=viewL();if(!L){for(const id of ["mgrs","ll","nap","napN","terr","agl"])$(id).textContent="---";return}
   $("mgrs").textContent=toMGRS(L.lat,L.lon);
   $("ll").textContent=Math.abs(L.lat).toFixed(3)+"°"+(L.lat<0?"S":"N")+" "+Math.abs(L.lon).toFixed(3)+"°"+(L.lon<0?"W":"E");
   const n=nearestAp(L);if(n){$("nap").textContent=n.a[0]+" "+Math.round(fDst(n.d))+S.dst.toUpperCase()+" "+String(Math.round(n.b)).padStart(3,"0")+"°";$("napN").textContent=n.a[1]}
@@ -973,7 +990,7 @@ function drawMapCore(){
   const W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;const dpr=window.devicePixelRatio||1;
   if(cv.width!==W*dpr||cv.height!==H*dpr){cv.width=W*dpr;cv.height=H*dpr}
   const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
-  const css=getComputedStyle(document.body),col=k=>css.getPropertyValue(k).trim(),nvg=S.disp==="nvg",glow=!nvg;
+  const css=getComputedStyle(document.body),col=k=>css.getPropertyValue(k).trim(),nvg=S.disp==="nvg",glow=false;/* v24c: flat MFD look, no canvas glow */
   const fr=apBy(S.from),to=apBy(S.to);const pts=[];
   if(fr)pts.push(fr);if(to)pts.push(to);for(const p of trail)pts.push(p);if(last)pts.push(last);
   if(!pts.length){for(const a of AP)pts.push(a)}
@@ -1036,7 +1053,7 @@ function drawMapCore(){
     else{x.fillStyle=col("--ink");x.strokeStyle=col("--bg");x.lineWidth=2;x.beginPath();x.moveTo(0,-12);x.lineTo(8,9);x.lineTo(0,5);x.lineTo(-8,9);x.closePath();x.stroke();x.fill()}x.restore()}
   try{tkMapDraw(x,P,sc,W,H,col,glow)}catch(e){}
   if(twyOn){x.save();x.font="10px \"B612 Mono\",monospace";x.textAlign="right";x.fillStyle="rgba(0,0,0,.6)";const aw=x.measureText("© OpenStreetMap contributors").width;x.fillRect(W-aw-10,H-17,aw+8,14);x.fillStyle=col("--dim");x.fillText("© OpenStreetMap contributors",W-6,H-6);x.restore()}
-  if(!fr&&!to&&!last){x.fillStyle=col("--dim");x.font="14px \"B612 Mono\",monospace";x.textAlign="center";x.fillText("Pick a route to plot it",W/2,H-14);x.textAlign="start"}
+  if(!fr&&!to&&!last&&!tkOn()){x.fillStyle=col("--dim");x.font="14px \"B612 Mono\",monospace";x.textAlign="center";x.fillText("Pick a route to plot it",W/2,H-14);x.textAlign="start"}
 }
 new ResizeObserver(drawMap).observe($("mapFig"));
 
@@ -1257,7 +1274,7 @@ if(LOG.on&&LOG.pts&&LOG.pts.length>=2&&!PH.demo&&PH.p!=="parked"){try{rebuildFro
 try{endBtnUpd();staleCheck()}catch(e){}
 
 /* ---------- settings ---------- */
-function applySeg(){document.querySelectorAll(".seg").forEach(s=>{s.querySelectorAll("button").forEach(b=>b.classList.toggle("sel",String(S[s.dataset.k])===b.dataset.v))});document.body.classList.toggle("m-night",S.disp==="night");document.body.classList.toggle("m-nvg",S.disp==="nvg");{const hs=$("hudSym");if(hs)hs.setAttribute("filter",(S.disp==="nvg"||reduceMo)?"url(#sh)":"url(#glow)");}{const bd=$("bgDim");if(bd){for(const bi of [$("bgA"),$("bgB"),$("wxDrops")]){if(S.disp==="nvg")bi.setAttribute("filter","url(#nvgF)");else bi.removeAttribute("filter")}bd.setAttribute("opacity",S.disp==="day"?".34":S.disp==="night"?".62":".6")}}$("lvlBtn").style.display=S.att==="sen"?"":"none";}
+function applySeg(){document.querySelectorAll(".seg").forEach(s=>{s.querySelectorAll("button").forEach(b=>b.classList.toggle("sel",String(S[s.dataset.k])===b.dataset.v))});document.body.classList.toggle("m-night",S.disp==="night");document.body.classList.toggle("tex",S.tex==="on");document.body.classList.toggle("m-nvg",S.disp==="nvg");{const hs=$("hudSym");if(hs)hs.setAttribute("filter",(S.disp==="nvg"||reduceMo)?"url(#sh)":"url(#glow)");}{const bd=$("bgDim");if(bd){for(const bi of [$("bgA"),$("bgB"),$("wxDrops")]){if(S.disp==="nvg")bi.setAttribute("filter","url(#nvgF)");else bi.removeAttribute("filter")}bd.setAttribute("opacity",S.disp==="day"?".34":S.disp==="night"?".62":".6")}}$("lvlBtn").style.display=S.att==="sen"?"":"none";}
 document.querySelectorAll(".seg").forEach(s=>s.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S[s.dataset.k]=b.dataset.v;saveS();applySeg();if(s.dataset.k==="seat")try{windowInfo()}catch(_){}render();drawMap();profAll();if(s.dataset.k==="scn"||s.dataset.k==="wxs")pickScene();if(s.dataset.k==="att"){if(S.att==="sen")senStart();else senStop()}}));
 let framed=false;try{framed=window.self!==window.top}catch(e){framed=true}
 if(framed){$("stat").textContent="Preview: GPS is blocked here. Tap Demo flight";$("dot").className="dot warn"}
@@ -1296,7 +1313,7 @@ const clamp01=v=>Math.max(0,Math.min(1,v));
 const PG={els:[...document.querySelectorAll("#pages>.page")],i:-1};
 {const d=$("pgDots");d.innerHTML=PG.els.map((p,i)=>`<button data-i="${i}" aria-label="${esc(p.dataset.t)} page" title="${esc(p.dataset.t)}"></button>`).join("");
  d.onclick=e=>{const b=e.target.closest("button");if(b){hap(8);pgGo(+b.dataset.i)}}}
-function pgSet(i){if(i===PG.i)return;PG.i=i;$("pgTitle").textContent=PG.els[i].dataset.t;
+function pgSet(i){if(i===PG.i)return;PG.i=i;$("pgTitle").textContent=PG.els[i].dataset.c||PG.els[i].dataset.t;$("pgTitle").title=PG.els[i].dataset.t;
   [...$("pgDots").children].forEach((b,j)=>{b.classList.toggle("on",j===i);if(j===i)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
   $("pgPrev").disabled=i===0;$("pgNext").disabled=i===PG.els.length-1;store.set("page",i);
   const id=PG.els[i].id;if(id==="pg-map")try{wxBtn();drawMapCore()}catch(e){}if(id==="pg-prof")try{profAll()}catch(e){}if(id==="pg-win")try{windowInfo()}catch(e){}}
@@ -2179,7 +2196,7 @@ const SVP={plan:null,run:false};
 function svpSel(){const f=$("svpFrom"),t=$("svpTo"),src=$("from").innerHTML;if(f.options.length!==$("from").options.length){const fv=f.value||S.from,tv=t.value||S.to;f.innerHTML=src;t.innerHTML=src.replace("Departure…","Arrival…");f.value=fv||"";t.value=tv||""}}
 async function svpEst(){svpSel();const pk=await svPack();const fr=apBy($("svpFrom").value),to=apBy($("svpTo").value);
   if(!fr||!to||fr.c===to.c){SVP.plan=null;if(!SVP.run)$("svpTxt").textContent="Pick a departure and destination for the 3D pack.";svpList();return}
-  const P=pk.plan(fr,to,{w:$("svpW").value,bm:$("svpBm").checked,asp:$("svpAsp").checked});SVP.plan=P;
+  const P=pk.plan(fr,to,{w:$("svpW").value,bm:$("svpBm").checked,asp:!$("svpAsp").disabled&&$("svpAsp").checked});SVP.plan=P;
   const by=l=>P.rows.filter(r=>r.l===l).reduce((s,r)=>s+r.est,0);
   if(!SVP.run)$("svpTxt").textContent=`${fr.c} → ${to.c} (${P.km.toLocaleString()} km): about ${pk.fmtMB(P.est+P.aspEst)} for ${P.keys.length.toLocaleString()} tiles (terrain ${pk.fmtMB(by("d"))}, imagery ${pk.fmtMB(by("i"))}${P.bm?", night lights "+pk.fmtMB(by("n")):""}${P.asp?", airspace file about 8 MB, stored much smaller":""}).`+(P.need<P.est*0.98?` About ${pk.fmtMB(P.need+P.aspEst)} is new; the rest is already on the phone.`:"")+" Download on Wi-Fi if you can.";
   svpList()}
@@ -2203,7 +2220,7 @@ $("svpGo").onclick=async()=>{await svpEst();if(!SVP.plan){$("svpTxt").textConten
 $("svpStop").onclick=async()=>{SVP.want=null;const pk=await svPack();pk.stop();pk.pause(pk.running()&&pk.running().id,true)};
 /* v24: carry on an unfinished pack by itself when the app comes back (iOS pauses web pages in the background) */
 async function svpAuto(){if(SVP.run||document.hidden||!cfOk()||S.net==="off")return;const pk=await svPack();const p=Object.values(pk.packs()).find(q=>!q.done&&!q.paused&&q.keys&&q.keys.length&&Date.now()-(q.started||0)<3*86400000);
-  if(!p)return;const fr=apBy(p.from),to=apBy(p.to);if(fr&&to){$("svpTxt").textContent="Carrying on the 3D pack "+p.from+" → "+p.to+"…";svpGo(pk.plan(fr,to,{w:p.w,bm:p.bm,asp:p.asp}),true)}}
+  if(!p)return;const fr=apBy(p.from),to=apBy(p.to);if(fr&&to){$("svpTxt").textContent="Carrying on the 3D pack "+p.from+" → "+p.to+"…";svpGo(pk.plan(fr,to,{w:p.w,bm:p.bm,asp:!!p.asp&&!$("svpAsp").disabled}),true)}}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(svpAuto,2500)});window.addEventListener("online",()=>setTimeout(svpAuto,2500));setTimeout(svpAuto,6000);
 $("svpOpen").onclick=()=>{hap(10);svOpen()};
 $("svGoPack").onclick=()=>{try{pgGo(PG.els.findIndex(e=>e.id==="pg-route"))}catch(e){}setTimeout(()=>{$("svpTile").scrollIntoView({block:"start"})},400)};
@@ -2211,7 +2228,7 @@ for(const id of ["svpFrom","svpTo","svpW","svpBm","svpAsp"])$(id).addEventListen
 $("svpList").onclick=async e=>{const b=e.target.closest("button");if(!b)return;const pk=await svPack();const p=pk.packs()[b.dataset.id];if(!p)return;
   if(b.dataset.a==="v3d"){hap(10);svOpen();return}
   if(b.dataset.a==="del"){if(SVP.run)return;const fr=await pk.remove(p.id);$("svpTxt").textContent=`Deleted the 3D pack ${p.from} → ${p.to}; freed ${pk.fmtMB(fr)}.`;svpList()}
-  else if(b.dataset.a==="res"){pk.pause(p.id,false);const fr=apBy(p.from),to=apBy(p.to);if(fr&&to)svpGo(pk.plan(fr,to,{w:p.w,bm:p.bm,asp:p.asp}))}};
+  else if(b.dataset.a==="res"){pk.pause(p.id,false);const fr=apBy(p.from),to=apBy(p.to);if(fr&&to)svpGo(pk.plan(fr,to,{w:p.w,bm:p.bm,asp:!!p.asp&&!$("svpAsp").disabled}))}};
 $("from").addEventListener("change",()=>{$("svpFrom").value=$("from").value;svpEst()});$("to").addEventListener("change",()=>{$("svpTo").value=$("to").value;svpEst()});
 /* load the small pack module only when the tile comes into view */
 try{new IntersectionObserver((en,ob)=>{if(en.some(x=>x.isIntersecting)){ob.disconnect();svpSel();svpEst()}}).observe($("svpTile").closest(".page")||$("svpTile"))}catch(e){svpSel();svpEst()}
@@ -2912,7 +2929,7 @@ window.cpV23g={render:v23gRender};
 /* ===================== 24) Boarding pass scan / upload (on-device only) =====================
    Camera scan, an image or screenshot, or a Wallet .pkpass file. The barcode (PDF417 / Aztec / QR, IATA BCBP) is decoded on the
    phone by bcbp-zx.js in a Web Worker. We keep only flight, date, seat and from/to; the name and booking code are dropped. */
-function bcbpParse(s){s=String(s||"").replace(/\r?\n/g,"");if(!/^M[1-4]/.test(s)||s.length<58)return null;
+function bcbpParse(s){s=String(s||"").replace(/\r?\n/g,"");if(/^m[1-4]/.test(s))s=s.toUpperCase();if(!/^M[1-4]/.test(s)||s.length<58)return null;
   const g=(a,b)=>s.slice(a,b),from=g(30,33).trim().toUpperCase(),to=g(33,36).trim().toUpperCase(),car=g(36,39).trim().toUpperCase(),num=g(39,44).trim().replace(/^0+(?=\d)/,""),jd=parseInt(g(44,47),10),seatRaw=g(48,52).trim(),cls=g(47,48);
   if(!/^[A-Z]{3}$/.test(from)||!/^[A-Z]{3}$/.test(to)||!/^[A-Z0-9]{2,3}$/.test(car)||!/^\d{1,4}[A-Z]?$/.test(num))return null;
   let date=null;if(jd>=1&&jd<=366){const now=new Date();let best=null;for(const y of [now.getFullYear()-1,now.getFullYear(),now.getFullYear()+1]){const d=new Date(y,0,jd);const df=(d-now)/864e5;if(df>-40&&df<330&&(!best||Math.abs(df)<Math.abs(best.df)))best={d,df}}date=best?best.d:null}
