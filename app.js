@@ -1,3 +1,8 @@
+/* v25: static inline styles live in data-css and pbar widths in data-w; both are applied through CSSOM, so the CSP needs no style-src 'unsafe-inline' */
+function cpSt(r){if(!r||!r.querySelectorAll)return;const f=e=>{if(e.hasAttribute("data-css")){e.style.cssText=e.getAttribute("data-css");e.removeAttribute("data-css")}if(e.hasAttribute("data-w")){e.style.width=Math.max(0,Math.min(100,+e.getAttribute("data-w")||0))+"%";e.removeAttribute("data-w")}};if(r.hasAttribute)f(r);r.querySelectorAll("[data-css],[data-w]").forEach(f)}
+cpSt(document.documentElement);new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)cpSt(n)}).observe(document.documentElement,{childList:true,subtree:true});
+/* v25: refuse to run inside a frame (GitHub Pages cannot send frame-ancestors / X-Frame-Options) */
+if(window.top!==window.self){try{window.top.location=window.location.href}catch(e){document.documentElement.style.display="none"}}
 /* Cabin Panel app script. Kept in its own file so the page can use a strict Content-Security-Policy (script-src 'self'). */
 {
 const AP=[["SYD","Sydney",-33.9461,151.1772,"Sydney"],["MEL","Melbourne",-37.6733,144.8433,"Melbourne"],["BNE","Brisbane",-27.3842,153.1175,"Brisbane"],["PER","Perth",-31.9403,115.9669,"Perth"],["ADL","Adelaide",-34.9450,138.5306,"Adelaide"],["CBR","Canberra",-35.3069,149.1950,"Sydney"],["DRW","Darwin",-12.4147,130.8769,"Darwin"],["HBA","Hobart",-42.8361,147.5103,"Hobart"],["CNS","Cairns",-16.8858,145.7553,"Brisbane"],["OOL","Gold Coast",-28.1644,153.5047,"Brisbane"],["TSV","Townsville",-19.2525,146.7653,"Brisbane"],["ASP","Alice Springs",-23.8067,133.9022,"Darwin"],["AYQ","Uluru",-25.1861,130.9756,"Darwin"],["LST","Launceston",-41.5453,147.2142,"Hobart"],["MCY","Sunshine Coast",-26.6033,153.0911,"Brisbane"],["NTL","Newcastle",-32.7950,151.8344,"Sydney"],["AVV","Avalon",-38.0394,144.4694,"Melbourne"],["BME","Broome",-17.9447,122.2322,"Perth"],["KTA","Karratha",-20.7122,116.7733,"Perth"],["PHE","Port Hedland",-20.3778,118.6264,"Perth"],["MKY","Mackay",-21.1717,149.1797,"Brisbane"],["ROK","Rockhampton",-23.3819,150.4753,"Brisbane"],["WGA","Wagga Wagga",-35.1653,147.4664,"Sydney"],["ABX","Albury",-36.0678,146.9581,"Sydney"],["KGI","Kalgoorlie",-30.7894,121.4617,"Perth"]].map(a=>({c:a[0],n:a[1],lat:a[2],lon:a[3],tz:"Australia/"+a[4]}));
@@ -44,13 +49,16 @@ const saveS=()=>store.set("settings",S);
 /* v25: Drive mode state (declared early: render, phaseStep and sharing read it during boot). Stored on this phone only. */
 function drvClean(v){const o=v&&typeof v==="object"&&!Array.isArray(v)?v:{},fin=x=>typeof x==="number"&&Number.isFinite(x),pt=p=>p&&typeof p==="object"&&fin(p.lat)&&fin(p.lon)&&Math.abs(p.lat)<=90&&Math.abs(p.lon)<=180?{lat:p.lat,lon:p.lon,t:fin(p.t)?p.t:0}:null;
   const u=x=>x&&typeof x==="object"&&["kt","kmh","mph"].includes(x.spd)&&["ft","m"].includes(x.alt)&&["nm","km"].includes(x.dst)?{spd:x.spd,alt:x.alt,dst:x.dst}:null;
-  const tr=o.trip&&typeof o.trip==="object"&&fin(o.trip.t0)?Object.assign({mv:0,sinceRest:0,nextRest:2*3600e3,stopAt:0,pt:o.trip.t0},o.trip):null;
-  if(tr&&!(tr.rs&&typeof tr.rs==="object"))tr.rs=null;if(tr&&tr.rs&&!(tr.rs.le&&typeof tr.rs.le==="object"))tr.rs.le={};
+  const nn=(x,d)=>fin(x)&&x>=0?x:d;
+  /* v25: every stored trip field is coerced to a finite number (corrupt or hand-edited storage must not reach the maths or the page) */
+  const tr=o.trip&&typeof o.trip==="object"&&fin(o.trip.t0)?{t0:o.trip.t0,mv:nn(o.trip.mv,0),sinceRest:nn(o.trip.sinceRest,0),nextRest:Math.max(nn(o.trip.nextRest,2*3600e3),3600e3),stopAt:nn(o.trip.stopAt,0),pt:nn(o.trip.pt,o.trip.t0),arr:o.trip.arr?1:0,
+    rs:o.trip.rs&&typeof o.trip.rs==="object"?{dur:nn(o.trip.rs.dur,0),sq:nn(o.trip.rs.sq,0),brake:nn(o.trip.rs.brake,0),accel:nn(o.trip.rs.accel,0),corner:nn(o.trip.rs.corner,0),bump:nn(o.trip.rs.bump,0),le:{}}:null}:null;
+  const rc=o.restC&&typeof o.restC==="object"&&fin(o.restC.at)?{at:o.restC.at,since:nn(o.restC.since,0),next:Math.max(nn(o.restC.next,2*3600e3),3600e3)}:null;
   const d=o.dest&&pt(o.dest)?Object.assign(pt(o.dest),{n:String(o.dest.n||"Destination").slice(0,60),src:String(o.dest.src||"")}):null;
   return {on:o.on===true,pax:fin(o.pax)?o.pax:0,paxEver:fin(o.paxEver)?o.paxEver:0,since:fin(o.since)?o.since:0,start:pt(o.start),starts:(Array.isArray(o.starts)?o.starts:[]).map(pt).filter(Boolean).slice(0,3),
-    priv:(Array.isArray(o.priv)?o.priv:[]).map(pt).filter(Boolean).slice(0,5),dest:d,outAt:fin(o.outAt)?o.outAt:0,trip:tr,fU:u(o.fU),dU:u(o.dU),cl:[]}}
+    priv:(Array.isArray(o.priv)?o.priv:[]).map(pt).filter(Boolean).slice(0,5),dest:d,outAt:fin(o.outAt)?o.outAt:0,trip:tr,restC:rc,fU:u(o.fU),dU:u(o.dU),cl:[]}}
 let DRV=drvClean(store.get("drive",{}));
-const drvSave=()=>store.set("drive",{on:DRV.on,pax:DRV.pax,paxEver:DRV.paxEver,since:DRV.since,start:DRV.start,starts:DRV.starts,priv:DRV.priv,dest:DRV.dest,outAt:DRV.outAt,trip:DRV.trip,fU:DRV.fU,dU:DRV.dU});
+const drvSave=()=>store.set("drive",{on:DRV.on,pax:DRV.pax,paxEver:DRV.paxEver,since:DRV.since,start:DRV.start,starts:DRV.starts,priv:DRV.priv,dest:DRV.dest,outAt:DRV.outAt,trip:DRV.trip,restC:DRV.restC,fU:DRV.fU,dU:DRV.dU});
 const apBy=c=>AP.find(a=>a.c===c);
 
 /* ---------- formatting ---------- */
@@ -625,7 +633,7 @@ function arrInfo(){
     [ev?(ev.up?"Sunrise":"Sunset"):"Sun",ev?fmt(ev.t,to.tz):"—"],["Arrive in",sunAt>0?"Daylight":sunAt>-6?"Twilight":"Darkness"]];
   if(ai)rows.push(["Airport elevation",Math.round(fAlt(ai[4]/FT)).toLocaleString()+" "+S.alt]);
   try{arrExtra(rows,L,to)}catch(e){}
-  $("arrKv").innerHTML=rows.map(r=>`<div>${r[0]}<b>${r[1]}</b></div>`).join("");
+  $("arrKv").innerHTML=rows.map(r=>`<div>${esc(r[0])}<b>${esc(r[1])}</b></div>`).join("");
 }
 
 /* ================= MARK ================= */
@@ -814,7 +822,11 @@ function cleanPts(a){if(!Array.isArray(a))return [];const o=[];for(const p of a)
 function cleanMark(m){if(!m||typeof m!=="object")return null;const lat=num(m.lat),lon=num(m.lon),t=num(m.t);if(lat==null||lon==null||t==null)return null;return {n:Math.max(1,Math.round(num(m.n)||1)),t,lat,lon,alt:num(m.alt),note:String(m.note==null?"":m.note).slice(0,80)}}
 function cleanEv(e){const o={};if(!e||typeof e!=="object")return o;for(const k of ["off","roll","up","toc","tod","td","on","rollTrk","upGs","cr","tdG"]){const v=num(e[k]);if(v!=null)o[k]=v}return o}
 function cleanEntry(b){if(!b||typeof b!=="object"||!num(b.id))return null;const pts=cleanPts(b.pts);if(!pts.length)return null;
-  return {id:num(b.id),flt:code(b.flt).slice(0,9),demo:!!b.demo,from:code(b.from).slice(0,5)||"???",to:code(b.to).slice(0,5)||"???",date:num(b.date)||pts[0][3],ev:cleanEv(b.ev),st:(Array.isArray(b.st)?b.st:[]).filter(x=>STN[x]),d:num(b.d)||0,ma:num(b.ma)||0,ms:num(b.ms)||0,marks:(Array.isArray(b.marks)?b.marks:[]).map(cleanMark).filter(Boolean),pts,ac:String(b.ac||"").replace(/[^A-Za-z0-9 -]/g,"").slice(0,12),dy:dyClean(b.dy),ls:lsClean(b.ls)}}
+  return {id:num(b.id),flt:code(b.flt).slice(0,9),demo:!!b.demo,from:code(b.from).slice(0,5)||"???",to:code(b.to).slice(0,5)||"???",date:num(b.date)||pts[0][3],ev:cleanEv(b.ev),st:(Array.isArray(b.st)?b.st:[]).filter(x=>STN[x]),d:num(b.d)||0,ma:num(b.ma)||0,ms:num(b.ms)||0,marks:(Array.isArray(b.marks)?b.marks:[]).map(cleanMark).filter(Boolean),pts,ac:String(b.ac||"").replace(/[^A-Za-z0-9 -]/g,"").slice(0,12),dy:dyClean(b.dy),ls:lsClean(b.ls),...(b.drv===1?drvCleanEntry(b):{})}}
+/* v25: drive entries keep their town names (plain text, no markup), ride score and moving time on import */
+function drvCleanEntry(b){const tx=v=>String(v==null?"":v).replace(/[<>&"'`\u0000-\u001f]/g,"").trim().slice(0,40),n=v=>{const x=num(v);return x==null?0:x};
+  const rs=b.rs&&typeof b.rs==="object"&&num(b.rs.score)!=null?{score:Math.round(Math.max(0,Math.min(100,num(b.rs.score)))),mins:Math.max(0,Math.round(n(b.rs.mins))),rms:n(b.rs.rms),parts:(Array.isArray(b.rs.parts)?b.rs.parts:[]).slice(0,4).map(p=>[tx(Array.isArray(p)?p[0]:""),Math.max(0,Math.round(n(Array.isArray(p)?p[1]:0)))])}:undefined;
+  return {drv:1,flt:"",from:tx(b.from)||"Start",to:tx(b.to)||"End",rs,mv:Math.max(0,Math.round(n(b.mv)))}}
 function cleanAp(x){if(!x||typeof x!=="object")return null;const c=code(x.c).slice(0,5);const lat=num(x.lat),lon=num(x.lon);if(c.length<3||lat==null||lon==null)return null;return {c,n:String(x.n==null?c:x.n).replace(/[<>&"]/g,"").slice(0,24),lat,lon,tz:tzOk(x.tz)?x.tz:"Australia/Sydney",icao:code(x.icao).slice(0,4)}}
 $("impFile").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
   try{const j=JSON.parse(await f.text());if(!j||j.app!=="cabin-panel"||!Array.isArray(j.book))throw new Error("not a Cabin Panel logbook");
@@ -870,8 +882,8 @@ function magDecl(lat,lon,hKm,yr){
   h+=`<line x1="${(160+r1*Math.sin(a)).toFixed(1)}" y1="${(160-r1*Math.cos(a)).toFixed(1)}" x2="${(160+r2*Math.sin(a)).toFixed(1)}" y2="${(160-r2*Math.cos(a)).toFixed(1)}" stroke="var(--mag)" stroke-width="${big?3:mid?2:1}" opacity="${big?1:.75}"/>`;
   if(big){const lbl={0:"N",90:"E",180:"S",270:"W"}[d]||String(d/10),rr=108,x=(160+rr*Math.sin(a)).toFixed(1),y=(160-rr*Math.cos(a)).toFixed(1);
     h+=`<text x="${x}" y="${(+y+8).toFixed(1)}" text-anchor="middle" font-size="${d%90===0?26:20}" font-weight="700" fill="${d===0?"var(--cyan)":"var(--ink)"}" transform="rotate(${d} ${x} ${y})">${lbl}</text>`}}
- h+='<g id="cBug" style="display:none"><path d="M160 6 L172 6 L172 18 L166 26 L160 18 L154 26 L148 18 L148 6 Z" fill="none" stroke="var(--cyan)" stroke-width="3"/><line x1="160" y1="28" x2="160" y2="96" stroke="var(--cyan)" stroke-width="2" stroke-dasharray="5 5"/></g>';
- $("cRose").innerHTML=h}
+ h+='<g id="cBug"><path d="M160 6 L172 6 L172 18 L166 26 L160 18 L154 26 L148 18 L148 6 Z" fill="none" stroke="var(--cyan)" stroke-width="3"/><line x1="160" y1="28" x2="160" y2="96" stroke="var(--cyan)" stroke-width="2" stroke-dasharray="5 5"/></g>';
+ $("cRose").innerHTML=h;$("cBug").style.display="none"}
 const w180=d=>((d%360)+540)%360-180;
 const p3=v=>String(Math.round(((v%360)+360)%360)%360).padStart(3,"0");
 function cmpScrAng(){if(typeof window.orientation==="number")return window.orientation;try{if(screen.orientation&&typeof screen.orientation.angle==="number")return screen.orientation.angle}catch(e){}return 0}
@@ -1245,7 +1257,7 @@ function pickCands(){const c=[];const ph=store.get("phase",{});
   return c.concat(window.__pickFile||[])}
 function pickRender(){const cs=pickCands();const f=t=>t?new Date(t).toTimeString().slice(0,5):"—";
   $("pickList").innerHTML=cs.length?cs.map((c,i)=>{const l=c.pts[c.pts.length-1],ph=c.ph||inferPhase(c.pts),ago=Math.round((Date.now()-l[3])/60000);
-    return `<li><div style="display:grid;gap:2px"><b>${esc(c.flt?c.flt+" ":"")}${esc(c.from||"?")} → ${esc(c.to||"?")}${c.demo?" (demo)":""}</b><span>${esc(c.label)} · ${esc(PHN[ph.p]||ph.p)} · off blocks ${f(ph.ev&&ph.ev.off)} · wheels up ${f(ph.ev&&ph.ev.up)} · last point ${f(l[3])} (${ago<1?"just now":hm(ago*60)+" ago"}) · ${c.pts.length.toLocaleString()} points</span></div><button class="pri" data-i="${i}">Pick up</button></li>`}).join("")
+    return `<li><div class="pkG"><b>${esc(c.flt?c.flt+" ":"")}${esc(c.from||"?")} → ${esc(c.to||"?")}${c.demo?" (demo)":""}</b><span>${esc(c.label)} · ${esc(PHN[ph.p]||ph.p)} · off blocks ${f(ph.ev&&ph.ev.off)} · wheels up ${f(ph.ev&&ph.ev.up)} · last point ${f(l[3])} (${ago<1?"just now":hm(ago*60)+" ago"}) · ${c.pts.length.toLocaleString()} points</span></div><button class="pri" data-i="${i}">Pick up</button></li>`}).join("")
     :'<li><span>No flight saved on this phone. Use "From exported file…" if you exported one.</span></li>'}
 function pickUp(c){
   if(demo)stopDemo();if(REPLAY)replayStop();
@@ -1483,7 +1495,7 @@ function rtAdd(f,t){const l=rtList().filter(r=>!(r.from===f&&r.to===t));l.unshif
 function rtUse(f,t){if(!apBy(f)||!apBy(t))return;prof=[];window.__terr=null;S.from=f;S.to=t;$("from").value=f;$("to").value=t;saveS();PK.key="";render();drawMap();profAll();packRender();wxBtn();try{windowInfo()}catch(e){}}
 function rtRender(){const l=rtList(),ul=$("rtList");if(!l.length){ul.innerHTML='<li><span>No saved routes yet. Download a pack or tap Save this route.</span></li>';return}
   ul.innerHTML=l.map((r,i)=>{const pk=store.get("pack_"+rtKey(r.from,r.to),null),age=pk?(Date.now()-pk.at)/3600000:null;
-    return `<li class="rt"><div><b>${esc(r.from)} → ${esc(r.to)}</b><span class="sub" style="display:block">${pk?"pack "+(age<1?Math.round(age*60)+" min":age<48?Math.round(age)+" h":Math.round(age/24)+" days")+" old"+(pk.lm&&pk.lm.length?" · "+pk.lm.length+" places":""):"no pack"}</span></div><div class="row"><button data-a="use" data-i="${i}">Use</button><button data-a="upd" data-i="${i}" data-net>Update</button><button data-a="del" data-i="${i}" aria-label="Delete route">✕</button></div></li>`}).join("")}
+    return `<li class="rt"><div><b>${esc(r.from)} → ${esc(r.to)}</b><span class="sub blk">${pk?"pack "+(age<1?Math.round(age*60)+" min":age<48?Math.round(age)+" h":Math.round(age/24)+" days")+" old"+(pk.lm&&pk.lm.length?" · "+pk.lm.length+" places":""):"no pack"}</span></div><div class="row"><button data-a="use" data-i="${i}">Use</button><button data-a="upd" data-i="${i}" data-net>Update</button><button data-a="del" data-i="${i}" aria-label="Delete route">✕</button></div></li>`}).join("")}
 $("rtList").onclick=e=>{const b=e.target.closest("button");if(!b)return;const r=rtList()[+b.dataset.i];if(!r)return;
   if(b.dataset.a==="use"){rtUse(r.from,r.to);hap(10)}
   else if(b.dataset.a==="upd"){rtUse(r.from,r.to);packDownload(r.from,r.to)}
@@ -2237,7 +2249,7 @@ async function svpEst(){svpSel();const pk=await svPack();const fr=apBy($("svpFro
   if(!SVP.run)$("svpTxt").textContent=`${fr.c} → ${to.c} (${P.km.toLocaleString()} km): about ${pk.fmtMB(P.est+P.aspEst)} for ${P.keys.length.toLocaleString()} tiles (terrain ${pk.fmtMB(by("d"))}, imagery ${pk.fmtMB(by("i"))}${P.bm?", night lights "+pk.fmtMB(by("n")):""}${P.asp?", airspace file about 8 MB, stored much smaller":""}).`+(P.need<P.est*0.98?` About ${pk.fmtMB(P.need+P.aspEst)} is new; the rest is already on the phone.`:"")+" Download on Wi-Fi if you can.";
   svpList()}
 async function svpList(){const pk=await svPack();const all=Object.values(pk.packs()),rn=pk.running();const ul=$("svpList");
-  ul.innerHTML=all.length?all.map(p=>`<li class="rt"><div><b>${esc(p.from)} → ${esc(p.to)}</b><span class="sub" style="display:block">${pk.fmtMB(pk.packBytes(p))} · ${p.w==="wide"?"wide":"standard"}${p.bm?" · night lights":""}${p.aspB?" · airspace":p.asp&&p.aspErr?" · airspace unavailable":""} · ${rn&&rn.id===p.id?"downloading "+Math.round(100*rn.done/Math.max(1,rn.total))+"%":p.done?"complete":"incomplete, tap Resume"}</span></div><div class="row"><button data-a="v3d" data-id="${esc(p.id)}" class="pri" aria-label="Open the 3D window view for ${esc(p.from)} to ${esc(p.to)}">3D view</button>${p.done||(rn&&rn.id===p.id)?"":`<button data-a="res" data-net data-id="${esc(p.id)}">Resume</button>`}<button data-a="del" data-id="${esc(p.id)}" aria-label="Delete 3D pack ${esc(p.from)} to ${esc(p.to)}">Delete</button></div></li>`).join(""):'<li><span>No 3D packs on this phone yet.</span></li>';
+  ul.innerHTML=all.length?all.map(p=>`<li class="rt"><div><b>${esc(p.from)} → ${esc(p.to)}</b><span class="sub blk">${pk.fmtMB(pk.packBytes(p))} · ${p.w==="wide"?"wide":"standard"}${p.bm?" · night lights":""}${p.aspB?" · airspace":p.asp&&p.aspErr?" · airspace unavailable":""} · ${rn&&rn.id===p.id?"downloading "+Math.round(100*rn.done/Math.max(1,rn.total))+"%":p.done?"complete":"incomplete, tap Resume"}</span></div><div class="row"><button data-a="v3d" data-id="${esc(p.id)}" class="pri" aria-label="Open the 3D window view for ${esc(p.from)} to ${esc(p.to)}">3D view</button>${p.done||(rn&&rn.id===p.id)?"":`<button data-a="res" data-net data-id="${esc(p.id)}">Resume</button>`}<button data-a="del" data-id="${esc(p.id)}" aria-label="Delete 3D pack ${esc(p.from)} to ${esc(p.to)}">Delete</button></div></li>`).join(""):'<li><span>No 3D packs on this phone yet.</span></li>';
   let q="";try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();if(e&&e.quota)q=` Browser storage in use: ${pk.fmtMB(e.usage||0)} of about ${pk.fmtMB(e.quota)} allowed.`}}catch(e){}
   $("svpStore").textContent=`3D packs use ${pk.fmtMB(pk.used())} on this phone.`+q;$("svpUse").textContent=all.length?all.length+" saved":"";
   const dn=all.filter(p=>p.done).map(p=>p.from+" → "+p.to);$("svPk").textContent=all.length?"3D route packs on this phone: "+all.map(p=>p.from+" → "+p.to+(p.done?"":rn&&rn.id===p.id?" (downloading)":" (incomplete)")).join(", ")+". Open the 3D view any time; over a covered route you see terrain and satellite imagery.":"No 3D route pack on this phone yet: download one on the Route page (Terrain and satellite for the 3D view).";
@@ -2276,7 +2288,7 @@ window.cpSV={open:svOpen,close:svClose,on:()=>SV.on,status:()=>SV.ctl?SV.ctl.sta
 /* ===== v23 features (built 21 Nov 2026): window seat guide, AR identify, replay+, stats and badges, turbulence master warning,
    bumps felt, arrival helper+, flight card+, live flight sharing / follow along, connected features, flight diary, body clock,
    landing score, top of descent, sunrise/sunset at altitude, spot the other plane.
-   Display only unless stated: nothing here changes phases. Logbook additions (stated by Peter): aircraft type, diary notes,
+   Display only unless stated: nothing here changes phases. Logbook additions (owner request): aircraft type, diary notes,
    landing score. All live data goes through the Cabin Panel Worker's provider-neutral routes (scale-ready). ===== */
 /* ---- central feature toggles and service config (one place; a public build can switch features or endpoints here) ---- */
 const FEAT=Object.assign({seat:1,identify:1,replay:1,stats:1,turb:1,bumps:1,arrival:1,card:1,share:1,follow:1,net:1,diary:1,bodyclock:1,landing:1,tod:1,sunalt:1,spot:1},store.get("feat",{}));
@@ -2642,7 +2654,7 @@ function dyAdd(txt,bookIdx){txt=String(txt||"").trim();if(!txt)return null;const
   if(bookIdx!=null&&BOOK[bookIdx]){const b=BOOK[bookIdx];b.dy=(b.dy||[]).concat([e]);store.set("book",BOOK);return e}
   const k=dyKey();(DY[k]=DY[k]||[]).push(e);const ks=Object.keys(DY);if(ks.length>60)delete DY[ks.sort()[0]];store.set("diary",DY);
   if(PH.bookId){const i=BOOK.findIndex(b=>b&&b.id===PH.bookId);if(i>=0){BOOK[i].dy=dyFor(k);store.set("book",BOOK)}}return e}
-const dyLi=(e,i,del)=>`<li><div><b>${esc(new Date(e.t).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false}))} · ${esc(PHN[e.ph]||e.ph||"")}</b><span class="sub" style="display:block">${e.alt!=null?esc(Math.round(fAlt(e.alt)/100)*100+" "+S.alt+" · "):""}${esc(e.at||(e.lat!=null?e.lat+", "+e.lon:"no position"))}</span><p class="dyT">${esc(e.txt)}</p></div>${del?`<button data-dy="${i}" aria-label="Delete note">✕</button>`:""}</li>`;
+const dyLi=(e,i,del)=>`<li><div><b>${esc(new Date(e.t).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false}))} · ${esc(PHN[e.ph]||e.ph||"")}</b><span class="sub blk">${e.alt!=null?esc(Math.round(fAlt(e.alt)/100)*100+" "+S.alt+" · "):""}${esc(e.at||(e.lat!=null?e.lat+", "+e.lon:"no position"))}</span><p class="dyT">${esc(e.txt)}</p></div>${del?`<button data-dy="${i}" aria-label="Delete note">✕</button>`:""}</li>`;
 function dyRender(){const el=$("dyList");if(!el)return;const a=dyFor(dyKey());$("dyHead").textContent=dyKey()==="gen"?"Notes (no flight recording yet)":"Notes for this flight";el.innerHTML=a.length?a.map((e,i)=>dyLi(e,i,true)).join(""):'<li><span>No notes yet. Notes are stamped with time, position, height and phase, and saved with this flight in the logbook.</span></li>'}
 if($("dyAdd"))$("dyAdd").onclick=()=>{const t=$("dyIn").value;if(dyAdd(t)){$("dyIn").value="";hap(15);dyRender()}};
 if($("dyList"))$("dyList").onclick=e=>{const b=e.target.closest("button[data-dy]");if(!b)return;const k=dyKey(),a=DY[k]||[];a.splice(+b.dataset.dy,1);DY[k]=a;store.set("diary",DY);dyRender()};
@@ -2679,7 +2691,7 @@ function statsRender(){const el=$("bdgOut"),kv=$("totKv");if(!el||!FEAT.stats)re
   kv.innerHTML=[["Flights",r.n],["Distance",Math.round(fDst(r.km)).toLocaleString()+" "+S.dst],["Hours",hm(r.secs)],["Airports",r.aps.size],["Aircraft types",r.types.size||"—"],
     ["Longest (time)",r.lg?hm(r.lg.v)+rt(r.lg):"—"],["Longest (distance)",r.ld?Math.round(fDst(r.ld.v)).toLocaleString()+" "+S.dst+rt(r.ld):"—"],["Highest",r.hi?Math.round(fAlt(r.hi.v)).toLocaleString()+" "+S.alt+rt(r.hi):"—"],["Fastest",r.fa?Math.round(fSpd(r.fa.v))+" "+S.spd+rt(r.fa):"—"]].map(x=>`<div>${esc(x[0])}<b>${esc(x[1])}</b></div>`).join("");
   const got=r.badges.filter(b=>b.got).length;$("bdgHead").textContent="Badges "+got+" of "+r.badges.length;
-  el.innerHTML=r.badges.map((b,i)=>`<button type="button" class="bdg ptc${b.got?" got":""}" data-b="${i}" aria-label="${esc(b.n)}: ${esc(b.d)}${b.got?" (earned)":" (locked)"}"><img src="patches/${esc(b.k)}.svg" alt="" width="60" height="70" draggable="false"><b>${esc(b.n)}</b><small>${b.got?"EARNED":bdgProg(b)}</small><i class="pbar"><i style="width:${Math.round(100*Math.min(1,b.v/b.g))}%"></i></i></button>`).join("");PT.bdg=r.badges}
+  el.innerHTML=r.badges.map((b,i)=>`<button type="button" class="bdg ptc${b.got?" got":""}" data-b="${i}" aria-label="${esc(b.n)}: ${esc(b.d)}${b.got?" (earned)":" (locked)"}"><img src="patches/${esc(b.k)}.svg" alt="" width="60" height="70" draggable="false"><b>${esc(b.n)}</b><small>${b.got?"EARNED":bdgProg(b)}</small><i class="pbar"><i data-w="${Math.round(100*Math.min(1,b.v/b.g))}"></i></i></button>`).join("");PT.bdg=r.badges}
 /* v24c: unit-patch style badges (original designs, patches/*.svg). Tap to enlarge with description. */
 function bdgProg(b){return b.g>1?b.v.toLocaleString()+" / "+b.g.toLocaleString():"LOCKED"}
 function ptOpen(o){$("ptImg").src=o.img;$("ptImg").className=o.got?"":"lock";$("ptN").textContent=o.n;$("ptK").textContent=o.k;$("ptD").textContent=o.d;$("ptS").textContent=o.s;$("ptS").className=o.got?"ok":"";
@@ -2692,7 +2704,7 @@ $("bdgOut").addEventListener("click",e=>{const t=e.target.closest(".bdg");if(!t|
 const SPR=[[0,"Cadet spotter"],[100,"Apron watcher"],[300,"Line spotter"],[750,"Flight spotter"],[1500,"Senior spotter"],[3000,"Chief spotter"],[6000,"Spotter ace"]];
 function spRank(pts){pts=+pts||0;let i=0;for(let j=0;j<SPR.length;j++)if(pts>=SPR[j][0])i=j;const nx=SPR[i+1];return {i,n:SPR[i][1],pts,next:nx?nx[0]:null,nextN:nx?nx[1]:null,f:nx?(pts-SPR[i][0])/(nx[0]-SPR[i][0]):1}}
 function spRankRender(){const el=$("spRank");if(!el)return;const r=spRank(SPC.pts);
-  el.innerHTML=`<img src="patches/r${r.i}.svg" alt="" width="120" height="60"><span><b>${esc(r.n.toUpperCase())}</b><small>${r.next!=null?(r.next-r.pts).toLocaleString()+" pts to "+esc(r.nextN.toUpperCase()):"TOP RANK"}</small><i class="pbar"><i style="width:${Math.round(100*r.f)}%"></i></i></span>`;
+  el.innerHTML=`<img src="patches/r${r.i}.svg" alt="" width="120" height="60"><span><b>${esc(r.n.toUpperCase())}</b><small>${r.next!=null?(r.next-r.pts).toLocaleString()+" pts to "+esc(r.nextN.toUpperCase()):"TOP RANK"}</small><i class="pbar"><i data-w="${Math.round(100*r.f)}"></i></i></span>`;
   el.setAttribute("aria-label","Spotter rank "+r.n+", "+r.pts+" points")}
 $("spRank").addEventListener("click",()=>{const r=spRank(SPC.pts);ptOpen({key:"r"+r.i,img:"patches/r"+r.i+".svg",got:true,n:r.n,k:"SPOTTER RANK · "+(r.i+1)+" / "+SPR.length,d:"Spot-the-plane points: "+r.pts.toLocaleString()+". Ranks are made-up titles for fun, not real ranks.",s:r.next!=null?(r.next-r.pts).toLocaleString()+" PTS TO "+r.nextN.toUpperCase():"TOP RANK"})});
 window.cpPatch={rank:spRank,open:i=>{const b=$("bdgOut").querySelectorAll(".bdg")[i];if(b)b.click()},close:ptClose,state:()=>({open:$("ptOv").style.display!=="none",k:$("ptOv").dataset.k||""})};
@@ -2804,7 +2816,7 @@ window.cpFollow={open:id=>fwOpen(id),close:fwClose,state:()=>({id:FW.id?FW.id.sl
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&FW.id)fwClose()});
 
 /* ---- test hook: feed a GPS fix straight in (skips the ground filter) ---- */
-window.cpFix=(lat,lon,alt,spd,trk,t)=>{onPos({gf:true,timestamp:t||Date.now(),coords:{latitude:lat,longitude:lon,altitude:alt,accuracy:5,speed:spd,heading:trk}});lastFixAt=Date.now();return !!last};
+window.cpFix=(lat,lon,alt,spd,trk,t,acc)=>{onPos({gf:true,timestamp:t||Date.now(),coords:{latitude:lat,longitude:lon,altitude:alt,accuracy:acc||5,speed:spd,heading:trk}});lastFixAt=Date.now();return !!last};
 
 /* ---- periodic renders and wiring ---- */
 function v23fRender(){try{todRender()}catch(e){}try{if(!document.activeElement||document.activeElement.id!=="dyIn")dyRender()}catch(e){}try{sunAltRender()}catch(e){}try{shUI()}catch(e){}}
@@ -2880,9 +2892,9 @@ function cnRender(){const o=$("cnOut");if(!o)return;const r=cnCalc();
   if(r.need){setTx($("cnBig"),"—");o.innerHTML='<li class="note">Needs a live ETA (GPS or Demo) or a Departs time in the pre-flight pack.</li>';return}
   const lab={ok:"Comfortable",tight:"Tight",risk:"At risk",departed:"Already departed"}[r.st],left=Math.max(0,Math.round((r.depMs-Date.now())/60000));
   setTx($("cnBig"),r.st==="departed"?lab:hm(left*60)+" to departure");$("cnBig").className="bigv cn-"+r.st;
-  o.innerHTML=[["Arrive "+r.to,r.arr+" local ("+r.how+")"],["Next flight"+(CN.flt?" "+esc(CN.flt):""),CN.t+" local · "+r.gap+" min after landing"],
+  o.innerHTML=[["Arrive "+r.to,r.arr+" local ("+r.how+")"],["Next flight"+(CN.flt?" "+CN.flt:""),CN.t+" local · "+r.gap+" min after landing"],
     ["To the gate","~"+(r.taxi+r.deplane+r.walk)+" min: taxi "+r.taxi+", off the plane "+r.deplane+", walk "+r.walk+" ("+CNK[CN.kind].l.toLowerCase()+")"],
-    ["Boarding closes","~"+r.close+" min before departure"],["Spare time",r.margin+" min · "+lab]].map(x=>'<li><b>'+x[0]+'</b><span>'+x[1]+'</span></li>').join("")}
+    ["Boarding closes","~"+r.close+" min before departure"],["Spare time",r.margin+" min · "+lab]].map(x=>'<li><b>'+esc(x[0])+'</b><span>'+esc(x[1])+'</span></li>').join("")}
 $("cnTime").value=CN.t;$("cnFlt").value=CN.flt;
 $("cnTime").addEventListener("input",()=>{CN.t=$("cnTime").value;store.set("conn",CN);cnRender()});
 $("cnFlt").addEventListener("input",()=>{CN.flt=$("cnFlt").value.replace(/[^A-Za-z0-9 ]/g,"").slice(0,8);store.set("conn",CN);cnRender()});
@@ -3177,23 +3189,25 @@ const DRV_PAX_MS=4*3600e3,DRV_REST_MS=2*3600e3,DRV_REST_BREAK=15*60000,DRV_ZONE_
 const DRV_FEAT=["tod","turb","seat","arrival","landing"],DRV_FEAT0={};for(const k of DRV_FEAT)DRV_FEAT0[k]=FEAT[k];
 /* what is switched off, per page (shown as a note on that page while Drive mode is on) */
 const DRV_OFF=[["lsTile","pg-log","landing score"],["todTile","pg-nav","top of descent"],["arrTile","pg-nav","arrival helper"],["tbBan",null,"turbulence warning"],["cueBar",null,"seatbelt and phase cues"],
-  ["wsTile","pg-route","window seat guide"],["poiTile","pg-win","window seat \u201ccoming up\u201d list"],["bpTile","pg-route","boarding pass scan"],["cnTile","pg-route","connection countdown"],["packTile","pg-route","pre-flight weather pack"],["svpTile","pg-route","3D route pack"]];
-const DRV_OFF_H2=["Landing score","Window seat guide","Connection","Pre-flight pack","3D route pack"];
+  ["wsTile","pg-route","window seat guide"],["poiTile","pg-win","window seat \u201ccoming up\u201d list"],["bpTile","pg-route","boarding pass scan"],["cnTile","pg-route","connection countdown"],["packTile","pg-route","pre-flight weather pack"],["svpTile","pg-route","3D route pack"],
+  /* v25 declutter: flight-only controls that made no sense in a car */
+  ["fltRow","pg-route","flight lookup"],["fltTxt","pg-route",""],["apRow","pg-route",""],["acRow","pg-route",""],["bcTile","pg-route","body clock"],["rtTile","pg-route","common routes"],["rtNote","pg-route",""],
+  ["demoBtn","pg-hud","demo flight"],["pickBtn","pg-hud",""]];
+const DRV_OFF_H2=["Landing score","Window seat guide","Connection","Pre-flight pack","3D route pack","Route","Body clock","Common routes"];
 let TOWNS=[];
 fetch("towns.json").then(r=>r.ok?r.json():null).then(j=>{if(j&&Array.isArray(j.t))TOWNS=j.t.filter(x=>Array.isArray(x)&&typeof x[0]==="string"&&isFinite(x[1])&&isFinite(x[2]));drvTownList()}).catch(()=>{});
 const drvFresh=()=>!!(last&&Date.now()-lastFixAt<60000);
-function drvMoving(){return drvFresh()&&(last.spd||0)>=DRV_MOVE}
 function townNear(p,km){let b=null,bd=(km||30)*1000;for(const t of TOWNS){const d=dist(p,{lat:t[1],lon:t[2]});if(d<bd){bd=d;b=t}}return b?b[0]:""}
 function drvTo(){const d=DRV.dest;if(!d)return null;let st="NSW";try{st=stateAt(d.lat,d.lon)}catch(e){}return {drv:1,c:String(d.n).toUpperCase().replace(/[^A-Z0-9 ]/g,"").slice(0,10)||"DEST",n:d.n,lat:d.lat,lon:d.lon,tz:"Australia/"+(STZ[st]||"Sydney")}}
 /* ---- destination: typed town, airport code, landmark or "lat, lon" (all offline) ---- */
-function drvFind(q){q=String(q||"").trim();if(!q)return null;
+function drvFind(q){q=String(q||"").slice(0,80).trim();if(!q)return null;
   const m=q.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)$/);if(m){const lat=+m[1],lon=+m[2];if(Math.abs(lat)<=90&&Math.abs(lon)<=180)return {n:lat.toFixed(3)+", "+lon.toFixed(3),lat,lon,src:"coords"}}
   const u=q.toUpperCase();if(/^[A-Z]{3}$/.test(u)){const a=apBy(u);if(a)return {n:a.n+" airport",lat:a.lat,lon:a.lon,src:"airport"};const b=AP2.find(x=>x[0]===u);if(b)return {n:b[1],lat:b[2],lon:b[3],src:"airport"}}
-  const lo=q.toLowerCase().replace(/\s+/g," "),[nm,stq]=lo.split(/\s*,\s*/),stU=stq?stq.toUpperCase():"";
+  const lo=q.toLowerCase().replace(/\s+/g," "),[nm,stq]=lo.split(/\s*,\s*/),stU=stq?stq.toUpperCase():"";if(!nm)return null;
   const ok=t=>!stU||t[3]===stU,pick=f=>{let b=null;for(const t of TOWNS)if(ok(t)&&f(t[0].toLowerCase())&&(!b||t[4]>b[4]))b=t;return b};
   const t=pick(n=>n===nm)||pick(n=>n.startsWith(nm))||(nm.length>=4?pick(n=>n.includes(nm)):null);
   if(t)return {n:t[0]+(t[3]?", "+t[3]:""),lat:t[1],lon:t[2],src:"town"};
-  try{const l=lmAll().find(x=>String(x.n).toLowerCase().startsWith(nm));if(l)return {n:l.n,lat:l.lat,lon:l.lon,src:"landmark"}}catch(e){}
+  if(stU)return null;try{const l=lmAll().find(x=>String(x.n).toLowerCase().startsWith(nm));if(l)return {n:l.n,lat:l.lat,lon:l.lon,src:"landmark"}}catch(e){}
   return null}
 function drvTownList(){const dl=$("drvTowns");if(!dl||dl.childElementCount)return;const f=document.createDocumentFragment();for(const t of TOWNS.slice(0,700)){const o=document.createElement("option");o.value=t[0]+(t[3]?", "+t[3]:"");f.appendChild(o)}dl.appendChild(f)}
 /* ---- ETA: from how fast you are actually closing on the destination over the last ~10 min (so a winding road is
@@ -3226,13 +3240,13 @@ function rsStep(L){const T=DRV.trip;if(!T)return;const rs=T.rs||(T.rs=rsNew()),p
   const dt=(L.t-p.t)/1000;if(!(dt>=0.5&&dt<=5))return;const aL=(L.spd-p.spd)/dt;let aY=0;if(L.trk!=null&&p.trk!=null&&L.spd>5)aY=L.spd*rad(Math.abs(w180b(L.trk-p.trk)))/dt;
   rs.dur+=dt;rs.sq+=aL*aL*dt;const ev=(k,c)=>{if(c&&L.t-(rs.le[k]||0)>4000){rs[k]++;rs.le[k]=L.t}};ev("brake",aL<-3);ev("accel",aL>2.5);ev("corner",aY>3.5&&aY<12)}
 function rsScore(rs){if(!rs||rs.dur<60)return null;const h=Math.max(0.25,rs.dur/3600),rate=(rs.brake*3+rs.accel*2+rs.corner*2+rs.bump)/h,rms=Math.sqrt(rs.sq/rs.dur);
-  const score=Math.round(clampN(100-rate*2-Math.max(0,rms-0.35)*25,0,100));
+  const sc0=100-rate*2-Math.max(0,rms-0.35)*25;if(!Number.isFinite(sc0))return null;const score=Math.round(clampN(sc0,0,100));
   return {score,parts:[["Hard braking",rs.brake],["Hard acceleration",rs.accel],["Sharp cornering",rs.corner],["Bumps (motion sensor)",rs.bump]],mins:Math.round(rs.dur/60),rms:+rms.toFixed(2)}}
 setInterval(()=>{if(!DRV.on||!gOn||gS==null||PH.p!=="drive"||!DRV.trip)return;const rs=DRV.trip.rs||(DRV.trip.rs=rsNew()),n=Date.now();if(Math.abs(gS-1)>0.35&&n-(rs.le.bump||0)>2000){rs.bump++;rs.le.bump=n}},250);
 function rsRender(){const el=$("rsOut");if(!el)return;let r=null,live=false;if(DRV.trip&&PH.p==="drive"){r=rsScore(DRV.trip.rs);live=true}
   if(!r){const b=BOOK.find(x=>x&&x.drv&&x.rs);if(b)r=b.rs}
   setTx($("rsBig"),r?r.score+"/100":"\u2014");setTx($("rsHead"),live?"This drive":"Last drive");
-  el.innerHTML=r?r.parts.map(p=>`<li><b>${esc(p[0])}</b><span>${p[1]}</span></li>`).join("")+`<li><span>${r.mins} min scored${gOn?"":" · enable the G-meter to count bumps"}. For fun only: GPS and phone sensors, not a driving assessment.</span></li>`
+  el.innerHTML=r&&Array.isArray(r.parts)?r.parts.map(p=>`<li><b>${esc(p&&p[0])}</b><span>${esc(p&&p[1])}</span></li>`).join("")+`<li><span>${esc(r.mins)} min scored${gOn?"":" · enable the G-meter to count bumps"}. For fun only: GPS and phone sensors, not a driving assessment.</span></li>`
     :'<li><span>Scores itself while you drive (after a minute or so of driving).</span></li>'}
 /* ---- drive "phases": parked and driving. Logs a drive to the logbook when you park (5 min stopped). ---- */
 function driveStep(L){const t=L.t,sp=L.spd||0,good=L.acc==null||L.acc<=100;
@@ -3249,7 +3263,10 @@ function driveStep(L){const t=L.t,sp=L.spd||0,good=L.acc==null||L.acc<=100;
     if(old){let msg="Crossing into "+STN[st]+".";const a=tzOff(STZ[old]),b=tzOff(STZ[st]);if(a!=null&&b!=null&&a!==b){const d=b-a,hh=Math.abs(d);msg+=" Clocks go "+(d>0?"forward ":"back ")+(hh===30?"half an hour":hh===60?"one hour":hh===90?"an hour and a half":hh/60+" hours")+"."}say(msg)}savePH()}}else PH.stC=0;
   if(hold("dpark",sp<0.8,t,DRV_PARK_S)){const on=PH.holds.dpark||t;drvEnd(on,true)}}
 function drvBegin(t,L){PH.ev={off:t};PH.bookId=null;PH.ended=false;PH.rt=null;PH.sts=[stateAt(L.lat,L.lon)];PH.st=PH.sts[0];PH.said={};PH.lm=[];PH.alt0=L.alt||0;
-  DRV.trip={t0:t,mv:0,sinceRest:0,nextRest:DRV_REST_MS,stopAt:0,pt:t,rs:rsNew()};DRV.pf=null;setPhase("drive",t);LOG={on:true,pts:[]};store.set("log",LOG);drvSave()}
+  DRV.trip={t0:t,mv:0,sinceRest:0,nextRest:DRV_REST_MS,stopAt:0,pt:t,rs:rsNew()};
+  /* v25: the drive ends after 5 min parked, but only a 15 min stop counts as a rest: carry the rest timer over shorter stops */
+  {const c=DRV.restC;if(c&&t>=c.at&&t-c.at<DRV_REST_BREAK){DRV.trip.sinceRest=c.since;DRV.trip.nextRest=c.next}DRV.restC=null}
+  DRV.pf=null;setPhase("drive",t);LOG={on:true,pts:[]};store.set("log",LOG);drvSave()}
 function drvEntry(){const pts=(LOG&&LOG.pts)||[];if(pts.length<5)return null;const f=pts[0],l=pts[pts.length-1],to=drvTo();
   const nr=q=>{const p={lat:q[0],lon:q[1]},a=townNear(p,30);if(a)return a;const b=townNear(p,150);return b?"near "+b:""},toN=to&&dist({lat:l[0],lon:l[1]},to)<5000?DRV.dest.n:nr(l);
   return {id:Date.now(),drv:1,flt:"",demo:!!(demo||PH.demo),from:nr(f)||"Start",to:toN||"End",date:f[3],ev:{off:PH.ev.off,on:PH.ev.on},st:(PH.sts||[]).slice(),...flightStats(pts),
@@ -3258,6 +3275,7 @@ function drvEnd(on,spoken){if(PH.p!=="drive")return;PH.ev.on=on||Date.now();let 
   if(e){BOOK.unshift(e);if(BOOK.length>40)BOOK.length=40;store.set("book",BOOK);PH.bookId=e.id;try{bookRender()}catch(x){}}
   PH.rt=null;setPhase("parked",PH.ev.on);if(LOG.on){LOG.on=false;store.set("log",LOG)}
   if(spoken){const mn=Math.round((PH.ev.on-PH.ev.off)/60000);say("Parked. Drive time "+(mn>=60?Math.floor(mn/60)+" hours "+mn%60+" minutes":mn+" minutes")+(e?", "+Math.round(fDst(e.d))+" "+(S.dst==="km"?"kilometres":"nautical miles"):"")+"."+(e&&e.rs?" Ride smoothness "+e.rs.score+" out of 100.":""))}
+  {const T=DRV.trip;DRV.restC=T&&T.sinceRest>0?{at:T.stopAt||PH.ev.on,since:T.sinceRest,next:T.nextRest}:null}
   DRV.trip=null;DRV.cl=[];drvSave();drvRestHide();rsRender()}
 /* ---- rest-stop reminders: every 2 h of driving; a 15 min stop counts as a break ---- */
 function drvRestShow(ms){const b=$("drvRest");if(!b)return;const h=Math.round(ms/3600e3*10)/10;
@@ -3281,10 +3299,10 @@ function drvApply(){const on=!!DRV.on;document.body.classList.toggle("drive",on)
   for(const [id] of DRV_OFF){const e=$(id);if(e)e.classList.toggle("drvOff",on)}
   document.querySelectorAll("h2").forEach(h=>{if(DRV_OFF_H2.includes(h.textContent.trim()))h.classList.toggle("drvOff",on)});
   for(const k of ["tbLead","cues"]){const s=document.querySelector('.seg[data-k="'+k+'"]');const r=s&&s.closest(".row");if(r){r.classList.toggle("drvOff",on);const n=r.nextElementSibling;if(n&&n.classList.contains("note"))n.classList.toggle("drvOff",on)}}
-  document.querySelectorAll(".drvOffNote").forEach(n=>{const pg=n.closest(".page"),ids=pg?pg.id:"";const off=DRV_OFF.filter(x=>x[1]===ids).map(x=>x[2]);
+  document.querySelectorAll(".drvOffNote").forEach(n=>{const pg=n.closest(".page"),ids=pg?pg.id:"";const off=DRV_OFF.filter(x=>x[1]===ids&&x[2]).map(x=>x[2]);
     if(ids==="pg-set")off.push("turbulence warning","seatbelt and phase cues");if(ids==="pg-book")off.push("flight-only badges (FL400, Night landing, Butter landing and the other flight badges)");
     if(ids==="pg-hud")off.push("turbulence warning","seatbelt and phase cues");
-    n.textContent=off.length?"DRIVE MODE \u00b7 switched off: "+off.join(", ")+". Flip the DRIVE switch down for flight mode.":""});
+    n.textContent=off.length?"DRIVE MODE \u00b7 switched off: "+off.join(", ")+".":""});
   {const g=$("gs");const l=g&&g.closest(".tile").querySelector(".lab span");if(l)l.textContent=on?"Speed":"Groundspeed"}
   document.querySelectorAll("h2").forEach(h=>{const t=h.textContent.trim();if(t==="Share live flight"||t==="Share live drive")h.textContent=on?"Share live drive":"Share live flight"});
   {const g=$("trk");const l=g&&g.closest(".tile").querySelector(".lab span");if(l)l.textContent=on?"Heading":"Track"}
@@ -3322,14 +3340,14 @@ function drvTripRender(){const kv=$("drvKv");if(!kv||!DRV.on)return;const to=drv
   if(to)rows.push(["Straight line",L?Math.round(fDst(e?e.d:dist(L,to))).toLocaleString()+" "+S.dst:"waiting for GPS"],["Road (rough)",e?"~"+Math.round(fDst(e.road)).toLocaleString()+" "+S.dst:"—"],["ETA",e&&e.sec!=null?e.eta+(to.tz!==Intl.DateTimeFormat().resolvedOptions().timeZone?" local":""):"--:--"],["Time to go",e&&e.sec!=null?hm(e.sec):"—"]);
   rows.push(["Driving",T&&dr?hm(T.mv/1000):"parked"],["Next rest reminder",T&&dr?hm(Math.max(0,T.nextRest-T.sinceRest)/1000):"—"]);
   kv.innerHTML=rows.map(r=>`<div>${esc(r[0])}<b>${esc(r[1])}</b></div>`).join("");
-  setTx($("drvTripNote"),(e&&e.src==="closing"?"ETA from how fast you're actually closing on "+to.n+" over the last few minutes. ":e&&e.src==="speed"?"ETA from your current speed and a rough road allowance (straight line + 25%); it improves after a few minutes of driving. ":"")+"Distances are straight-line from built-in town data (works offline). Cabin Panel has no road routing, so road distance and timing are estimates. Passengers only.")}
+  setTx($("drvTripNote"),(e&&e.src==="closing"?"ETA from how fast you're actually closing on "+to.n+" over the last few minutes. ":e&&e.src==="speed"?"ETA from your current speed and a rough road allowance (straight line + 25%); it improves after a few minutes of driving. ":"")+"Straight-line distances from built-in town data (works offline); no road routing, so road distance and ETA are estimates.")}
 $("drvDestGo").onclick=()=>{const r=drvFind($("drvDest").value);if(!r){setTx($("drvTripNote"),"Couldn't find \u201c"+$("drvDest").value+"\u201d. Try a town name (e.g. Goulburn), \u201cTown, VIC\u201d, an airport code (CBR) or \u201clat, lon\u201d.");return}
   DRV.dest={n:r.n,lat:+r.lat.toFixed(5),lon:+r.lon.toFixed(5),src:r.src};DRV.cl=[];if(DRV.trip)DRV.trip.arr=0;drvSave();$("drvDest").value="";drvTripRender();render();say("Destination "+r.n+".")};
 $("drvDest").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("drvDestGo").click()}});
 $("drvDestX").onclick=()=>{DRV.dest=null;DRV.cl=[];drvSave();drvTripRender();render()};
 /* private spots (share privacy): up to 5, on this phone only */
 function drvPrivUI(){const t=$("drvPrivTxt");if(!t)return;const n=(DRV.priv||[]).length;
-  setTx(t,"Drive privacy: your live share never shows a position within 5 km of where this drive started, your last 3 drive starts"+(n?" or your "+n+" private spot"+(n>1?"s":""):"")+", and waits 3 min after you leave those zones. Save home as a private spot for full protection.")}
+  setTx(t,"Drive privacy: nothing is shared within 5 km of this drive\u2019s start, your last 3 starts"+(n?" or your "+n+" private spot"+(n>1?"s":""):"")+", and sharing waits 3 min after you leave them. Save home as a private spot.")}
 $("drvPrivBtn").onclick=()=>{if(!last||!drvFresh()){setTx($("drvPrivTxt"),"Needs a current GPS fix: start GPS first.");return}DRV.priv=[{lat:+last.lat.toFixed(5),lon:+last.lon.toFixed(5),t:Date.now()},...(DRV.priv||[])].slice(0,5);DRV.outAt=0;drvSave();drvPrivUI();hap(20);setTx($("shSt"),"Spot saved as private (5 km).")};
 $("drvPrivClr").onclick=()=>{if(!confirm("Clear your saved private spots? The start points of this and your last 3 drives stay private."))return;DRV.priv=[];drvSave();drvPrivUI()};
 /* ---- AR: towns and the drive destination ---- */
@@ -3354,7 +3372,7 @@ function drvStatsCalc(){const D=BOOK.filter(b=>b&&b.drv&&!b.demo);let km=0,secs=
 function drvStatsRender(){const el=$("bdgOut"),kv=$("totKv");if(!el)return;const r=drvStatsCalc();
   kv.innerHTML=[["Drives",r.n],["Distance",Math.round(fDst(r.km)).toLocaleString()+" "+S.dst],["Drive time",hm(r.secs)],["Best day",Math.round(fDst(r.bestDay)).toLocaleString()+" "+S.dst],["States",r.sts.size?[...r.sts].join(" "):"—"],["Smoothest ride",r.smooth?r.smooth.rs.score+"/100 "+r.smooth.from+"–"+r.smooth.to:"—"]].map(x=>`<div>${esc(x[0])}<b>${esc(x[1])}</b></div>`).join("");
   const got=r.badges.filter(b=>b.got).length;$("bdgHead").textContent="Drive badges "+got+" of "+r.badges.length;
-  el.innerHTML=r.badges.map((b,i)=>`<button type="button" class="bdg ptc${b.got?" got":""}" data-b="${i}" aria-label="${esc(b.n)}: ${esc(b.d)}${b.got?" (earned)":" (locked)"}"><img src="patches/${esc(b.k)}.svg" alt="" width="60" height="70" draggable="false"><b>${esc(b.n)}</b><small>${b.got?"EARNED":bdgProg(b)}</small><i class="pbar"><i style="width:${Math.round(100*Math.min(1,b.v/b.g))}%"></i></i></button>`).join("");PT.bdg=r.badges;PT.list=DBADGES}
+  el.innerHTML=r.badges.map((b,i)=>`<button type="button" class="bdg ptc${b.got?" got":""}" data-b="${i}" aria-label="${esc(b.n)}: ${esc(b.d)}${b.got?" (earned)":" (locked)"}"><img src="patches/${esc(b.k)}.svg" alt="" width="60" height="70" draggable="false"><b>${esc(b.n)}</b><small>${b.got?"EARNED":bdgProg(b)}</small><i class="pbar"><i data-w="${Math.round(100*Math.min(1,b.v/b.g))}"></i></i></button>`).join("");PT.bdg=r.badges;PT.list=DBADGES}
 {const _sr=statsRender;statsRender=function(){if(DRV.on)return drvStatsRender();PT.list=BADGES;return _sr.apply(this,arguments)}}
 /* ---- glance view in Drive mode: heading, altitude, speed, distance/ETA to the destination ---- */
 {const _gd=glData;glData=function(){const g=_gd.apply(this,arguments);if(!DRV.on)return g;const L=last,to=drvTo(),e=to&&L?drvEta(L):null;

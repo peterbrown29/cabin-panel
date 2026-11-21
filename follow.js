@@ -2,6 +2,8 @@
    Reads the follow-along record from Cabin Panel's server (GET only, no login, no cookies). The share id stays in the
    URL #fragment so it isn't sent to the web host. Nothing is stored except the last view in this tab. */
 "use strict";
+/* v25: refuse to run inside a frame (static hosting cannot send frame-ancestors) */
+if(window.top!==window.self){try{window.top.location=window.location.href}catch(e){document.documentElement.style.display="none"}}
 (()=>{
 const API="https://cabin-adsb.cabinpanel-pb.workers.dev/share/",POLL=30000,R=6371008.8,NM=1852,FT=3.28084;
 const $=id=>document.getElementById(id),rad=d=>d*Math.PI/180,deg=r=>r*180/Math.PI;

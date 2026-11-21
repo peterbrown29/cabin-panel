@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.maps.eox.at https://tiles.mapterhorn.com https://gibs.earthdata.nasa.gov https://storage.openaip.net https://cabin-adsb.cabinpanel-pb.workers.dev; font-src 'self'; media-src 'self' blob: data: mediastream:; connect-src 'self' https://tiles.maps.eox.at https://tiles.mapterhorn.com https://gibs.earthdata.nasa.gov https://storage.openaip.net https://cabin-adsb.cabinpanel-pb.workers.dev https: http://127.0.0.1:* http://localhost:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://tiles.maps.eox.at https://tiles.mapterhorn.com https://gibs.earthdata.nasa.gov https://storage.openaip.net https://cabin-adsb.cabinpanel-pb.workers.dev; font-src 'self'; media-src 'self' blob: data: mediastream:; connect-src 'self' https://tiles.maps.eox.at https://tiles.mapterhorn.com https://gibs.earthdata.nasa.gov https://storage.openaip.net https://cabin-adsb.cabinpanel-pb.workers.dev https: http://127.0.0.1:* http://localhost:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,447 +19,22 @@
 <link rel="apple-touch-startup-image" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1179x2556.jpg">
 <link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1170x2532.jpg">
 <title>Cabin Panel</title>
-<style>
-/* VOICE: fourth-gen fighter cockpit, terse and legible at a glance
-   IDEA: multi-function displays (MFDs) in bezels + a head-up display
-   PICTURE: green HUD with pitch ladder, flight path marker and tapes
-   COLOUR/TYPE: phosphor green on black, magenta nav, amber caution; B612 (Airbus cockpit font)
-   LAYOUT: annunciator strip, HUD, MFD data pages, nav page, tools */
-@font-face{font-family:"B612";font-weight:400;font-style:normal;font-display:swap;src:url("fonts/B612-Regular.woff2") format("woff2")}
-@font-face{font-family:"B612";font-weight:700;font-style:normal;font-display:swap;src:url("fonts/B612-Bold.woff2") format("woff2")}
-@font-face{font-family:"B612 Mono";font-weight:400;font-style:normal;font-display:swap;src:url("fonts/B612Mono-Regular.woff2") format("woff2")}
-@font-face{font-family:"B612 Mono";font-weight:700;font-style:normal;font-display:swap;src:url("fonts/B612Mono-Bold.woff2") format("woff2")}
-:root{--mono:"B612 Mono",ui-monospace,Menlo,monospace;--sans:"B612","B612 Mono",system-ui,sans-serif;
---bg:#090b0c;--bez:#1c2125;--bez2:#262c31;--scr:#020805;--ink:#3dff6e;--hud:#3dff6e;--dim:#22a64a;--line:#0f3a1d;--glow:rgba(61,255,110,.38);
---mag:#ff4fd8;--cyan:#40e6ff;--ok:#3dff6e;--warn:#ffbf00;--bad:#ff3b30;--land:#0a2413;--coast:#1d7a3a;--sea:#01080d;color-scheme:dark}
-body.m-night{--ink:#29c957;--hud:#29c957;--dim:#168a37;--line:#0b2c16;--glow:rgba(41,201,87,.2);--mag:#c43aa6;--cyan:#2ab3c7;--warn:#c99600;--bad:#c92e26;--land:#071a0e;--coast:#13592a;--scr:#010503}
-body.m-nvg .note,body.m-nvg .sub,body.m-nvg .lab,body.m-nvg .kv3 div{color:#1b8c3c}
-body.m-nvg{--ink:#1b8c3c;--hud:#1b8c3c;--dim:#0f5524;--line:#082010;--glow:transparent;--mag:#2a9e4c;--cyan:#1b8c3c;--ok:#1b8c3c;--warn:#7a7a10;--bad:#8a3a10;--land:#04120a;--coast:#0d4220;--sea:#000;--bg:#000;--bez:#0c0f10;--bez2:#121619;--scr:#000}
-*{box-sizing:border-box;min-width:0}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 var(--sans);overflow-x:clip;font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent}
-.wrap{max-width:720px;margin:0 auto;padding:0 max(14px,env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
-header{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bez2),var(--bez));padding:calc(8px + env(safe-area-inset-top)) 0 8px;border-bottom:2px solid #000;box-shadow:0 2px 8px rgba(0,0,0,.6);margin-bottom:14px}
-.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.dot{width:12px;height:12px;border-radius:2px;background:#222;border:1px solid #000;flex:none}
-.dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}.dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}.dot.bad{background:var(--bad);box-shadow:0 0 8px var(--bad)}
-#stat{font:700 13px var(--mono);text-transform:uppercase;letter-spacing:.04em}
-#clock{margin-left:auto;font:13px var(--mono);color:var(--dim);white-space:nowrap}
-.chip{font:700 12px var(--mono);padding:2px 7px;border:1px solid var(--ink);color:var(--ink);text-transform:uppercase;background:#000}
-#demoTag{display:none;background:var(--warn);color:#000;font:700 12px var(--mono);padding:2px 7px}
-#strip{margin-top:8px;background:var(--scr);border:1px solid #000;border-radius:4px;padding:6px 10px;box-shadow:inset 0 0 0 1px var(--line)}
-.sr{display:flex;align-items:center;gap:10px;font:700 15px var(--mono)}.st{flex:1;position:relative;height:34px}.st canvas{position:absolute;inset:0;width:100%;height:100%}
-#sTxt{margin-top:2px;font:12px var(--mono);color:var(--dim)}
-#toast{margin-top:8px;padding:7px 10px;background:#000;border:1px solid var(--warn);color:var(--warn);font:700 13px var(--mono);text-transform:uppercase}
-#toast::before{content:"◆ "}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 16px;padding:6px}
-.tile{position:relative;background:var(--scr);border-radius:5px;padding:12px 12px 12px;box-shadow:0 0 0 1px #000,0 0 0 7px var(--bez),0 0 0 8px #000,inset 0 0 30px rgba(0,0,0,.9),inset 0 0 0 1px var(--line)}
-.tile::before{content:"";position:absolute;left:16%;right:16%;top:-6px;height:4px;background:repeating-linear-gradient(90deg,#3c444a 0 16px,transparent 16px 28px);border-radius:1px}
-.tile::after{content:"";position:absolute;left:16%;right:16%;bottom:-6px;height:4px;background:repeating-linear-gradient(90deg,#3c444a 0 16px,transparent 16px 28px);border-radius:1px}
-.lab{font:700 11px var(--mono);color:var(--dim);display:flex;justify-content:space-between;gap:6px;text-transform:uppercase;letter-spacing:.08em}
-.val{font:700 clamp(30px,10vw,52px)/1.05 var(--mono);color:var(--ink);white-space:nowrap;text-shadow:0 0 8px var(--glow)}
-.val small{font:400 13px var(--mono);color:var(--dim);margin-left:4px;text-shadow:none;text-transform:uppercase}
-.sub{font:12px var(--mono);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
-.wide{grid-column:1/-1}
-.hsi{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:10px;align-items:center}
-.hsi svg{width:100%;max-width:300px;aspect-ratio:1;display:block;margin:0 auto}
-svg text{font-family:var(--mono)}
-.hud svg,.hudwrap svg{width:100%;max-width:460px;aspect-ratio:6/5;display:block;margin:0 auto}
-.hudkv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 10px;align-items:end;margin-top:8px}.hudkv>div:not(.row){overflow:hidden}.hudkv .row{grid-column:1/-1;justify-content:flex-end}
-.kv{display:grid;gap:10px}.kv div,.hudkv div{font:700 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.06em}.kv b,.hudkv b{display:block;font:700 20px var(--mono);color:var(--ink);white-space:nowrap;letter-spacing:0;text-shadow:0 0 6px var(--glow)}
-h2{font:700 13px var(--mono);margin:26px 2px 12px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;display:flex;align-items:center;gap:10px}
-h2::after{content:"";flex:1;height:1px;background:var(--line)}
-.fig{position:relative;height:300px;background:var(--scr);border-radius:5px;overflow:hidden;margin:6px;box-shadow:0 0 0 1px #000,0 0 0 7px var(--bez),0 0 0 8px #000,inset 0 0 0 1px var(--line)}
-.fig canvas{position:absolute;inset:0;width:100%;height:100%}
-#mapFig canvas{touch-action:pan-y}
-.mz{position:absolute;right:6px;top:6px;display:flex;flex-direction:column;gap:6px;z-index:2}
-.mz button{min-height:34px;min-width:44px;padding:0 8px;font-size:13px;opacity:.88}
-#mzAuto{font-size:11px;letter-spacing:.06em}#mzAuto.off{color:var(--dim);text-decoration:line-through}#mzAuto.paused{color:var(--warn)}
-.prog{height:6px;background:var(--line);overflow:hidden;margin:10px 6px 4px}.prog i{display:block;height:100%;width:0;background:var(--mag)}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-select,button{font:700 14px var(--mono);min-height:44px;border-radius:4px;border:1px solid #000;color:var(--ink);padding:0 12px;text-transform:uppercase;letter-spacing:.04em}
-select{flex:1 1 140px;background:var(--scr);box-shadow:inset 0 0 0 1px var(--line);text-transform:none}
-button{cursor:pointer;background:linear-gradient(#30373c,#1b2024);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 2px 0 #000;border-top:3px solid #11161a}
-button:active{transform:translateY(1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-button.pri{color:var(--warn);border-top-color:#3a2e00}
-button.on{border-top-color:var(--ink);text-shadow:0 0 8px var(--glow);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 2px 0 #000,0 -2px 10px -2px var(--glow)}
-button.pri.on{border-top-color:var(--warn);color:var(--warn)}
-button:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-.note{font-size:12px;color:var(--dim);margin:8px 4px;line-height:1.5}
-.seg{display:inline-flex;gap:4px}
-.seg button{min-width:52px;padding:0 10px}
-.seg button.sel{border-top-color:var(--ink);text-shadow:0 0 8px var(--glow);color:var(--ink)}
-.seg button:not(.sel){color:var(--dim)}
-.sunrow{display:flex;gap:10px;align-items:flex-start}.sunrow svg{flex:none;margin-top:2px}.sunrow p{margin:0;font:13px/1.5 var(--mono);text-transform:uppercase}
-.lm{list-style:none;margin:6px 0 0;padding:0}.lm li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font:13px var(--mono)}.lm li b{text-transform:uppercase}.lm li span{color:var(--dim);text-align:right;flex:none;max-width:50%;text-transform:uppercase}
-.upd{margin-top:8px;width:100%;color:var(--cyan);border-top-color:var(--cyan)}
-.tile.hud{box-shadow:none;border:28px solid transparent;border-image:url(bezel.webp) 56 stretch;border-radius:0;padding:4px;background-clip:padding-box;margin:-6px}
-.tile.hud::before,.tile.hud::after{display:none}
-.hudwrap{position:relative;max-width:460px;margin:0 auto}
-.hudwrap::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;animation:scan 9s linear infinite}
-@keyframes scan{to{background-position:0 30px}}
-body.m-nvg .hudwrap::after{display:none}
-#demoTag{animation:pulse 2.2s ease-in-out infinite}@keyframes pulse{50%{opacity:.55}}
-#fhOv{position:fixed;inset:0;z-index:30;background:#000;display:none;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-body.fh{overflow:hidden}body.fh #fhOv{display:flex}
-#fhOv .hudwrap{max-width:none;width:min(calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)),calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 46px) * 1.2))}
-#fhOv{flex-direction:column;justify-content:flex-start}#fhSlot{width:100%;display:flex;justify-content:center}
-#fhOv .hud svg,#fhOv svg{max-width:none;width:100%}
-#fhExit{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:2;min-height:40px;font-size:12px;opacity:.85}
-#fhPhase{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:2}
-#fhToast{position:absolute;bottom:calc(6px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);max-width:80%;padding:6px 10px;background:#000;border:1px solid var(--warn);color:var(--warn);font:700 12px var(--mono);text-transform:uppercase;opacity:0;transition:opacity .4s;pointer-events:none}
-@media(prefers-reduced-motion:reduce){.hudwrap::after,#demoTag{animation:none}}
-.mc{margin-top:8px;width:100%;background:#2a1d00;color:var(--warn);border-top-color:var(--warn);animation:mcf 1s steps(2) infinite}.mc.ack{animation:none}@keyframes mcf{50%{background:var(--warn);color:#000}}
-.kv3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:6px}.kv3 div{font:700 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.06em}.kv3 b{display:block;font:700 17px var(--mono);color:var(--ink);text-shadow:0 0 6px var(--glow);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kv3 b{text-transform:none}.lm li.bk span{text-transform:none}.kv3 .full{grid-column:1/-1}.kv3 .full b{font-size:20px}.kv3 .sub{display:block;letter-spacing:0;font-weight:400}
-input[type=text]{font:16px var(--mono);min-height:44px;border-radius:4px;border:1px solid #000;background:var(--scr);color:var(--ink);padding:0 10px;flex:1 1 180px;box-shadow:inset 0 0 0 1px var(--line)}
-input[type=range]{flex:1 1 200px;accent-color:var(--ink);min-height:44px}
-.lm li.bk{align-items:center;flex-wrap:wrap}.lm li.bk>div:first-child{display:grid;gap:2px}.lm li.bk span{text-align:left;max-width:none}.lm li.bk button{min-height:40px;font-size:12px;padding:0 10px}
-#cardOv{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:20px}.cardBox{max-width:520px;width:100%;display:grid;gap:10px}.cardBox img{width:100%;height:auto;border:1px solid var(--line)}
-@media(prefers-reduced-motion:reduce){.mc{animation:none}}
-@media(max-width:420px){.hsi{grid-template-columns:1fr}.kv{grid-template-columns:repeat(3,minmax(0,1fr))}.kv b{font-size:17px}}
-.hudkv b{font-size:clamp(15px,4.6vw,20px);overflow:hidden;text-overflow:clip}
-#bgA,#bgB{transition:opacity 1.4s ease}@media(prefers-reduced-motion:reduce){#bgA,#bgB{transition:none}}
-.lm li.dimside{opacity:.45}.lm li.myside b{color:var(--warn)}
-#pickTile .lm li{align-items:center;flex-wrap:wrap}#pickTile .lm li span{text-align:left;max-width:none;text-transform:none}#pickTile .lm li button{min-height:40px}
-#endNote{margin-top:8px;padding:7px 10px;background:#000;border:1px solid var(--warn);color:var(--warn);font:700 12px var(--mono);text-transform:uppercase}#endNote .row{margin-top:6px}
-#resumeNote{margin-top:8px;padding:7px 10px;background:#000;border:1px solid var(--cyan);color:var(--cyan);font:700 12px var(--mono);text-transform:uppercase}
-@media(prefers-reduced-motion:no-preference){#rose,#needle{transition:transform .6s ease-out}}
-
-/* v21: full-screen magnetic compass view */
-#cmpOv{position:fixed;inset:0;z-index:31;background:#000;display:none;overflow:auto;padding:calc(56px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
-body.cmp{overflow:hidden}body.cmp #cmpOv{display:grid;grid-template-columns:1fr;justify-items:center;align-content:start;gap:12px}
-#cmpExit{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));min-height:40px;font-size:12px;opacity:.85}
-#cmpPhase{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right))}
-#cmpTitle{position:absolute;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);font:700 12px var(--mono);color:var(--dim);letter-spacing:.12em}
-.cmpRead{text-align:center}.cmpRead .val{font-size:clamp(46px,15vw,76px)}.cmpRead .sub{font:700 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
-#cmpSvg{--cw:min(calc(100vw - 28px),58vh,460px);--cw:min(calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right)),58dvh,460px);width:var(--cw);height:var(--cw);flex:none;display:block}
-.cmpSide{width:100%;max-width:460px;display:grid;gap:10px}
-#cmpMsg{padding:7px 10px;background:#000;border:1px solid var(--cyan);color:var(--cyan);font:700 12px var(--mono);text-transform:uppercase}#cmpMsg.warn{border-color:var(--warn);color:var(--warn)}
-#cmpOv .kv3 b{font-size:19px}#cmpDev.big{color:var(--warn)}
-@media(orientation:landscape) and (max-height:600px){body.cmp #cmpOv{grid-template-columns:auto minmax(0,1fr);align-items:center;align-content:center;column-gap:18px;padding-top:calc(50px + env(safe-area-inset-top))}
- #cmpSvg{--cw:min(calc(100vh - 70px),52vw);--cw:min(calc(100dvh - 70px - env(safe-area-inset-top) - env(safe-area-inset-bottom)),52vw);grid-row:1/3}.cmpRead{grid-column:2}.cmpSide{grid-column:2}.cmpRead .val{font-size:52px}#cmpOv .note.cmpN{display:none}}
-
-/* ===== v22: paged screens (horizontal swipe, scroll-snap) ===== */
-html,body{height:100%}
-body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
-header{position:relative;flex:none;margin-bottom:0}
-#pgNav{display:flex;align-items:center;gap:6px;margin-top:6px}
-#pgNav>button{min-height:34px;min-width:44px;padding:0 10px;font-size:16px;line-height:1}
-#pgNav>button:disabled{opacity:.35}
-#pgTitle{font:700 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);white-space:nowrap;min-width:78px;text-align:center;text-shadow:0 0 6px var(--glow)}
-#pgDots{display:flex;gap:0;flex:1;justify-content:center;flex-wrap:nowrap}
-#pgDots button{min-height:30px;min-width:0;width:22px;padding:0;background:none;border:0;box-shadow:none;display:flex;align-items:center;justify-content:center}
-#pgDots button::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line);box-shadow:inset 0 0 0 1px var(--dim)}
-#pgDots button.on::before{background:var(--ink);box-shadow:0 0 6px var(--glow);width:10px;height:10px}
-#pages{flex:1;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-#pages::-webkit-scrollbar{display:none}
-.page{flex:0 0 100%;width:100%;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;padding-top:12px}
-.page>.wrap>h2:first-child{margin-top:4px}
-#mapFig canvas{touch-action:pan-x pan-y}
-#mapFig.big{height:min(62vh,560px);height:min(62dvh,560px)}
-input[type=time]{font:16px var(--mono);min-height:44px;border-radius:4px;border:1px solid #000;background:var(--scr);color:var(--ink);padding:0 10px;box-shadow:inset 0 0 0 1px var(--line);color-scheme:dark}
-label.chk{display:flex;align-items:center;gap:8px;font:13px var(--mono);color:var(--ink);min-height:40px}label.chk input{width:20px;height:20px;accent-color:var(--ink)}
-.lm li small.lmn{display:block;font:11px/1.4 var(--sans);color:var(--dim);text-transform:none;margin-top:3px;white-space:normal}
-.lm li.rt{align-items:center;flex-wrap:wrap}.lm li.rt span{text-align:left;max-width:none}.lm li.rt button{min-height:38px;font-size:12px;padding:0 10px}
-.tband{display:flex;gap:10px;flex-wrap:wrap;font:700 11px var(--mono);text-transform:uppercase;margin:6px 4px}.tband i{display:inline-block;width:14px;height:8px;margin-right:4px;vertical-align:middle}
-#mzWx{font-size:11px;letter-spacing:.06em}#mzWx:not(.on){color:var(--dim)}
-
-/* ===== v22: AR window view ===== */
-#arOv{position:fixed;inset:0;z-index:32;background:#000;display:none;overflow:hidden}
-body.ar{overflow:hidden}body.ar #arOv{display:block}
-#arVid,#arCv{position:absolute;inset:0;width:100%;height:100%}
-#arVid{object-fit:cover;background:#000}
-#arCv{touch-action:none}
-#arExit{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:3;min-height:40px;font-size:12px;opacity:.9}
-#arPhase{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:3}
-#arBar{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:14px max(10px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));background:linear-gradient(transparent,rgba(0,0,0,.78) 28%);display:grid;gap:6px}
-#arBar button{min-height:38px;font-size:12px;padding:0 9px}#arBar .seg button{min-width:0;padding:0 8px}
-#arBar .row{gap:6px}#arTrimV{font:700 13px var(--mono);min-width:44px;text-align:right}
-#arShow{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom));z-index:3;min-height:40px;display:none}
-body.arMin #arBar{display:none}body.arMin #arShow{display:block}
-#arMsg{justify-self:center;max-width:100%;padding:7px 10px;background:rgba(0,0,0,.85);border:1px solid var(--warn);color:var(--warn);font:700 12px var(--mono);text-transform:uppercase;text-align:center}
-#arDisc{position:absolute;left:0;right:0;bottom:calc(4px + env(safe-area-inset-bottom));z-index:4;text-align:center;font:700 10px var(--mono);color:var(--warn);text-transform:uppercase;letter-spacing:.06em;pointer-events:none;text-shadow:0 0 3px #000,0 0 3px #000}
-/* v22b: AR camera looks (Apache-style TV / FLIR green / FLIR white-hot) */
-body.arf-grn #arVid{filter:grayscale(1) sepia(1) hue-rotate(55deg) saturate(4) contrast(1.25) brightness(.95)}
-body.arf-wht #arVid{filter:grayscale(1) contrast(1.35) brightness(1.05)}
-/* v22b: retro cockpits */
-#ckRow{margin:6px 0 2px}#ckRow .sub{margin-right:4px}
-#retroTile .lab{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}#fpBtn{min-height:34px;font-size:12px}
-#retro{position:relative;width:100%;border-radius:10px;overflow:hidden;background:#0b0b0a}
-#retroCv{display:block;width:100%;height:240px;cursor:pointer;touch-action:pan-y}
-body.fhr #fhOv{justify-content:center}body.fhr #fhSlot{flex:1;align-items:stretch}
-body.fhr #fhSlot{position:relative;width:100%;min-height:0}body.fhr #fhSlot #retro{position:absolute;inset:0;width:auto;height:auto;border-radius:0}body.fhr #fhSlot #retroCv{flex:none}
-body.fhr #fhPhase{display:none}
-/* v22c: no wasted space. "Fill" pages stretch their main element to the bottom of the screen */
-.page.fill>.wrap{min-height:100%;display:flex;flex-direction:column}
-.page.fill>.wrap>*{flex:0 0 auto}
-#pg-map #mapFig.big{flex:1 1 auto;height:auto;min-height:300px}
-#pg-prof #profFig{flex:1 1 auto;height:auto!important;min-height:230px;max-height:none}
-#pg-ar .wrap>.tile{flex:1 1 auto;display:flex;flex-direction:column}
-#arBtn.arBig{flex:1 1 auto;min-height:180px;margin:4px 0 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:17px;letter-spacing:.06em;background:radial-gradient(ellipse at 50% 40%,rgba(141,255,158,.10),rgba(0,0,0,.35) 70%),#0b1410;color:#8dff9e;border:1px solid rgba(141,255,158,.45)}
-#arBtn.arBig svg{width:min(70%,320px);height:auto;max-height:55%}
-#pg-book .wrap>.tile{flex:1 1 auto;display:flex;flex-direction:column}
-#pg-book #bookList{flex:1 1 auto}
-#pg-nav .wrap>.grid{flex:1 1 auto;align-content:start}
-#pg-hud #retroTile{display:flex;flex-direction:column}
-/* v22d: full retro panel keeps a bottom strip for the callout banner and the disclaimer, so no gauge is covered */
-body.fhr #fhToast{bottom:calc(22px + env(safe-area-inset-bottom));max-width:min(92%,640px);max-height:52px;overflow:hidden;font-size:11px;line-height:1.3}
-/* v22g inbound aircraft */
-#tkBan{margin-top:8px;padding:6px 8px;background:#000;border:1px solid #ff8a1f;color:#ff8a1f;font:700 12px var(--mono);display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
-#tkBan span{flex:1 1 60%;text-transform:uppercase}#tkBan small{flex:1 1 100%;order:3;font:400 11px var(--mono);color:#ffb873}
-#tkBan button{padding:4px 9px;font-size:12px;border-color:#ff8a1f;color:#ff8a1f}
-#tkBan.slim{margin-top:4px;padding:2px 4px;gap:4px}#tkBan.slim #tkBanChip{flex:1 1 auto;text-align:left;border:0;background:none;padding:3px 4px;font:700 11px var(--mono);text-transform:uppercase}#tkBan.slim #tkBanStop{padding:2px 8px;font-size:11px}
-.tile.flash{outline:2px solid #ff8a1f;outline-offset:2px;transition:outline-color 1.4s}#hfHelp{margin:-4px 6px 10px}
-body.m-nvg #tkBan,body.m-nvg #tkBan button{border-color:var(--ink);color:var(--ink)}body.m-nvg #tkBan small{color:var(--dim)}
-#tkTile input[type=text],#tkTile input[type=url]{flex:1 1 120px;min-width:0}#tkTile #tkAp{flex:0 0 92px;text-transform:uppercase}#tkTile #tkTurn{flex:0 0 64px}#tkTile #tkReg{text-transform:uppercase}
-#tkOut li.ok b{color:var(--ok)}#tkOut li.warn b{color:var(--warn)}#tkOut li.bad b{color:var(--bad)}#tkOut li b{text-align:right;font-weight:600}
-#tkTile details{margin-top:8px;font-size:12px;color:var(--dim)}#tkTile summary{cursor:pointer;color:var(--ink)}
-#tkOut li span{flex:0 0 34%;max-width:34%;text-align:left;color:var(--dim)}#tkOut li b{text-transform:none;flex:1;font:600 12px/1.45 var(--mono)}
-/* ===== v23: synthetic 3D window view + 3D route pack ===== */
-#svOv{position:fixed;inset:0;z-index:32;background:#000;display:none;overflow:hidden}
-body.sv{overflow:hidden}body.sv #svOv{display:block}
-#svCv,#svHud,#svDrops{position:absolute;inset:0;width:100%;height:100%;display:block}
-#svCv{touch-action:none}#svHud,#svDrops{pointer-events:none}
-#svDrops{background:center/cover no-repeat;opacity:.5;display:none}
-#svExit{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:3;min-height:40px;font-size:12px;opacity:.9}
-#svPhase{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:3}
-#svMsg{position:absolute;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(56px + env(safe-area-inset-top));z-index:3;font:600 12px/1.4 var(--mono);color:#ffd27a;background:rgba(0,0,0,.62);padding:6px 8px;border:1px solid rgba(255,210,122,.5);display:none}
-#svBar{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:14px max(10px,env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));background:linear-gradient(transparent,rgba(0,0,0,.62) 30%);display:grid;gap:5px}
-#svBar button{min-height:34px;font-size:12px;padding:0 9px}#svBar .seg button{min-width:0;padding:0 8px}#svBar .row{gap:6px}
-#svAttr,#svAttrMini{font:9.5px/1.35 var(--sans);color:rgba(255,255,255,.7)}
-#svAttrMini{position:absolute;left:calc(8px + env(safe-area-inset-left));right:64px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:2;display:none}
-#svShow{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));z-index:3;display:none;min-height:40px}
-body.svh #svBar{display:none}body.svh #svShow,body.svh #svAttrMini{display:block}
-#svBtn.arBig{flex:1 1 auto;min-height:150px;width:100%;margin:4px 0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:16px;letter-spacing:.06em}
-#svBtn.arBig svg{width:min(60%,260px);height:auto}
-#svpTile select{flex:1 1 40%;min-width:0}#svpBar{height:6px;background:rgba(127,127,127,.25);margin:8px 0 2px;display:none}#svpBar i{display:block;height:100%;width:0;background:var(--ok)}
-#svpList li.rt div:first-child{display:grid;gap:2px}
-@media (orientation:landscape){#svBar{display:flex;flex-wrap:wrap;align-items:center;padding-top:8px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}#svBar .row{flex-wrap:nowrap}#svBar button{min-height:30px;font-size:11px}#svAttr{flex:1 1 100%;font-size:9px}#svMsg{top:calc(52px + env(safe-area-inset-top))}}
-/* v23 features */
-.cfdis{opacity:.42;filter:grayscale(1);cursor:not-allowed}
-label.chk.cfdis{opacity:.5}
-.cfWhy{display:inline-block;font:700 10px "B612 Mono",monospace;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:1px 5px;margin:0 4px;vertical-align:middle;letter-spacing:.04em;text-transform:uppercase}
-#netTag{background:#3a2a00;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px;font:700 10px "B612 Mono",monospace;margin-left:4px}
-#shTag{background:#0b3a1a;color:#3dff6e;border:1px solid #3dff6e;border-radius:6px;padding:1px 6px;font:700 10px "B612 Mono",monospace;margin-left:4px;cursor:pointer}
-#shTag::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#3dff6e;margin-right:4px;animation:shp 1.4s infinite}
-@keyframes shp{50%{opacity:.25}}
-#tbBan{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:9000;background:#b30000;color:#fff;border:3px solid #ffd400;border-radius:10px;padding:8px 10px;box-shadow:0 4px 18px rgba(0,0,0,.6);animation:tbf 1s steps(2) infinite;font-family:"B612 Mono",monospace;text-align:left}
-#tbBan.ack{animation:none;background:#7a1a00;border-color:#ff9a00}
-@keyframes tbf{50%{background:#5a0000}}
-#tbTxt{font:700 17px "B612 Mono",monospace;letter-spacing:.03em;display:block}
-#tbSub{font:400 12px "B612",sans-serif;display:block;margin:4px 0 6px;opacity:.95}
-#tbBan .row{gap:8px}#tbBan button{min-height:36px;padding:4px 12px}
-#spBan{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:8900;background:#04202e;border:2px solid #4fd2ff;color:#e6faff;border-radius:10px;padding:8px 10px;font:12px "B612",sans-serif;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-#spBan button{min-height:34px;padding:4px 10px}
-#arIdBtn{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 120px);z-index:6;background:rgba(0,0,0,.55);color:#8dff9e;border:2px solid #8dff9e;border-radius:22px;padding:8px 22px;font:700 14px "B612 Mono",monospace;letter-spacing:.08em}
-body.arMin #arIdBtn{bottom:calc(env(safe-area-inset-bottom,0px) + 56px)}
-#arIdOut{display:none;position:absolute;left:10px;right:10px;top:calc(env(safe-area-inset-top,0px) + 132px);z-index:7;background:rgba(0,12,4,.86);border:1.5px solid #8dff9e;border-radius:8px;padding:8px 10px;color:#d8ffe0;font:12px "B612",sans-serif;max-width:520px;margin:0 auto}
-#arIdOut b{font:700 15px "B612 Mono",monospace;color:#8dff9e;display:block}#arIdOut p{margin:4px 0}.arIk{font:700 11px "B612 Mono",monospace;color:#ffbf00}.arIn{opacity:.95}.arIa{opacity:.7;font-size:11px}
-#spHud{display:none;position:absolute;left:50%;transform:translateX(-50%);top:calc(50% + 58px);z-index:6;font:700 12px "B612 Mono",monospace;color:#ffbf00;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:5px;white-space:nowrap}
-#rpBar{position:fixed;left:6px;right:6px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:8800;background:rgba(4,10,14,.94);border:1.5px solid var(--line);border-radius:10px;padding:6px 8px;display:grid;gap:4px}
-#rpBar .row{gap:6px;flex-wrap:wrap}#rpBar button{min-height:34px;padding:2px 9px}#rpbSlider{width:100%}
-#rpbTitle{font:700 11px "B612 Mono",monospace;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rpbTime{font:700 11px "B612 Mono",monospace;margin-left:auto;white-space:nowrap}
-body.sv #rpBar{bottom:calc(env(safe-area-inset-bottom,0px) + 4px)}
-#fwOv{display:none;position:fixed;inset:0;z-index:8700;background:#000;flex-direction:column}
-#fwTop{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 6px}#fwHead{font:700 15px "B612 Mono",monospace;flex:1}
-#fwCv{flex:1;width:100%;min-height:0}#fwInfo{padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 10px);font:12px "B612",sans-serif;color:var(--ink)}
-#dyOv{display:none;position:fixed;inset:0;z-index:8600;background:rgba(0,0,0,.92);align-items:flex-start;justify-content:center;overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 12px) 10px 20px}
-#dyOv .tile{width:100%;max-width:560px}.dyT{margin:4px 0 0;white-space:pre-wrap;color:var(--ink);font-size:13px}
-textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;background:#000;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px;font:13px "B612",sans-serif}
-.bdgs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.bdg{border:1px solid var(--line);border-radius:8px;padding:4px 7px;opacity:.5;max-width:48%}.bdg.got{opacity:1;border-color:#ffd400}.bdg b{display:block;font:700 11px "B612 Mono",monospace}.bdg.got b{color:#ffd400}.bdg small{font-size:10px;color:var(--dim)}
-.bigv{font:700 26px "B612 Mono",monospace;color:var(--ink)}#wsBest b{color:#ffd400}li.bch b{color:var(--cyan)}
-#shLink{flex:1;min-width:0;font:11px "B612 Mono",monospace}
-/* v23 16-22 */
-#arIdBtn{left:auto;right:max(10px,env(safe-area-inset-right));transform:none;bottom:auto;top:calc(env(safe-area-inset-top,0px) + 84px)}
-#glOv{position:fixed;inset:0;z-index:9500;background:#000;color:#fff;display:none;flex-direction:column;justify-content:space-evenly;padding:calc(env(safe-area-inset-top,0px) + 6px) max(14px,env(safe-area-inset-right)) calc(env(safe-area-inset-bottom,0px) + 10px) max(14px,env(safe-area-inset-left));font-family:"B612 Mono",monospace}
-#glHead{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#9aa}
-#glHead button{min-height:40px;margin-left:6px;background:#111;color:#fff;border:1px solid #555;border-radius:8px;padding:4px 14px}
-.glc{text-align:center}.gll{font-size:13px;letter-spacing:.2em;color:#9cf}.glv{font:700 clamp(54px,17vw,120px)/1 "B612 Mono",monospace;color:#fff}.glu{font-size:14px;color:#cde;margin-top:2px}
-#glOv.on{display:flex}
-@media (orientation:landscape){#glOv.on{display:grid;}#glOv{grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr 1fr;align-items:center}#glHead{grid-column:1/3}.glv{font-size:clamp(44px,11vh,110px)}}
-#glOv.dim{background:#000}#glOv.dim .glv{color:#a33}#glOv.dim .gll,#glOv.dim .glu,#glOv.dim #glHead{color:#622}#glOv.dim button{color:#a33;border-color:#422;background:#000}
-#cueBar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);z-index:8000;background:rgba(10,24,40,.94);color:#cfe8ff;border:1px solid #3b82c4;border-radius:10px;padding:8px 12px;font:13px "B612",sans-serif;box-shadow:0 3px 12px rgba(0,0,0,.5)}
-#cueBar::before{content:"\1F4BA  ";}
-.cn-ok{color:var(--ok)}.cn-tight{color:var(--warn)}.cn-risk,.cn-departed{color:var(--bad)}
-li.poi.yours b{color:var(--cyan)}li.poi.yours b::after{content:" · your side";font-weight:400;font-size:11px;color:var(--dim)}
-body.saver::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.38);pointer-events:none;z-index:99999}
-/* v23 24-26 */
-#bpOv{display:none;position:fixed;inset:0;z-index:9600;background:#000}#bpOv.on{display:block}
-#bpVid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-#bpFrame{position:absolute;left:8%;right:8%;top:30%;height:30%;border:3px solid #8dff9e;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)}
-#bpBar{position:absolute;left:0;right:0;bottom:0;padding:12px max(12px,env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));display:flex;gap:10px;align-items:center;justify-content:space-between;color:#fff;font:14px "B612",sans-serif;background:linear-gradient(transparent,rgba(0,0,0,.8))}
-#aiCard .aiReg{font:700 22px "B612 Mono",monospace;margin:6px 0 2px;color:var(--cyan)}
-body.arf-nvg #arVid{filter:grayscale(1) brightness(1.7) contrast(1.35) sepia(1) hue-rotate(65deg) saturate(5)}
-body.arf-nvg #arCv{background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(circle at 50% 50%,transparent 55%,rgba(0,0,0,.75) 75%)}
-body.arf-ir #arVid{filter:grayscale(1) contrast(1.7) brightness(1.15)}
-body.arf-flir #arVid{filter:url(#fIron) contrast(1.2)}
-body.arf-ir #arCv,body.arf-flir #arCv{background:radial-gradient(circle at 50% 50%,transparent 60%,rgba(0,0,0,.6) 80%)}
-/* ===== v24c cockpit restyle: MFD frames, flat boxes, cockpit colour roles =====
-   green = normal values · cyan = things you can tap/select · amber = caution · red = warning · magenta = route/targets · white = labels.
-   No glows or gradients on the MFD pages (the HUD keeps its own symbology). NVG mode stays all-green. */
-:root{--lbl:#eef2f4;--txt:#c3ccd2;--sel:#40e6ff;--frame:#1b2024;--frameIn:#2e363c;--box:#0e1114;--div:#2a3137;--btn:#252b30;--btnTop:#3a4249;--glow:transparent}
-body.m-night{--lbl:#b9c1c6;--txt:#97a1a7;--sel:#2fb6c9;--frame:#121518;--frameIn:#20262b;--box:#090b0d;--div:#1d2328;--btn:#1a1e22;--btnTop:#2a3137;--glow:transparent}
-body.m-nvg{--lbl:#1b8c3c;--txt:#1b8c3c;--sel:#1b8c3c;--frame:#050706;--frameIn:#0c1a10;--box:#000;--div:#082010;--btn:#0a0d0b;--btnTop:#11201a}
-body{color:var(--txt);font-family:var(--sans);font-variant-numeric:tabular-nums lining-nums}
-header{background:var(--frame);box-shadow:none;border-bottom:1px solid #000}
-/* page = one MFD: grey frame with a title bar */
-.page>.wrap{background:var(--frame);border:1px solid #000;box-shadow:inset 0 0 0 1px var(--frameIn);border-radius:6px;margin:0 6px 10px;max-width:732px;padding-top:0;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
-@media(min-width:744px){.page>.wrap{margin:0 auto 10px}}
-.page{padding-top:8px}
-.mfdT{display:flex;align-items:baseline;gap:10px;margin:0 -14px 10px;padding:7px 14px 6px;border-bottom:1px solid var(--div);text-transform:uppercase;letter-spacing:.14em}
-.mfdT b{font:700 15px var(--mono);color:var(--lbl)}
-.mfdT span{font:700 11px var(--mono);color:var(--txt);letter-spacing:.1em}
-.mfdT i{margin-left:auto;font:700 11px var(--mono);font-style:normal;color:var(--ink)}
-.page.fill>.wrap>.mfdT{flex:0 0 auto}
-/* sections: flat dark-grey boxes with thin dividers */
-.tile,.fig{background:var(--box);border:1px solid var(--div);border-radius:3px;box-shadow:none}
-.tile::before,.tile::after{display:none}
-.tile.hud{border:28px solid transparent;border-image:url(bezel.webp) 56 stretch;background:var(--box)}
-h2{color:var(--lbl);font-family:var(--mono)}
-h2::after{background:var(--div)}
-.lab,.kv div,.hudkv div,.kv3 div,.cmpRead .sub{color:var(--lbl);font-family:var(--sans)}
-.lm li{border-top-color:var(--div)}
-.lm li>:first-child{color:var(--lbl)}
-.lm li>:last-child:not(:first-child):not(button):not(div){color:var(--ink)}
-.lm li>div b{color:var(--lbl)}
-.note,.lm li small.lmn{color:var(--txt)}
-.sub{color:var(--txt)}
-/* values: green, steady width, no glow */
-.val,.kv b,.hudkv b,.kv3 b,.bigv{color:var(--ink);text-shadow:none;font-family:var(--mono);font-variant-numeric:tabular-nums slashed-zero}
-.val small{color:var(--lbl)}
-#pgTitle,#stat,#clock,.chip{text-shadow:none}
-#clock{color:var(--lbl)}
-/* bezel-style buttons: flat, cyan text = selectable */
-select,button{color:var(--sel);font-family:var(--mono)}
-button{background:var(--btn);border:1px solid #000;border-top:1px solid #000;box-shadow:inset 0 1px 0 var(--btnTop),0 2px 0 #000;border-radius:3px}
-button:active{background:var(--frame)}
-button.on{color:var(--ink);box-shadow:inset 0 3px 0 var(--ink),0 2px 0 #000;text-shadow:none}
-button.pri{color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel),0 2px 0 #000}
-button.pri.on{color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink),inset 0 3px 0 var(--ink)}
-.seg button.sel{color:var(--ink);box-shadow:inset 0 -3px 0 var(--ink),0 2px 0 #000;text-shadow:none}
-.seg button:not(.sel){color:var(--sel)}
-select,input[type=text],input[type=time],input[type=number],input[type=search]{background:var(--box);color:var(--sel);box-shadow:inset 0 0 0 1px var(--div)}
-input[type=range],label.chk input{accent-color:var(--sel)}
-label.chk{color:var(--txt)}label.chk input{flex:none}
-#pgDots button{background:none;box-shadow:none}
-#pgDots button::before{background:var(--div);box-shadow:inset 0 0 0 1px var(--txt)}
-#pgDots button.on::before{background:var(--sel);box-shadow:none}
-#pgTitle{color:var(--lbl)}
-/* status colours */
-.dot.ok,.dot.warn,.dot.bad{box-shadow:none}
-#toast,#endNote,#arMsg{border-color:var(--warn);color:var(--warn)}
-#tkBan{border-color:var(--warn);color:var(--warn)}#tkBan small{color:var(--txt)}#tkBan button{border-color:var(--warn);color:var(--warn)}
-#resumeNote,#cmpMsg{border-color:var(--sel);color:var(--sel)}
-.upd{color:var(--sel)}
-.prog i{background:var(--mag)}
-li.poi.yours b,#aiCard .aiReg,li.bch b{color:var(--mag)}
-#arBtn.arBig{background:var(--box);color:var(--sel);border:1px solid var(--div)}
-.mc{background:#2a1d00}
-.cn-risk,.cn-departed,.bad{color:var(--bad)}
-/* optional subtle screen texture, night mode only (Settings → Night screen texture) */
-body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
-#pg-set .tile>.row,#ckRow,.lab{text-transform:uppercase;letter-spacing:.06em}#pg-set .tile>.row{color:var(--lbl);font:700 13px var(--mono)}
-.lm li>span:only-child{flex:1;text-align:left;max-width:none;color:var(--txt);text-transform:none}
-/* v24c: cabin cue + spot banners in flat cockpit style */
-#cueBar{background:var(--box);border:1px solid var(--sel);border-radius:0;color:var(--lbl);box-shadow:none}
-#cueBar::before{content:"CABIN \25B8  ";color:var(--sel);font:700 11px var(--mono);letter-spacing:.08em}
-#spBan{background:var(--box);border:1px solid var(--sel);border-radius:0;box-shadow:none}
-/* v24c: unit-patch badges + spotter rank tabs */
-.bdgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px}
-.bdg{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;background:var(--box);border:1px solid var(--div);cursor:pointer;max-width:none;opacity:1;text-align:center;min-height:44px}
-.bdg:focus-visible,.spRank:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
-.bdg img{width:60px;height:70px;display:block}
-.bdg:not(.got) img{filter:grayscale(1) brightness(.55) contrast(.9);opacity:.6}
-.bdg b{font:700 10px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--lbl)}
-.bdg.got{border-color:var(--ok)}.bdg.got b{color:var(--ok)}.bdg:not(.got) b{color:#9aa4ab}
-.bdg small{font:400 10px var(--mono);color:#9aa4ab;text-transform:uppercase}.bdg.got small{color:var(--ok)}
-.pbar{display:block;width:100%;height:3px;background:var(--div);font-style:normal}.pbar>i{display:block;height:100%;background:var(--sel)}.bdg.got .pbar>i{background:var(--ok)}
-.spRank{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;margin:4px 0 8px;background:var(--box);border:1px solid var(--div);cursor:pointer}
-.spRank img{width:120px;height:60px;flex:0 0 auto}.spRank span{flex:1;display:flex;flex-direction:column;gap:3px}
-.spRank b{font:700 12px var(--mono);color:var(--ok);letter-spacing:.06em}.spRank small{font:400 10px var(--mono);color:var(--lbl);text-transform:uppercase}
-#ptOv{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.84);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 40px)}
-#ptBox{background:var(--frame);border:2px solid var(--frameIn);padding:8px 12px 12px;width:min(92vw,420px);display:flex;flex-direction:column;align-items:center}
-#ptBox .mfdT{width:100%;display:flex;justify-content:space-between;gap:10px;font:700 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--lbl);border-bottom:1px solid var(--div);padding-bottom:5px;margin-bottom:10px}
-#ptN{color:var(--ok)}#ptK{color:var(--sel)}
-#ptImg{width:min(64vw,260px);height:auto;aspect-ratio:120/140;display:block}#ptImg.lock{filter:grayscale(1) brightness(.6);opacity:.7}
-#ptD{margin:10px 0 4px;color:var(--lbl);text-align:center;font:400 14px/1.4 "B612",sans-serif}
-#ptS{margin:0;font:700 12px var(--mono);color:var(--warn);letter-spacing:.08em}#ptS.ok{color:var(--ok)}
-#ptOv.tapClose::after{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);text-align:center;font-size:11px}
-/* v24c: gauge pop-out */
-#gzOv{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 12px)}
-#gzBox{background:var(--frame);border:2px solid var(--frameIn);padding:8px 10px 10px;display:flex;flex-direction:column;align-items:center}
-#gzBox .mfdT{width:100%;display:flex;justify-content:space-between;gap:10px;font:700 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--lbl);border-bottom:1px solid var(--div);padding-bottom:5px;margin-bottom:8px}
-#gzBox .mfdT b{color:var(--ok)}#gzCode{color:var(--sel)}
-#gzCv{display:block;aspect-ratio:1/1;background:#000}
-#gzOv.tapClose::after{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);text-align:center;font-size:11px}
-/* v24c: messages you can close by tapping say so (small cyan cockpit hint); messages that can't, don't */
-.tapClose::after,.tapReload::after{content:"Tap to close";display:block;margin-top:5px;font:700 10px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--sel);text-align:right}
-.tapReload::after{content:"Tap to reload";text-align:center}
-.tapClose{cursor:pointer}
-#fhToast:not(.gone){pointer-events:auto}#fhToast.gone{opacity:0!important;pointer-events:none}body.fhr #fhToast{max-height:70px}
-#tbBan.tapClose::after{color:#fff}
-@media(prefers-contrast:more){:root{--txt:#e3e8eb;--div:#4a545c}}
-/* ===== v25 Drive mode ===== */
-.drvOnly{display:none}
-body.drive .drvOnly{display:block}
-body.drive #phase::before{content:"DRIVE \00B7  ";color:var(--warn)}
-body.drive .drvOff,body.drive .fltOnly{display:none!important}
-.drvOffNote{color:var(--warn)!important;font:700 11px/1.45 var(--mono)!important;letter-spacing:.04em;text-transform:uppercase;border:1px dashed var(--warn);padding:6px 8px;margin:6px 6px 12px!important}
-#drvTile{margin:4px 6px 18px}
-.drvRow{display:flex;align-items:center;gap:16px}
-.msw{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;width:96px}
-.mswLeg{position:relative;z-index:3;font:700 10px var(--mono);letter-spacing:.14em;color:var(--txt);text-shadow:0 0 3px #000,0 0 3px #000}
-.msw[data-st="armed"] .mswLeg.up{color:var(--warn)}.msw[data-st="safe"] .mswLeg.dn,.msw[data-st="guard"] .mswLeg.dn{color:var(--ok)}
-.mswPlate{position:relative;width:88px;height:118px;border-radius:6px;background:linear-gradient(#2b3237,#171b1e);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -2px 4px rgba(0,0,0,.7),0 0 0 1px #000,0 3px 0 #000;perspective:260px}
-.mswScrew{position:absolute;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#9aa3a9,#3b4247 70%);box-shadow:0 0 0 1px #000}
-.mswScrew::after{content:"";position:absolute;left:1px;right:1px;top:4px;height:1px;background:#1a1e21;transform:rotate(35deg)}
-.mswScrew.s1{left:6px;top:6px}.mswScrew.s2{right:6px;top:6px}.mswScrew.s3{left:6px;bottom:6px}.mswScrew.s4{right:6px;bottom:6px}
-button.mswLever{position:absolute;left:24px;top:19px;width:40px;height:80px;min-height:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;transform-style:preserve-3d;z-index:1}
-.mswNut{position:absolute;left:5px;top:25px;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c9d0d4,#59626a 55%,#23292d);box-shadow:0 0 0 2px #0b0d0f,0 0 0 4px #3a4247}
-.mswBat{position:absolute;left:13px;top:-8px;width:14px;height:48px;border-radius:7px 7px 4px 4px;background:linear-gradient(90deg,#6c757b,#eef2f4 45%,#8d969c 70%,#4c5459);box-shadow:0 0 0 1px #000;transform-origin:50% 47px;transform:rotateX(180deg);transition:transform .28s cubic-bezier(.5,1.8,.6,1)}
-.msw[data-st="armed"] .mswBat{transform:rotateX(0deg)}
-button.mswGuard{position:absolute;left:12px;top:10px;width:64px;height:98px;min-height:0;padding:0;border-radius:6px 6px 10px 10px;border:2px solid #000;background:linear-gradient(#e0262a,#a3080d 60%,#7c0508);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -6px 10px rgba(0,0,0,.35),0 3px 6px rgba(0,0,0,.6);
-  transform-origin:50% 0;transform:rotateX(0deg);transition:transform .32s cubic-bezier(.3,1.4,.5,1),opacity .32s;z-index:2;overflow:hidden;color:#fff;display:flex;align-items:flex-end;justify-content:center}
-button.mswGuard b{font:700 11px var(--mono);letter-spacing:.16em;margin-bottom:9px;text-shadow:0 1px 0 #000}
-.mswHatch{position:absolute;left:0;right:0;top:0;height:16px;background:repeating-linear-gradient(-45deg,#ffd400 0 6px,#111 6px 12px);border-bottom:2px solid #000}
-.msw[data-st="guard"] .mswGuard,.msw[data-st="armed"] .mswGuard{transform:rotateX(-118deg);opacity:.92}
-.drvDisp{flex:1;display:flex;flex-direction:column;gap:4px;border:1px solid var(--div);background:var(--box);padding:8px 10px;min-height:96px;justify-content:center}
-.drvDisp b{font:700 17px var(--mono);color:var(--ok);letter-spacing:.04em}
-body.drvArmed .drvDisp b{color:var(--warn)}
-.drvDisp small{font:400 12px/1.4 var(--sans);color:var(--txt)}.drvDisp small.warn{color:var(--bad);font-weight:700}
-.drvLamp{align-self:flex-start;font:700 10px var(--mono);letter-spacing:.14em;padding:2px 7px;border:1px solid var(--ok);color:var(--ok);background:#000}
-body.drvArmed .drvLamp{border-color:var(--warn);color:#000;background:var(--warn);box-shadow:0 0 10px rgba(255,191,0,.55)}
-.msw[data-st="guard"] .drvLamp{color:var(--warn)}
-.drvDestRow{gap:8px;margin-top:6px}.drvDestRow input{flex:1 1 140px}
-.drvPriv{border-bottom:1px solid var(--div);padding-bottom:8px;margin-bottom:8px}.drvPriv .row{gap:8px;flex-wrap:wrap}.drvPriv button{min-height:40px;font-size:12px}
-#drvRest{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);z-index:8100;background:var(--box);color:var(--lbl);border:2px solid var(--warn);padding:9px 12px;font:13px/1.4 var(--sans);display:flex;flex-direction:column;gap:3px}
-#drvRest b{font:700 14px var(--mono);color:var(--warn);letter-spacing:.06em}
-#drvPax{position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px)}
-.drvPaxBox{width:min(92vw,420px);background:var(--frame);border:2px solid var(--frameIn);padding:8px 14px 14px}
-.drvPaxBox .mfdT{display:flex;justify-content:space-between;gap:10px;font:700 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--lbl);border-bottom:1px solid var(--div);padding-bottom:5px;margin-bottom:10px}
-.drvPaxBox .mfdT b{color:var(--warn)}
-.drvPaxBox h3{margin:4px 0 8px;font:700 20px var(--mono);color:var(--warn);letter-spacing:.06em}
-.drvPaxBox p{margin:0 0 12px;color:var(--lbl);font:400 15px/1.45 var(--sans)}
-.drvPaxBox .row{gap:10px;flex-wrap:wrap}.drvPaxBox .row button{flex:1 1 140px}
-.drvPaxBox small{display:block;margin-top:10px;color:var(--txt);font:400 12px var(--sans)}
-body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nvg .mswHatch{background:repeating-linear-gradient(-45deg,#1b8c3c 0 6px,#000 6px 12px)}
-@media (prefers-reduced-motion:reduce){.mswBat,button.mswGuard{transition:none}}
-</style>
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header><div class="wrap" style="padding-bottom:0">
-  <div class="bar"><span class="dot" id="dot"></span><span id="stat">GPS off</span><span id="phase" class="chip">Parked</span><span id="demoTag">DEMO</span><span id="netTag" style="display:none">OFFLINE</span><span id="shTag" style="display:none" role="status" title="Your flight is being shared">SHARING</span><span id="clock"></span></div>
-  <div id="strip" style="display:none"><div class="sr"><b id="sFrom"></b><div class="st"><canvas id="sProf"></canvas></div><b id="sTo"></b></div><div class="sub" id="sTxt"></div></div>
-  <div id="toast" class="tapClose" title="Tap to close" style="display:none"></div>
-  <button id="mcBtn" class="mc" style="display:none">MASTER CAUTION</button>
-  <div id="tbBan" class="tapClose" title="Tap to close" style="display:none" role="alert"><span id="tbTxt">TURBULENCE MASTER WARNING</span><span id="tbSub"></span><div class="row"><button id="tbAck" class="pri">Acknowledge</button><button id="tbDis">Dismiss</button></div></div>
-  <div id="spBan" class="tapClose" title="Tap to close" style="display:none" role="status"></div>
-  <div id="drvRest" class="tapClose" title="Tap to close" style="display:none" role="alert"></div>
-  <div id="cueBar" class="tapClose" title="Tap to close" style="display:none" role="status" aria-live="polite"></div>
-  <button id="updBtn" class="upd tapReload" style="display:none">New version installed</button>
-  <div id="resumeNote" style="display:none"></div>
-  <div id="endNote" style="display:none"><span id="endNoteTxt"></span><div class="row"><button id="endNoteBtn" class="pri">End flight</button><button id="endNoteX">Not now</button></div></div>
-  <div id="tkBan" style="display:none" role="status"></div>
+<header><div class="wrap" data-css="padding-bottom:0">
+  <div class="bar"><span class="dot" id="dot"></span><span id="stat">GPS off</span><span id="phase" class="chip">Parked</span><span id="demoTag">DEMO</span><span id="netTag" data-css="display:none">OFFLINE</span><span id="shTag" data-css="display:none" role="status" title="Your flight is being shared">SHARING</span><span id="clock"></span></div>
+  <div id="strip" data-css="display:none"><div class="sr"><b id="sFrom"></b><div class="st"><canvas id="sProf"></canvas></div><b id="sTo"></b></div><div class="sub" id="sTxt"></div></div>
+  <div id="toast" class="tapClose" title="Tap to close" data-css="display:none"></div>
+  <button id="mcBtn" class="mc" data-css="display:none">MASTER CAUTION</button>
+  <div id="tbBan" class="tapClose" title="Tap to close" data-css="display:none" role="alert"><span id="tbTxt">TURBULENCE MASTER WARNING</span><span id="tbSub"></span><div class="row"><button id="tbAck" class="pri">Acknowledge</button><button id="tbDis">Dismiss</button></div></div>
+  <div id="spBan" class="tapClose" title="Tap to close" data-css="display:none" role="status"></div>
+  <div id="drvRest" class="tapClose" title="Tap to close" data-css="display:none" role="alert"></div>
+  <div id="cueBar" class="tapClose" title="Tap to close" data-css="display:none" role="status" aria-live="polite"></div>
+  <button id="updBtn" class="upd tapReload" data-css="display:none">New version installed</button>
+  <div id="resumeNote" data-css="display:none"></div>
+  <div id="endNote" data-css="display:none"><span id="endNoteTxt"></span><div class="row"><button id="endNoteBtn" class="pri">End flight</button><button id="endNoteX">Not now</button></div></div>
+  <div id="tkBan" data-css="display:none" role="status"></div>
   <nav id="pgNav" aria-label="Screens"><button id="pgPrev" aria-label="Previous screen">‹</button><span id="pgTitle" aria-live="polite">HUD</span><div id="pgDots"></div><button id="pgNext" aria-label="Next screen">›</button></nav>
 </div></header>
 <main id="pages">
@@ -474,9 +49,9 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
   </div>
   <div class="note drvOnly drvOffNote"></div>
   <div class="tile wide drvOnly" id="drvTrip"><div class="lab"><span>Trip</span><span id="drvTripH">No destination</span></div>
-    <div class="row drvDestRow"><input type="text" id="drvDest" list="drvTowns" placeholder="Town, airport code or lat, lon" autocomplete="off" maxlength="60" aria-label="Destination"><button id="drvDestGo">Set</button><button id="drvDestX" style="display:none">Clear</button></div>
-    <datalist id="drvTowns"></datalist><div class="kv3" id="drvKv"></div><div class="note" id="drvTripNote" style="margin:8px 0 0"></div></div>
-  <div class="row" id="startRow" style="margin-bottom:10px">
+    <div class="row drvDestRow"><input type="text" id="drvDest" list="drvTowns" placeholder="Town, airport code or lat, lon" autocomplete="off" maxlength="60" aria-label="Destination"><button id="drvDestGo">Set</button><button id="drvDestX" data-css="display:none">Clear</button></div>
+    <datalist id="drvTowns"></datalist><div class="kv3" id="drvKv"></div><div class="note" id="drvTripNote" data-css="margin:8px 0 0"></div></div>
+  <div class="row" id="startRow" data-css="margin-bottom:10px">
     <button class="pri" id="hfBtn" aria-describedby="hfHelp">Hands-free</button>
     <button id="gpsBtn">Start GPS</button>
     <button id="voiceBtn">Voice off</button>
@@ -484,31 +59,31 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
     <button id="demoBtn">Demo flight</button>
     <button id="markBtn" class="pri">MARK</button>
     <button id="pickBtn">Pick up current flight</button>
-    <button id="endBtn" style="display:none">End flight</button>
+    <button id="endBtn" data-css="display:none">End flight</button>
   </div>
-  <p class="note" id="hfHelp">Hands-free: one tap turns on GPS, spoken callouts, the motion sensor (G and bumps) and Keep screen on, so you can put the phone down and listen. Tap again to undo. For big numbers on screen, use Glance.</p>
-  <div class="tile" id="pickTile" style="display:none;margin:10px 6px 22px">
-    <div class="lab"><span>Pick up current flight</span><span id="pickClose" role="button" tabindex="0" style="cursor:pointer">✕ Close</span></div>
+  <p class="note" id="hfHelp">Hands-free: one tap turns on GPS, spoken callouts, the motion sensor and Keep screen on. Tap again to undo.</p>
+  <div class="tile" id="pickTile" data-css="display:none;margin:10px 6px 22px">
+    <div class="lab"><span>Pick up current flight</span><span id="pickClose" role="button" tabindex="0" data-css="cursor:pointer">✕ Close</span></div>
     <ul class="lm" id="pickList"></ul>
-    <div class="row" style="margin-top:8px"><button id="pickFileBtn">From exported file…</button><input type="file" id="pickFile" aria-label="Choose a route file" accept=".json,application/json" style="display:none"></div>
-    <div class="note" id="pickTxt" style="margin:8px 0 0">Carries on a flight saved on this phone (or in an exported logbook file): route, times, track, marks and phase.</div>
+    <div class="row" data-css="margin-top:8px"><button id="pickFileBtn">From exported file…</button><input type="file" id="pickFile" aria-label="Choose a route file" accept=".json,application/json" data-css="display:none"></div>
+    <div class="note" id="pickTxt" data-css="margin:8px 0 0">Carries on a flight saved on this phone (or in an exported logbook file): route, times, track, marks and phase.</div>
   </div>
-  <div class="row" id="markRow" style="display:none;margin-bottom:12px"><input type="text" id="markNote" maxlength="80" placeholder="Note (optional)"><button id="markSave">Save</button></div>
-  <div class="tile" id="rpTile" style="display:none;margin:10px 6px 22px">
+  <div class="row" id="markRow" data-css="display:none;margin-bottom:12px"><input type="text" id="markNote" maxlength="80" placeholder="Note (optional)"><button id="markSave">Save</button></div>
+  <div class="tile" id="rpTile" data-css="display:none;margin:10px 6px 22px">
     <div class="lab"><span id="rpTitle">Replay</span><span id="rpTime"></span></div>
-    <div class="row" style="margin-top:8px"><button id="rpPlay">Pause</button><span class="seg" id="rpSpeed"><button data-v="1">1×</button><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button><button data-v="120">120×</button></span><button id="rpExit">Exit</button></div>
+    <div class="row" data-css="margin-top:8px"><button id="rpPlay">Pause</button><span class="seg" id="rpSpeed"><button data-v="1">1×</button><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button><button data-v="120">120×</button></span><button id="rpExit">Exit</button></div>
     <div class="row"><input type="range" id="rpSlider" min="0" max="1000" value="0" aria-label="Replay position"></div>
   </div>
   <div class="row" id="ckRow"><span class="sub">Cockpit</span><span class="seg" data-k="cockpit"><button data-v="modern">Modern</button><button data-v="f4">F-4</button><button data-v="p51">P-51</button></span></div>
   <div class="grid">
-    <div class="tile wide" id="retroTile" style="display:none"><div class="lab"><span id="retroName">Retro panel</span><button id="fpBtn">Full panel</button></div><div id="retroHome"><div id="retro"><canvas id="retroCv" aria-label="Retro instrument panel driven by GPS"></canvas></div></div><div class="note" style="margin:6px 0 0">Classic-style gauges driven by your phone's GPS. Airspeed is groundspeed; engine, fuel and AOA are simulated from the flight phase. Generic designs, not real aircraft instruments. Entertainment only.</div></div>
+    <div class="tile wide" id="retroTile" data-css="display:none"><div class="lab"><span id="retroName">Retro panel</span><button id="fpBtn">Full panel</button></div><div id="retroHome"><div id="retro"><canvas id="retroCv" aria-label="Retro instrument panel driven by GPS"></canvas></div></div><details class="more"><summary>How it works</summary><div class="note" data-css="margin:6px 0 0">Classic-style gauges driven by your phone's GPS. Airspeed is groundspeed; engine, fuel and AOA are simulated from the flight phase. Generic designs, not real aircraft instruments. Entertainment only.</div></details></div>
     <div class="tile wide hud">
       <div class="hudwrap" id="hudwrap"><svg id="hud" viewBox="0 0 360 300" aria-label="Head-up display"><defs><clipPath id="hbg"><rect x="0" y="0" width="360" height="300" rx="4"/></clipPath><filter id="nvgF"><feColorMatrix type="matrix" values="0 0 0 0 0  .30 .59 .11 0 0  0 0 0 0 0  0 0 0 1 0"/></filter><filter id="glow" x="-8%" y="-8%" width="116%" height="116%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.3" result="b"/><feDropShadow in="SourceGraphic" dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".9" result="s"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="s"/></feMerge></filter><filter id="sh" x="-5%" y="-5%" width="110%" height="110%"><feDropShadow dx="0" dy="0" stdDeviation="1.1" flood-color="#000" flood-opacity=".95"/></filter></defs><g clip-path="url(#hbg)"><g id="bgG"><image id="bgA" class="bgI" href="" x="-180" y="-390" width="720" height="1080" preserveAspectRatio="none" opacity="1"/><image id="bgB" class="bgI" href="" x="-180" y="-390" width="720" height="1080" preserveAspectRatio="none" opacity="0"/><rect id="skyF" x="-420" y="-1150" width="1200" height="1300" fill="#2a6fc0" opacity=".1"/><rect id="gndF" x="-420" y="150" width="1200" height="1300" fill="#6b4220" opacity=".1"/></g><rect id="wxTint" x="0" y="0" width="360" height="300" fill="#000" opacity="0"/><image id="wxDrops" x="0" y="0" width="360" height="300" preserveAspectRatio="xMidYMid slice" opacity="0"/><rect id="bgDim" width="360" height="300" fill="#000" opacity=".34"/><rect x="0" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="302" y="36" width="58" height="228" fill="#000" opacity=".5"/><rect x="60" y="0" width="240" height="34" fill="#000" opacity=".45"/><rect x="0" y="0" width="58" height="34" fill="#000" opacity=".5"/><rect x="302" y="0" width="58" height="34" fill="#000" opacity=".5"/><rect x="0" y="270" width="360" height="30" fill="#000" opacity=".45"/></g><g id="hudSym" filter="url(#glow)"></g></svg></div>
       <div class="hudkv">
         <div>Bank<b id="bank">---</b></div>
         <div>Pitch<b id="pitch">---</b></div>
         <div>Turn<b id="trate">---</b></div>
-        <div class="row" style="gap:6px"><span class="seg" data-k="att"><button data-v="gps">GPS</button><button data-v="sen">Gyro</button></span><button id="lvlBtn" style="display:none">Level</button><button id="fhBtn">Full HUD</button></div>
+        <div class="row" data-css="gap:6px"><span class="seg" data-k="att"><button data-v="gps">GPS</button><button data-v="sen">Gyro</button></span><button id="lvlBtn" data-css="display:none">Level</button><button id="fhBtn">Full HUD</button></div>
       </div>
     </div>
     <div class="tile"><div class="lab"><span>Groundspeed</span></div><div class="val" id="gs">---<small id="gsU">kt</small></div><div class="sub" id="gs2">&nbsp;</div></div>
@@ -527,9 +102,9 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
 </div></section>
 <section class="page fill" id="pg-nav" data-t="Nav" data-c="NAV"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>NAV</b><span>Navigation</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <div class="grid">
-    <div class="tile wide" id="twNow" style="display:none"><div class="lab"><span>Tailwind boost</span><span>Estimate</span></div><div class="bigv" id="twBig">---</div><div class="sub" id="twSub" style="white-space:normal"></div></div>
-    <div class="tile wide" id="todTile" style="display:none"><div class="lab"><span>Top of descent</span><span>3:1 rule</span></div><div class="bigv" id="todBig">---</div><div class="sub" id="todSub" style="white-space:normal"></div></div>
-    <div class="tile wide" id="arrTile" style="display:none"><div class="lab"><span id="arrHead">Arrival</span></div><div class="kv3" id="arrKv"></div></div>
+    <div class="tile wide" id="twNow" data-css="display:none"><div class="lab"><span>Tailwind boost</span><span>Estimate</span></div><div class="bigv" id="twBig">---</div><div class="sub" id="twSub" data-css="white-space:normal"></div></div>
+    <div class="tile wide" id="todTile" data-css="display:none"><div class="lab"><span>Top of descent</span><span>3:1 rule</span></div><div class="bigv" id="todBig">---</div><div class="sub" id="todSub" data-css="white-space:normal"></div></div>
+    <div class="tile wide" id="arrTile" data-css="display:none"><div class="lab"><span id="arrHead">Arrival</span></div><div class="kv3" id="arrKv"></div></div>
     <div class="tile wide"><div class="lab"><span>Position</span></div>
       <div class="kv3">
         <div class="full">MGRS<b id="mgrs">---</b></div>
@@ -553,171 +128,171 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
         <div>Time to go<b id="ete">---</b></div>
         <div>ETA <span id="etaTz"></span><b id="eta">---</b></div>
       </div>
-      <div class="row" style="grid-column:1/-1;justify-content:flex-end"><button id="cmpBtn">Compass view</button></div>
+      <div class="row" data-css="grid-column:1/-1;justify-content:flex-end"><button id="cmpBtn">Compass view</button></div>
     </div>
   </div>
 </div></section>
 <section class="page fill" id="pg-prof" data-t="Profile" data-c="VSD"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>VSD</b><span>Vertical profile</span><i class="mfdS"></i></div>
   <h2>Flight profile</h2>
-  <div class="fig" id="profFig" style="height:230px"><canvas id="prof"></canvas></div>
+  <div class="fig" id="profFig" data-css="height:230px"><canvas id="prof"></canvas></div>
   <div class="note" id="profTxt">Altitude flown (solid) against a typical profile for this route (dashed).</div>
 
-  <div class="tband" aria-label="Turbulence key"><span style="color:var(--dim)">Turbulence (top bar, shaded profile) · rough guide, not a forecast:</span><span><i style="background:var(--ok)"></i>Smooth</span><span><i style="background:#c6e33a"></i>Light</span><span><i style="background:var(--warn)"></i>Moderate</span><span><i style="background:var(--bad)"></i>Rough</span></div>
+  <div class="tband" aria-label="Turbulence key"><span data-css="color:var(--dim)">Turbulence (top bar, shaded profile) · rough guide, not a forecast:</span><span><i data-css="background:var(--ok)"></i>Smooth</span><span><i data-css="background:#c6e33a"></i>Light</span><span><i data-css="background:var(--warn)"></i>Moderate</span><span><i data-css="background:var(--bad)"></i>Rough</span></div>
   <div class="note" id="turbTxt"></div>
-  <div class="tile" id="bmpTile"><div class="lab"><span>Bumps felt</span><button id="bmpBtn">Log bumps felt</button></div><div class="note" id="bmpTxt" style="margin:4px 0">Uses the phone's motion sensor after you allow it, to log the bumps you actually feel, with time, height and position.</div><ul class="lm" id="bmpOut"></ul></div>
+  <div class="tile" id="bmpTile"><div class="lab"><span>Bumps felt</span><button id="bmpBtn">Log bumps felt</button></div><div class="note" id="bmpTxt" data-css="margin:4px 0">Uses the phone's motion sensor after you allow it, to log the bumps you actually feel, with time, height and position.</div><ul class="lm" id="bmpOut"></ul></div>
 </div></section>
 <section class="page" id="pg-win" data-t="Window" data-c="EXT"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>EXT</b><span>Window view</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>Out the window</h2>
   <div class="tile" id="svTile">
     <button id="svBtn" class="pri arBig" aria-label="Open 3D window view"><svg viewBox="0 0 200 90" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M4 70 L44 34 L64 50 L98 16 L132 52 L150 40 L196 70"/><path d="M4 82 H196" stroke-width="1.6"/><path d="M78 82 L94 62 H106 L122 82" stroke-width="1.6"/><path d="M100 64 V82" stroke-dasharray="3 3" stroke-width="1.4"/><circle cx="160" cy="16" r="7"/></g></svg><span>Open 3D window view</span></button>
-    <p class="note" id="svPk" style="margin:0 0 6px"></p>
-    <div class="row" style="margin-bottom:6px"><button id="svGoPack">Download or manage 3D route packs</button></div>
-    <div class="note" id="svNote" style="margin:0">An offline 3D view from your position: terrain, satellite imagery, runways, sun, haze and pack weather, with NVG, FLIR and CRT looks. Download a 3D route pack on the Route page while you have internet. Works in Demo flight too, and from a tracked aircraft (Route page, Inbound aircraft). Entertainment only, not for navigation.</div>
+    <p class="note" id="svPk" data-css="margin:0 0 6px"></p>
+    <div class="row" data-css="margin-bottom:6px"><button id="svGoPack">Download or manage 3D route packs</button></div>
+    <div class="note" id="svNote" data-css="margin:0">An offline 3D view from your position: terrain, satellite imagery, runways, sun, haze and pack weather, with NVG, FLIR and CRT looks. Download a 3D route pack on the Route page while you have internet. Works in Demo flight too, and from a tracked aircraft (Route page, Inbound aircraft). Entertainment only, not for navigation.</div>
   </div>
-  <div class="tile" id="poiTile"><div class="lab"><span id="poiHead">Coming up</span><span>Window seat guide</span></div><ul class="lm" id="poiOut"></ul><div class="note" style="margin:4px 0 0">From the built-in landmarks and the pack's places. Highlighted: your side (Settings &gt; Seat).</div></div>
-  <div class="tile" id="saTile"><div class="lab"><span>Sunrise and sunset at altitude</span><span class="seg" data-k="sunAlert"><button data-v="on">Alert</button><button data-v="off">Off</button></span></div><ul class="lm" id="saOut"></ul><div class="note" style="margin:4px 0 0">From height you see over the curve of the earth (horizon dip), so the sun rises earlier and sets later than on the ground below. The alert comes about 10 minutes before.</div></div>
+  <div class="tile" id="poiTile"><div class="lab"><span id="poiHead">Coming up</span><span>Window seat guide</span></div><ul class="lm" id="poiOut"></ul><div class="note" data-css="margin:4px 0 0">From the built-in landmarks and the pack's places. Highlighted: your side (Settings &gt; Seat).</div></div>
+  <div class="tile" id="saTile"><div class="lab"><span>Sunrise and sunset at altitude</span><span class="seg" data-k="sunAlert"><button data-v="on">Alert</button><button data-v="off">Off</button></span></div><ul class="lm" id="saOut"></ul><details class="more"><summary>How it works</summary><div class="note" data-css="margin:4px 0 0">From height you see over the curve of the earth (horizon dip), so the sun rises earlier and sets later than on the ground below. The alert comes about 10 minutes before.</div></details></div>
   <div class="tile">
     <div class="sunrow"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="#ffd400"/><g stroke="#ffd400" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></g></svg><p id="sunTxt">Waiting for a GPS fix.</p></div>
-    <div class="row" style="margin-top:10px">Window seat <span class="seg" data-k="seat"><button data-v="left">Left</button><button data-v="right">Right</button><button data-v="both">Both</button></span></div>
-    <div class="lab" style="margin-top:10px"><span id="cuHead">Coming up</span></div>
+    <div class="row" data-css="margin-top:10px">Window seat <span class="seg" data-k="seat"><button data-v="left">Left</button><button data-v="right">Right</button><button data-v="both">Both</button></span></div>
+    <div class="lab" data-css="margin-top:10px"><span id="cuHead">Coming up</span></div>
     <ul id="cuList" class="lm"></ul>
-    <div class="lab" style="margin-top:10px"><span id="lmHead">Landmarks</span></div>
+    <div class="lab" data-css="margin-top:10px"><span id="lmHead">Landmarks</span></div>
     <ul id="lmList" class="lm"></ul>
-    <div class="lab" style="margin-top:12px"><span id="skyHead">Sky</span></div>
+    <div class="lab" data-css="margin-top:12px"><span id="skyHead">Sky</span></div>
     <ul id="skyList" class="lm"></ul>
   </div>
 </div></section>
 <section class="page fill" id="pg-ar" data-t="AR" data-c="EVS"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>EVS</b><span>AR camera</span><i class="mfdS"></i></div>
   <h2>AR window</h2>
   <div class="tile">
-    <p class="note" style="margin:0 0 10px">Hold the phone up to the window. The rear camera shows the view with targeting-pod boxes on landmarks, airports, your destination, top of descent and your marks, each with distance, bearing and a short note. Arrows at the edges point to things off to the left or right. Tap a box to lock it.</p>
+    <details class="more"><summary>How it works</summary><p class="note" data-css="margin:0 0 10px">Hold the phone up to the window. The rear camera shows the view with targeting-pod boxes on landmarks, airports, your destination, top of descent and your marks, each with distance, bearing and a short note. Arrows at the edges point to things off to the left or right. Tap a box to lock it.</p></details>
     <button id="arBtn" class="pri arBig" aria-label="Open AR window"><svg viewBox="-100 -70 200 140" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2"><path d="M-62-44h-16v16M62-44h16v16M-62 44h-16v-16M62 44h16v-16"/><path d="M-40 0h-26M40 0h26M0-26v-18M0 26v18M-30-4v8M30-4v8"/><path d="M-50-58h100" stroke-width="1.4"/><path d="M-40-58v6M-20-58v4M0-58v8M20-58v4M40-58v6" stroke-width="1.4"/><rect x="18" y="-22" width="28" height="18" stroke-dasharray="0" stroke-width="1.6"/></g><text x="32" y="-26" fill="currentColor" font-size="9" text-anchor="middle" font-family="B612 Mono,monospace" font-weight="700">TGT</text></svg><span>Open AR window</span></button>
-    <div class="note">A box shows where something should be, sized by how sure the phone is of its heading. Fused (default) uses the compass for where the phone points and your GPS track to correct its drift, so boxes stay tight (about ±1.5°) and widen by themselves if the compass reports trouble or drifts away from the GPS. If boxes sit off, tap Align while looking square out of the window, or fine-tune with Trim. TV, GRN and WHT switch the camera look. Things beyond your horizon get dashed boxes. Entertainment only, not for navigation.</div>
+    <details class="more"><summary>How it works</summary><div class="note">A box shows where something should be, sized by how sure the phone is of its heading. Fused (default) uses the compass for where the phone points and your GPS track to correct its drift, so boxes stay tight (about ±1.5°) and widen by themselves if the compass reports trouble or drifts away from the GPS. If boxes sit off, tap Align while looking square out of the window, or fine-tune with Trim. TV, GRN and WHT switch the camera look. Things beyond your horizon get dashed boxes. Entertainment only, not for navigation.</div></details>
   </div>
   <div class="tile" id="spTile">
     <div class="lab"><span>Spot the other plane</span><span class="seg" data-k="spot"><button data-v="on" data-net>On</button><button data-v="off">Off</button></span></div>
-    <div class="bigv" id="spPts" style="font-size:16px;margin:6px 0">0 pts</div><button type="button" id="spRank" class="spRank ptc"></button>
-    <p class="note" style="margin:0 0 6px">With internet, Cabin Panel checks for aircraft within 25 nm about once a minute (via its own server, from adsb.lol). When one is close enough to see, you get an alert to open AR; put the crosshair on its box and hold for a second to collect it. New types and airlines score extra.</p>
+    <div class="bigv" id="spPts" data-css="font-size:16px;margin:6px 0">0 pts</div><button type="button" id="spRank" class="spRank ptc"></button>
+    <details class="more"><summary>How it works</summary><p class="note" data-css="margin:0 0 6px">With internet, Cabin Panel checks for aircraft within 25 nm about once a minute (via its own server, from adsb.lol). When one is close enough to see, you get an alert to open AR; put the crosshair on its box and hold for a second to collect it. New types and airlines score extra.</p></details>
     <ul class="lm" id="spOut"></ul>
   </div>
 </div></section>
 <section class="page" id="pg-route" data-t="Route" data-c="FPLN"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>FPLN</b><span>Route and tracking</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>Route</h2>
-  <div class="row" style="margin-bottom:6px"><input type="text" id="fltIn" placeholder="Flight number, e.g. QF812" autocapitalize="characters" autocomplete="off" maxlength="9" aria-label="Flight number"><button id="fltBtn" data-net class="pri">Look up</button><button id="fltClr" aria-label="Clear flight number">✕</button></div>
-  <div class="note" id="fltTxt">Look up your flight before boarding (needs internet). The route is saved on the phone for offline use.</div>
+  <div class="row" id="fltRow" data-css="margin-bottom:6px"><input type="text" id="fltIn" placeholder="Flight number, e.g. QF812" autocapitalize="characters" autocomplete="off" maxlength="9" aria-label="Flight number"><button id="fltBtn" data-net class="pri">Look up</button><button id="fltClr" aria-label="Clear flight number">✕</button></div>
+  <div class="note" id="fltTxt">Look up your flight before boarding (needs internet); the route is saved for offline use.</div>
   <div class="tile" id="bpTile">
     <div class="lab"><span>Boarding pass</span><button id="bpClr">Clear</button></div>
     <div class="row"><button id="bpScan" class="pri">📷 Scan boarding pass</button><button id="bpUp">Upload image or Wallet pass</button></div>
     <input type="file" id="bpFile" aria-label="Choose a boarding pass image or wallet pass" accept="image/*,.pkpass,application/vnd.apple.pkpass" hidden>
     <ul class="lm" id="bpOut"></ul>
-    <div class="note" id="bpTxt" style="margin:4px 0 0">Reads the barcode on the phone (works offline) and fills in your flight, date, seat and route, then shows the window seat guide. Nothing is uploaded; your name and booking code are not kept.</div>
+    <div class="note" id="bpTxt" data-css="margin:4px 0 0">Reads the barcode on the phone (works offline) and fills in your flight, date, seat and route, then shows the window seat guide. Nothing is uploaded; your name and booking code are not kept.</div>
   </div>
-  <div class="row"><select id="from" aria-label="From"></select><select id="to" aria-label="To"></select></div>
-  <div class="row"><span class="sub">Aircraft type</span><input type="text" id="acType" placeholder="e.g. B738 (optional)" maxlength="12" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Aircraft type (optional, for your logbook stats)"></div>
+  <div class="row" id="apRow"><select id="from" aria-label="From"></select><select id="to" aria-label="To"></select></div>
+  <div class="row" id="acRow"><span class="sub">Aircraft type</span><input type="text" id="acType" placeholder="e.g. B738 (optional)" maxlength="12" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Aircraft type (optional, for your logbook stats)"></div>
   <h2>Window seat guide</h2>
   <div class="tile" id="wsTile">
     <div class="lab"><span>Which side to sit</span><span>At check-in</span></div>
-    <div class="bigv" id="wsBest" style="font-size:20px;margin:6px 0">—</div>
+    <div class="bigv" id="wsBest" data-css="font-size:20px;margin:6px 0">—</div>
     <ul class="lm" id="wsOut"></ul>
-    <div class="note" id="wsNote" style="margin:4px 0 0"></div>
-    <div class="note" style="margin:4px 0 0">Works offline from the built-in landmarks, coastline, terrain and runways, plus the pre-flight pack's places and wind. Views depend on cloud, the actual route and the runway in use. Entertainment only.</div>
+    <div class="note" id="wsNote" data-css="margin:4px 0 0"></div>
+    <details class="more"><summary>How it works</summary><div class="note" data-css="margin:4px 0 0">Works offline from the built-in landmarks, coastline, terrain and runways, plus the pre-flight pack's places and wind. Views depend on cloud, the actual route and the runway in use. Entertainment only.</div></details>
   </div>
   <h2>Body clock</h2>
   <div class="tile" id="bcTile">
     <div class="lab"><span id="bcHead">Jet lag and sleep</span><span>Before · during · after</span></div>
     <ul class="lm" id="bcOut"></ul>
-    <div class="note" style="margin:4px 0 0">Uses the time-zone change, your departure time (Departs, in the pre-flight pack) and an estimated flight time. General tips, not medical advice.</div>
+    <details class="more"><summary>How it works</summary><div class="note" data-css="margin:4px 0 0">Uses the time-zone change, your departure time (Departs, in the pre-flight pack) and an estimated flight time. General tips, not medical advice.</div></details>
   </div>
   <h2>Connection</h2>
   <div class="tile" id="cnTile">
     <div class="lab"><span>Next flight (multi-leg trips)</span><button id="cnClr">Clear</button></div>
     <div class="row"><input type="time" id="cnTime" aria-label="Next flight departs (local time at your destination)"><input type="text" id="cnFlt" placeholder="Flight (optional)" maxlength="8" autocomplete="off" aria-label="Next flight number (optional)"></div>
     <div class="row"><span class="seg" id="cnKind"><button data-v="same">Same terminal</button><button data-v="term">Change terminal</button><button data-v="intl">International</button></span></div>
-    <div class="bigv" id="cnBig" style="font-size:20px;margin:6px 0">—</div><ul class="lm" id="cnOut"></ul>
-    <div class="note" style="margin:4px 0 0">Rough guide only: taxi and walking times are typical estimates. Check the airline app and airport screens.</div>
+    <div class="bigv" id="cnBig" data-css="font-size:20px;margin:6px 0">—</div><ul class="lm" id="cnOut"></ul>
+    <div class="note" data-css="margin:4px 0 0">Rough guide only: taxi and walking times are typical estimates. Check the airline app and airport screens.</div>
   </div>
   <h2>Pre-flight pack</h2>
   <div class="tile" id="packTile">
     <div class="lab"><span id="packHead">Pre-flight pack</span><span id="packAge"></span></div>
-    <div class="row" style="margin-top:8px"><span class="sub">Departs</span><input type="time" id="packDep" aria-label="Departure time (phone time)"><button id="packBtn" data-net class="pri">Download pack</button></div>
+    <div class="row" data-css="margin-top:8px"><span class="sub">Departs</span><input type="time" id="packDep" aria-label="Departure time (phone time)"><button id="packBtn" data-net class="pri">Download pack</button></div>
     <label class="chk"><input type="checkbox" id="packWiki" data-net checked> Add places from Wikipedia</label>
-    <div class="note" id="packTxt" style="margin:4px 0 0">Needs internet. Downloads forecast weather and winds along this route (Open-Meteo) plus extra places to look out for, and keeps them on the phone for offline use in flight. Leave Departs blank for now. Turbulence is a rough guide from forecast wind shear and storm energy, not a forecast.</div>
+    <div class="note" id="packTxt" data-css="margin:4px 0 0">Needs internet. Downloads forecast weather and winds along this route (Open-Meteo) plus extra places to look out for, and keeps them on the phone for offline use in flight. Leave Departs blank for now. Turbulence is a rough guide from forecast wind shear and storm energy, not a forecast.</div>
     <ul class="lm" id="packSum"></ul>
   </div>
   <h2>3D route pack</h2>
   <div class="tile" id="svpTile">
     <div class="lab"><span>Terrain and satellite for the 3D view</span><span id="svpUse"></span></div>
-    <div class="row" style="margin-top:8px"><select id="svpFrom" aria-label="3D pack departure"></select><select id="svpTo" aria-label="3D pack destination"></select></div>
+    <div class="row" data-css="margin-top:8px"><select id="svpFrom" aria-label="3D pack departure"></select><select id="svpTo" aria-label="3D pack destination"></select></div>
     <div class="row"><select id="svpW" aria-label="Corridor width"><option value="std">Standard corridor, 60 km wide</option><option value="wide">Wide corridor, 120 km</option></select></div>
     <label class="chk"><input type="checkbox" id="svpBm" checked> Night lights (NASA Black Marble)</label>
     <label class="chk"><input type="checkbox" id="svpAsp" disabled aria-describedby="svpAspWhy"> Airspace outlines (OpenAIP)</label><div class="note" id="svpAspWhy">Unavailable for now: OpenAIP blocks direct downloads from web apps, and Cabin Panel's server doesn't relay it.</div>
-    <div class="row"><button id="svpGo" data-net class="pri">Download route pack</button><button id="svpStop" style="display:none">Pause</button><button id="svpOpen" style="display:none">Open 3D view</button></div>
+    <div class="row"><button id="svpGo" data-net class="pri">Download route pack</button><button id="svpStop" data-css="display:none">Pause</button><button id="svpOpen" data-css="display:none">Open 3D view</button></div>
     <div id="svpBar"><i></i></div>
-    <div class="note" id="svpTxt" style="margin:4px 0 0">Needs internet. Saves terrain and satellite imagery along the route, plus a sharper patch around each airport, for the 3D window view. The phone downloads it directly from each provider.</div>
+    <div class="note" id="svpTxt" data-css="margin:4px 0 0">Needs internet. Saves terrain and satellite imagery along the route, plus a sharper patch around each airport, for the 3D window view. The phone downloads it directly from each provider.</div>
     <ul class="lm" id="svpList"></ul>
-    <div class="note" id="svpStore" style="margin:4px 0 0"></div>
+    <div class="note" id="svpStore" data-css="margin:4px 0 0"></div>
   </div>
   <h2>Common routes</h2>
-  <div class="tile"><div class="row"><button id="rtSave">Save this route</button></div><ul class="lm" id="rtList"></ul></div>
-  <div class="note">Saved routes keep their pack on this phone, so the weather, turbulence guide and extra places are there offline. Tap Update before each flight for fresh weather.</div>
+  <div class="tile" id="rtTile"><div class="row"><button id="rtSave">Save this route</button></div><ul class="lm" id="rtList"></ul></div>
+  <div class="note" id="rtNote">Saved routes keep their pack (weather, turbulence guide, extra places) on this phone for offline use. Tap Update before each flight.</div>
   <h2 id="tkH">Inbound aircraft</h2>
-  <div class="tile" id="tkTile"><div class="note drvOnly" id="drvTkNote" style="margin:0 0 8px"></div>
+  <div class="tile" id="tkTile"><div class="note drvOnly" id="drvTkNote" data-css="margin:0 0 8px"></div>
     <div class="lab"><span>Track your aircraft by tail number</span><span>Ground mode</span></div>
-    <p class="note" style="margin:6px 0 4px">Waiting at the airport? Follow the aircraft that will fly your flight before it changes flight numbers: where it is, when it should get here, a rough delay estimate and the weather it has flown through.</p>
-    <div class="row" style="margin-top:6px"><input type="text" id="tkReg" placeholder="Tail number, e.g. VH-YIA" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Aircraft registration (tail number)"><input type="text" id="tkFlt" placeholder="Its flight (optional)" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="9" aria-label="The aircraft's current flight number (optional)"></div>
-    <div class="row"><span class="sub">Your departure</span><input type="time" id="tkDep" aria-label="Your scheduled departure, local time at your airport"><span class="sub">from</span><input type="text" id="tkAp" list="tkApL" placeholder="SYD" maxlength="4" autocapitalize="characters" autocomplete="off" aria-label="Your airport (IATA code)"><datalist id="tkApL"></datalist></div>
-    <div class="row"><span class="sub">Minimum turnaround</span><input type="number" id="tkTurn" min="10" max="240" step="5" value="30" inputmode="numeric" aria-label="Minimum turnaround, minutes"><span class="sub">min</span><button id="tkGo" data-net class="pri">Track</button><button id="tkStop" style="display:none">Stop</button></div>
+    <details class="more"><summary>How it works</summary><p class="note" data-css="margin:6px 0 4px">Waiting at the airport? Follow the aircraft that will fly your flight before it changes flight numbers: where it is, when it should get here, a rough delay estimate and the weather it has flown through.</p></details>
+    <div class="row" data-css="margin-top:6px"><input type="text" id="tkReg" placeholder="Tail number, e.g. VH-YIA" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Aircraft registration (tail number)"><input type="text" id="tkFlt" placeholder="Its flight (optional)" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="9" aria-label="The aircraft's current flight number (optional)"></div>
+    <div class="row" id="tkDepRow"><span class="sub">Your departure</span><input type="time" id="tkDep" aria-label="Your scheduled departure, local time at your airport"><span class="sub">from</span><input type="text" id="tkAp" list="tkApL" placeholder="SYD" maxlength="4" autocapitalize="characters" autocomplete="off" aria-label="Your airport (IATA code)"><datalist id="tkApL"></datalist></div>
+    <div class="row"><span class="sub">Minimum turnaround</span><input type="number" id="tkTurn" min="10" max="240" step="5" value="30" inputmode="numeric" aria-label="Minimum turnaround, minutes"><span class="sub">min</span><button id="tkGo" data-net class="pri">Track</button><button id="tkStop" data-css="display:none">Stop</button></div>
     <label class="chk"><input type="checkbox" id="tkShow" checked> Show it on the HUD, gauges, Map, Nav and 3D view while my own GPS isn't flying</label>
-    <div class="note" id="tkSt" style="margin:4px 0 0"></div>
+    <div class="note" id="tkSt" data-css="margin:4px 0 0"></div>
     <ul class="lm" id="tkOut"></ul>
     <details><summary>Data source</summary>
       <label class="chk"><input type="checkbox" id="tkRelay"> If Cabin Panel's private proxy fails, use the public cors.dev relay</label>
       <div class="row"><input type="url" id="tkProxy" placeholder="Override proxy URL (optional; blank = built-in)" autocomplete="off" spellcheck="false" aria-label="Override the private ADS-B proxy URL"></div>
-      <div class="note" style="margin:4px 0 0">Live positions come from adsb.lol, a free community ADS-B network. Its API doesn't allow requests straight from a web page, so Cabin Panel asks its own private proxy, so your lookups aren't shared with other people's. adsb.lol still allows about 500 lookups a day per proxy address. Only if the private proxy fails does it use the free public cors.dev relay, which is shared with other users and can see which aircraft you look up; untick above to never use it. An override URL must take the full adsb.lol address after it (https://your-proxy/https://api.adsb.lol/…). Checks slow down when the aircraft is far away and drop to every 5 minutes while the app is in the background.</div>
+      <details class="more"><summary>How it works</summary><div class="note" data-css="margin:4px 0 0">Live positions come from adsb.lol, a free community ADS-B network. Its API doesn't allow requests straight from a web page, so Cabin Panel asks its own private proxy, so your lookups aren't shared with other people's. adsb.lol still allows about 500 lookups a day per proxy address. Only if the private proxy fails does it use the free public cors.dev relay, which is shared with other users and can see which aircraft you look up; untick above to never use it. An override URL must take the full adsb.lol address after it (https://your-proxy/https://api.adsb.lol/…). Checks slow down when the aircraft is far away and drop to every 5 minutes while the app is in the background.</div></details>
     </details>
   </div>
-  <div class="note">Display only: tracking never changes your own flight, phases or logbook. ETA, delay and weather are estimates, not airline information. Aircraft with ADS-B off, outside receiver coverage or hidden from public feeds can't be shown. Your departure time is local time at your airport. ADS-B data: adsb.lol (ODbL). Aircraft lookups: adsbdb.com, hexdb.io. Weather data by Open-Meteo.com.</div>
+  <details class="more"><summary>How it works</summary><div class="note">Display only: tracking never changes your own flight, phases or logbook. ETA, delay and weather are estimates, not airline information. Aircraft with ADS-B off, outside receiver coverage or hidden from public feeds can't be shown. Your departure time is local time at your airport. ADS-B data: adsb.lol (ODbL). Aircraft lookups: adsbdb.com, hexdb.io. Weather data by Open-Meteo.com.</div></details>
   <h2>Aircraft info</h2>
   <div class="tile" id="aiTile">
     <div class="lab"><span>Type, operator and owner</span><span id="aiN"></span></div>
-    <div class="row"><input type="text" id="aiIn" placeholder="Registration, e.g. VH-YIA" maxlength="10" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Aircraft registration or Mode S code"><button id="aiGo" class="pri">Look up</button><span class="cfWhy" id="aiWhy" style="display:none"></span></div>
-    <div class="row"><button id="aiTk" style="display:none"></button></div>
+    <div class="row"><input type="text" id="aiIn" placeholder="Registration, e.g. VH-YIA" maxlength="10" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Aircraft registration or Mode S code"><button id="aiGo" class="pri">Look up</button><span class="cfWhy" id="aiWhy" data-css="display:none"></span></div>
+    <div class="row"><button id="aiTk" data-css="display:none"></button></div>
     <div id="aiCard"></div>
-    <div class="note" id="aiTxt" style="margin:4px 0 0">Needs internet the first time; saved on this phone afterwards so it works offline. Sources: adsbdb.com, hexdb.io.</div>
+    <div class="note" id="aiTxt" data-css="margin:4px 0 0">Needs internet the first time; saved on this phone afterwards so it works offline. Sources: adsbdb.com, hexdb.io.</div>
   </div>
   <h2>Share live flight</h2>
-  <div class="tile" id="shTile"><div class="drvOnly drvPriv"><div class="note" id="drvPrivTxt" style="margin:0 0 6px"></div><div class="row"><button id="drvPrivBtn">Keep this spot private</button><button id="drvPrivClr">Clear private spots</button></div></div>
+  <div class="tile" id="shTile"><div class="drvOnly drvPriv"><div class="note" id="drvPrivTxt" data-css="margin:0 0 6px"></div><div class="row"><button id="drvPrivBtn">Keep this spot private</button><button id="drvPrivClr">Clear private spots</button></div></div>
     <div class="lab"><span>Let family follow along</span><span>Opt-in</span></div>
-    <p class="note drvOnly" style="margin:6px 0 4px">Drive mode: sends a link. Anyone who opens it sees your car on a map with an ETA to your destination, updated about every 45 seconds while your phone has internet. Shared: position, height, speed and ETA, nothing else. No name. Never from near home (see Drive privacy above). Stops by itself after 24 hours, or tap Stop sharing.</p>
-    <p class="note fltOnly" style="margin:6px 0 4px">Sends a link. Anyone who opens it sees your plane on a map with the route and ETA, updated about every 45 seconds while your phone has internet (aircraft Wi-Fi). Shared: position, height, speed and route, nothing else. No name. Your phone's position is only sent at an airport or once you're moving fast, never from home. While you track an aircraft, sharing follows that aircraft. Stops by itself after 24 hours, or tap Stop sharing.</p>
-    <div class="row"><button id="shStart" class="pri" data-net>Start sharing</button><button id="shStop" style="display:none">Stop sharing</button></div>
-    <div class="row" id="shLinkRow" style="display:none"><input type="text" id="shLink" readonly aria-label="Follow link"><button id="shShare" data-net>Send link</button><button id="shNew" data-net aria-label="Make a new follow link; the old one stops working">New link</button></div>
-    <div class="note" id="shSt" style="margin:4px 0 0"></div>
+    <p class="note drvOnly" data-css="margin:6px 0 4px">Drive mode: sends a link. Anyone who opens it sees your car on a map with an ETA to your destination, updated about every 45 seconds while your phone has internet. Shared: position, height, speed and ETA, nothing else. No name. Never from near home (see Drive privacy above). Stops by itself after 24 hours, or tap Stop sharing.</p>
+    <p class="note fltOnly" data-css="margin:6px 0 4px">Sends a link. Anyone who opens it sees your plane on a map with the route and ETA, updated about every 45 seconds while your phone has internet (aircraft Wi-Fi). Shared: position, height, speed and route, nothing else. No name. Your phone's position is only sent at an airport or once you're moving fast, never from home. While you track an aircraft, sharing follows that aircraft. Stops by itself after 24 hours, or tap Stop sharing.</p>
+    <div class="row"><button id="shStart" class="pri" data-net>Start sharing</button><button id="shStop" data-css="display:none">Stop sharing</button></div>
+    <div class="row" id="shLinkRow" data-css="display:none"><input type="text" id="shLink" readonly aria-label="Follow link"><button id="shShare" data-net>Send link</button><button id="shNew" data-net aria-label="Make a new follow link; the old one stops working">New link</button></div>
+    <div class="note" id="shSt" data-css="margin:4px 0 0"></div>
   </div>
   <h2>Follow a flight</h2>
   <div class="tile" id="fwTile">
     <div class="row"><input type="text" id="fwIn" placeholder="Paste the follow link" autocomplete="off" spellcheck="false" aria-label="Follow link or code"><button id="fwGo" class="pri" data-net>Follow</button></div>
-    <div class="note" id="fwTxt" style="margin:4px 0 0">Opening a follow link in Safari or Cabin Panel shows the shared flight. Needs internet.</div>
+    <div class="note" id="fwTxt" data-css="margin:4px 0 0">Opening a follow link in Safari or Cabin Panel shows the shared flight. Needs internet.</div>
   </div>
 </div></section>
 <section class="page" id="pg-log" data-t="Log" data-c="PERF"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>PERF</b><span>G, log, landing</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>G-meter</h2>
-  <div class="tile row" style="justify-content:space-between">
-    <div><div class="val" id="g" style="font-size:44px">-.--<small>G</small></div><div class="sub" id="gmm">Min — · Max —</div></div>
+  <div class="tile row" data-css="justify-content:space-between">
+    <div><div class="val" id="g" data-css="font-size:44px">-.--<small>G</small></div><div class="sub" id="gmm">Min — · Max —</div></div>
     <div class="row"><button id="gBtn">Enable</button><button id="gReset">Reset</button></div>
   </div>
   <div class="note">Reads the phone's accelerometer: 1.00 G is level flight. Hold the phone steady, or rest it on the tray table.</div>
 
   <h2>Flight log</h2>
   <div class="tile">
-    <div class="row" style="justify-content:space-between">
-      <div class="sub" id="logTxt" style="white-space:normal">Not recording</div>
+    <div class="row" data-css="justify-content:space-between">
+      <div class="sub" id="logTxt" data-css="white-space:normal">Not recording</div>
       <div class="row"><button id="logBtn">Record</button><button id="gpxBtn">Export GPX</button><button id="rpLogBtn">Replay</button><button id="cardBtn">Card</button><button id="clrBtn">Clear</button></div>
     </div>
     <div class="note" id="maxTxt"></div>
-    <div class="lab" style="margin-top:8px"><span>Flight times</span></div>
+    <div class="lab" data-css="margin-top:8px"><span>Flight times</span></div>
     <ul class="lm" id="evList"></ul>
-    <div class="lab" style="margin-top:8px"><span>Marks</span></div>
+    <div class="lab" data-css="margin-top:8px"><span>Marks</span></div>
     <ul class="lm" id="markList"></ul>
   </div>
 
@@ -725,7 +300,7 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
   <div class="tile drvOnly" id="rsTile"><div class="lab"><span id="rsHead">This drive</span><span>For fun</span></div><div class="bigv" id="rsBig">—</div><ul class="lm" id="rsOut"></ul></div>
   <h2>Landing score</h2>
   <div class="tile" id="lsTile"><div class="lab"><span>Last landing</span><span>For fun</span></div><div class="bigv" id="lsBig">—</div><ul class="lm" id="lsOut"></ul>
-    <div class="note" style="margin:4px 0 0">Scored from GPS and phone sensors: sink rate and G at touchdown (G needs the G-meter on), glide path and speed in the last 2 nm / 60 s, wings level and float. Just for fun, not a report on the crew.</div></div>
+    <details class="more"><summary>How it works</summary><div class="note" data-css="margin:4px 0 0">Scored from GPS and phone sensors: sink rate and G at touchdown (G needs the G-meter on), glide path and speed in the last 2 nm / 60 s, wings level and float. Just for fun, not a report on the crew.</div></details></div>
   <h2>Flight diary</h2>
   <div class="tile" id="dyTile"><div class="lab"><span id="dyHead">Notes for this flight</span></div>
     <textarea id="dyIn" maxlength="1000" placeholder="What's happening? (stamped with time, position and height)" aria-label="Diary note"></textarea>
@@ -733,21 +308,21 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
 </div></section>
 <section class="page fill" id="pg-book" data-t="Logbook" data-c="LOG"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>LOG</b><span>Logbook</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>Logbook</h2>
-  <div class="tile"><div class="row" style="margin-bottom:10px"><button id="expBtn">Export logbook</button><button id="impBtn">Import</button><input type="file" id="impFile" aria-label="Choose a logbook backup file" accept=".json,application/json" style="display:none"></div>
-    <div class="note" id="bookTxt" style="margin:0 0 10px">Back up your flights to Files or iCloud Drive. The logbook lives only on this phone.</div>
-    <div class="kv3" id="statKv"></div><div class="lab" style="margin-top:14px"><span>Flights</span></div><ul class="lm" id="bookList"></ul></div>
-  <div class="tile" id="bdgTile"><div class="lab"><span>Trip stats and records</span></div><div class="kv3" id="totKv"></div><div class="lab" style="margin-top:12px"><span id="bdgHead">Badges</span></div><div class="note drvOnly" style="margin:0 0 8px">Drive mode: drive patches are shown. Flight badges (FL400, Night landing, Butter landing and the rest) are hidden until you flip back to flight mode.</div><div class="bdgs" id="bdgOut"></div></div>
-  <div class="tile" id="recTile"><div class="lab"><span>Personal bests</span><span>Your flights</span></div><ul class="lm" id="recOut"></ul><div class="note" style="margin:4px 0 0">From your logbook and live GPS (demo flights don't count). Tailwind boost = groundspeed minus estimated true airspeed, using the pre-flight pack's winds.</div></div>
-  <div class="tile" id="exTile"><div class="lab"><span>Export</span><span>All flights</span></div><div class="row" style="flex-wrap:wrap"><button id="ex_csv">Logbook CSV</button><button id="ex_trk">Tracks CSV</button><button id="ex_gpx">GPX</button><button id="ex_kml">KML</button></div><div class="note" id="exTxt" style="margin:4px 0 0">Opens in Excel/Numbers, Google Earth and mapping apps. Made on the phone; nothing is uploaded.</div></div>
+  <div class="tile"><div class="row" data-css="margin-bottom:10px"><button id="expBtn">Export logbook</button><button id="impBtn">Import</button><input type="file" id="impFile" aria-label="Choose a logbook backup file" accept=".json,application/json" data-css="display:none"></div>
+    <div class="note" id="bookTxt" data-css="margin:0 0 10px">Back up your flights to Files or iCloud Drive. The logbook lives only on this phone.</div>
+    <div class="kv3" id="statKv"></div><div class="lab" data-css="margin-top:14px"><span>Flights</span></div><ul class="lm" id="bookList"></ul></div>
+  <div class="tile" id="bdgTile"><div class="lab"><span>Trip stats and records</span></div><div class="kv3" id="totKv"></div><div class="lab" data-css="margin-top:12px"><span id="bdgHead">Badges</span></div><div class="note drvOnly" data-css="margin:0 0 8px">Drive mode: drive patches are shown. Flight badges (FL400, Night landing, Butter landing and the rest) are hidden until you flip back to flight mode.</div><div class="bdgs" id="bdgOut"></div></div>
+  <div class="tile" id="recTile"><div class="lab"><span>Personal bests</span><span>Your flights</span></div><ul class="lm" id="recOut"></ul><details class="more"><summary>How it works</summary><div class="note" data-css="margin:4px 0 0">From your logbook and live GPS (demo flights don't count). Tailwind boost = groundspeed minus estimated true airspeed, using the pre-flight pack's winds.</div></details></div>
+  <div class="tile" id="exTile"><div class="lab"><span>Export</span><span>All flights</span></div><div class="row" data-css="flex-wrap:wrap"><button id="ex_csv">Logbook CSV</button><button id="ex_trk">Tracks CSV</button><button id="ex_gpx">GPX</button><button id="ex_kml">KML</button></div><div class="note" id="exTxt" data-css="margin:4px 0 0">Opens in Excel/Numbers, Google Earth and mapping apps. Made on the phone; nothing is uploaded.</div></div>
 
 </div></section>
 <section class="page" id="pg-set" data-t="Settings" data-c="SYS"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>SYS</b><span>Settings</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>Settings</h2>
-  <div class="tile" style="display:grid;gap:10px">
+  <div class="tile" data-css="display:grid;gap:10px">
     <div class="row">Speed <span class="seg" data-k="spd"><button data-v="kt">kt</button><button data-v="kmh">km/h</button><button data-v="mph">mph</button></span></div>
     <div class="row">Altitude <span class="seg" data-k="alt"><button data-v="ft">ft</button><button data-v="m">m</button></span></div>
     <div class="row">Distance <span class="seg" data-k="dst"><button data-v="nm">nm</button><button data-v="km">km</button></span></div>
-    <div class="row">HUD scene <span class="seg" data-k="scn" style="flex-wrap:wrap"><button data-v="auto">Auto</button><button data-v="day">Outback</button><button data-v="ocean">Ocean</button><button data-v="sunset">Dusk</button><button data-v="night">Night</button><button data-v="app">Approach</button></span></div>
+    <div class="row">HUD scene <span class="seg" data-k="scn" data-css="flex-wrap:wrap"><button data-v="auto">Auto</button><button data-v="day">Outback</button><button data-v="ocean">Ocean</button><button data-v="sunset">Dusk</button><button data-v="night">Night</button><button data-v="app">Approach</button></span></div>
     <div class="row">HUD weather <span class="seg" data-k="wxs"><button data-v="on">From pre-flight pack</button><button data-v="off">Off</button></span></div>
     <div class="row">Cockpit <span class="seg" data-k="cockpit"><button data-v="modern">Modern</button><button data-v="f4">F-4 Phantom</button><button data-v="p51">P-51 Mustang</button></span></div>
     <div class="row">Voice <span class="seg" data-k="vox"><button data-v="female">Female callouts</button><button data-v="system">System</button><button data-v="off">Off</button></span></div>
@@ -755,24 +330,23 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
     <div class="row">Display <span class="seg" data-k="disp"><button data-v="day">Day</button><button data-v="night">Night</button><button data-v="nvg">NVG</button></span></div>
     <div class="row">Night screen texture <span class="seg" data-k="tex"><button data-v="off">Off</button><button data-v="on">On</button></span></div>
     <div class="row">Connected features <span class="seg" data-k="net"><button data-v="auto">Auto</button><button data-v="on">On</button><button data-v="off">Off</button></span></div>
-    <div class="note" id="netSt" style="margin:0"></div>
-    <div class="row">Turbulence warning <span class="seg" data-k="tbLead" style="flex-wrap:wrap"><button data-v="5">5 min</button><button data-v="10">10</button><button data-v="15">15</button><button data-v="20">20</button><button data-v="30">30</button><button data-v="off">Off</button></span></div>
-    <div class="note" style="margin:0">Turbulence master warning: a banner and tone this many minutes before moderate or rough air on the pre-flight pack's forecast. An estimate, not a real-time warning.</div>
+    <div class="note" id="netSt" data-css="margin:0"></div>
+    <div class="row">Turbulence warning <span class="seg" data-k="tbLead" data-css="flex-wrap:wrap"><button data-v="5">5 min</button><button data-v="10">10</button><button data-v="15">15</button><button data-v="20">20</button><button data-v="30">30</button><button data-v="off">Off</button></span></div>
+    <details class="more"><summary>How it works</summary><div class="note" data-css="margin:0">Turbulence master warning: a banner and tone this many minutes before moderate or rough air on the pre-flight pack's forecast. An estimate, not a real-time warning.</div></details>
     <div class="row">Seatbelt and phase cues <span class="seg" data-k="cues"><button data-v="on">On</button><button data-v="voice">Voice</button><button data-v="off">Off</button></span></div>
-    <div class="note" style="margin:0">Gentle reminders worked out from GPS (taxiing out, levelling off, descent soon, approach, nearly at the gate). A guess: always follow the crew.</div>
+    <details class="more"><summary>How it works</summary><div class="note" data-css="margin:0">Gentle reminders worked out from GPS (taxiing out, levelling off, descent soon, approach, nearly at the gate). A guess: always follow the crew.</div></details>
     <div class="row">Battery saver <span class="seg" data-k="bat"><button data-v="auto">Auto</button><button data-v="on">On</button><button data-v="off">Off</button></span></div>
-    <div class="note" id="batSt" style="margin:0"></div>
-    <div class="note" id="offTxt">Checking offline readiness…</div><div class="note" id="a2hsTip" style="display:none"></div>
+    <div class="note" id="batSt" data-css="margin:0"></div>
+    <div class="note" id="offTxt">Checking offline readiness…</div><div class="note" id="a2hsTip" data-css="display:none"></div>
     <div class="note" id="storeTxt">Flight data saves every few seconds and when the app closes.</div>
   </div>
-  <div class="note">HUD scene: on Auto the background follows the real sun (night, dusk or day), switches to ocean over water and to a runway view on approach. The scenes are illustrations rendered in Blender, not real terrain.</div>
+  <details class="more"><summary>How it works</summary><div class="note">HUD scene: on Auto the background follows the real sun (night, dusk or day), switches to ocean over water and to a runway view on approach. The scenes are illustrations rendered in Blender, not real terrain.</div>
   <div class="note">Window seat: pick Left or Right (facing forward) and "Coming up" lists only what will pass your side, plus anything near the track ahead. Landmark voice callouts follow the same setting.</div>
   <div class="note">Out the window: sun times allow for your altitude letting you see further over the horizon. Landmark positions are approximate, and visibility depends on cloud.</div>
   <div class="note">Attitude, GPS mode: bank comes from how fast your track is turning (assuming a coordinated turn) and pitch from your climb angle plus about 2.5°. It needs groundspeed above about 60 kt. Gyro mode: stand the phone upright facing you, braced so it can't move, and tap Level in level flight. It catches quick changes well but drifts back toward level in long turns.</div>
-  <div class="note">Uses your phone's GPS, which keeps working in flight mode. Sit at a window for a fix. Altitude is GPS height above sea level, not the pressure altitude the crew flies. Not for navigation.</div>
+  <div class="note">Uses your phone's GPS, which keeps working in flight mode. Sit at a window for a fix. Altitude is GPS height above sea level, not the pressure altitude the crew flies. Not for navigation.</div></details>
   <h2>About &amp; credits</h2>
-  <div class="tile"><div class="note" style="margin:0">Cabin Panel v23. Entertainment only, not for navigation or safety use.<br>
-  Taxiways and aprons: © OpenStreetMap contributors, Open Database Licence (ODbL 1.0), openstreetmap.org/copyright. Simplified extract, November 2026.<br>
+  <div class="tile"><div class="note" data-css="margin:0">Cabin Panel v25. Entertainment only, not for navigation or safety use.</div><details class="more" id="credits"><summary>Credits and licences</summary><div class="note" data-css="margin:6px 0 0">Taxiways and aprons: © OpenStreetMap contributors, Open Database Licence (ODbL 1.0), openstreetmap.org/copyright. Simplified extract, November 2026.<br>
   Runways and airport positions: OurAirports (public domain).<br>
   Drive mode towns: GeoNames (geonames.org, CC BY 4.0), positions approximate. Drive mode is for passengers only.<br>
   Pre-flight weather: Weather data by Open-Meteo.com (CC BY 4.0), downloaded on request.<br>
@@ -780,7 +354,7 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
   Extra places: Wikipedia (CC BY-SA 4.0), downloaded on request. Built-in landmark notes were written for Cabin Panel. Positions are approximate and this is not official aeronautical data.<br>
   3D window view (downloaded on request to this phone, never re-hosted): imagery Sentinel-2 cloudless 2016 &ndash; https://s2maps.eu by EOX IT Services GmbH (CC BY 4.0; contains modified Copernicus Sentinel data 2016 &amp; 2017); terrain &copy; Mapterhorn, open elevation data incl. Copernicus GLO-30 DEM (&copy; DLR e.V. 2010&ndash;2014 and &copy; Airbus Defence and Space GmbH 2014&ndash;2018, provided under COPERNICUS by the European Union and ESA) and the other sources at mapterhorn.com/attribution; night lights NASA Earth Observatory / NASA GIBS (VIIRS Black Marble); optional airspace &copy; openAIP (CC BY-NC 4.0, personal non-commercial use, not an official chart). 3D graphics: three.js (MIT). Look shaders inspired by gods-eye-view by Bilawal Sidhu (MIT). No Google, Esri, Cesium ion or Airservices data is used.<br>
   Live features (sharing, nearby aircraft for Spot the other plane, live arrival weather, connection check) go through Cabin Panel&rsquo;s own server; nearby aircraft: adsb.lol (ODbL); live weather: Open-Meteo.com (CC BY 4.0). Shared flights expire after 24 hours.<br>
-  Magnetic variation: World Magnetic Model 2025 (NOAA/BGS). HUD scenes were rendered in Blender. Font: B612 (SIL Open Font License).</div></div>
+  Magnetic variation: World Magnetic Model 2025 (NOAA/BGS). HUD scenes were rendered in Blender. Font: B612 (SIL Open Font License).</div></details></div>
 </div></section>
 </main>
 <div id="cmpOv" role="dialog" aria-label="Compass view"><button id="cmpExit">✕ Exit</button><span id="cmpTitle">COMPASS</span><span id="cmpPhase" class="chip"></span>
@@ -790,9 +364,9 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
     <text id="cNoHdg" x="160" y="228" text-anchor="middle" font-size="13" font-weight="700" fill="var(--dim)">NO COMPASS</text></svg>
   <div class="cmpRead"><div class="val" id="cmpHdg">---<small>°M</small></div><div class="sub" id="cmpSub">Magnetic heading · top of phone</div></div>
   <div class="cmpSide">
-    <div id="cmpMsg" style="display:none"></div>
-    <div class="row" id="cmpEnRow" style="display:none"><button id="cmpEn" class="pri">Enable compass</button></div>
-    <div class="tile" style="margin:6px"><div class="kv3">
+    <div id="cmpMsg" data-css="display:none"></div>
+    <div class="row" id="cmpEnRow" data-css="display:none"><button id="cmpEn" class="pri">Enable compass</button></div>
+    <div class="tile" data-css="margin:6px"><div class="kv3">
       <div>GPS track<b id="cmpTrkM">---</b></div>
       <div>Cabin deviation<b id="cmpDev">---</b></div>
       <div>GPS track, true<b id="cmpTrk">---</b></div>
@@ -807,7 +381,7 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
   <canvas id="arCv" aria-label="Camera view with landmark boxes"></canvas>
   <button id="arExit">✕ Exit</button><span id="arPhase" class="chip"></span>
   <div id="arBar">
-    <div id="arMsg" style="display:none"></div>
+    <div id="arMsg" data-css="display:none"></div>
     <div class="row"><button id="arCam">Camera on</button><button id="arSen" class="pri">Enable compass</button><button id="arAlign">Align</button><button id="arHide" aria-label="Hide controls">Hide</button></div>
     <div class="row"><span class="seg" data-k="arSrc"><button data-v="fus">Fused</button><button data-v="cmp">Compass</button><button data-v="gps">GPS</button></span><span class="seg" data-k="arFlt"><button data-v="norm">TV</button><button data-v="grn">GRN</button><button data-v="wht">WHT</button><button data-v="nvg">NVG</button><button data-v="flir">FLIR</button><button data-v="ir">IR</button></span></div>
     <div class="row"><span class="seg" data-k="arSky"><button data-v="auto">Sky auto</button><button data-v="on">Sky on</button><button data-v="off">Sky off</button></span></div>
@@ -831,23 +405,23 @@ body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nv
   <div id="svAttrMini">Imagery: Sentinel-2 cloudless 2016 by EOX (CC BY 4.0) · Terrain: Mapterhorn · Night: NASA · Not for navigation</div>
   <button id="svShow" aria-label="Show controls">⚙</button>
 </div>
-<div id="ptOv" class="tapClose" title="Tap to close" style="display:none" role="dialog" aria-modal="true" aria-label="Patch"><div id="ptBox"><div class="mfdT"><b id="ptN">Badge</b><span id="ptK"></span></div><img id="ptImg" alt=""><p id="ptD"></p><p id="ptS"></p></div></div>
-<div id="gzOv" class="tapClose" title="Tap to close" style="display:none" role="dialog" aria-modal="true" aria-label="Enlarged gauge"><div id="gzBox"><div class="mfdT"><b id="gzT">Gauge</b><span id="gzCode"></span></div><canvas id="gzCv" aria-label="Enlarged gauge, live"></canvas></div></div>
+<div id="ptOv" class="tapClose" title="Tap to close" data-css="display:none" role="dialog" aria-modal="true" aria-label="Patch"><div id="ptBox"><div class="mfdT"><b id="ptN">Badge</b><span id="ptK"></span></div><img id="ptImg" alt=""><p id="ptD"></p><p id="ptS"></p></div></div>
+<div id="gzOv" class="tapClose" title="Tap to close" data-css="display:none" role="dialog" aria-modal="true" aria-label="Enlarged gauge"><div id="gzBox"><div class="mfdT"><b id="gzT">Gauge</b><span id="gzCode"></span></div><canvas id="gzCv" aria-label="Enlarged gauge, live"></canvas></div></div>
 <div id="fhOv" aria-label="Full screen HUD"><button id="fhExit">✕ Exit</button><span id="fhPhase" class="chip"></span><div id="fhSlot"></div><div id="fhToast" class="tapClose gone" title="Tap to close"></div></div>
-<div id="cardOv"><div class="cardBox"><img id="cardImg" alt="Flight summary card"><div class="row"><button id="cardShare" class="pri">Share</button><button id="cardClose">Close</button></div><label class="chk" id="cardSnapL" style="display:none"><input type="checkbox" id="cardSnap" checked> Include 3D snapshot</label><p class="note" id="cardHint">Long-press the image to save it to Photos.</p></div></div>
+<div id="cardOv"><div class="cardBox"><img id="cardImg" alt="Flight summary card"><div class="row"><button id="cardShare" class="pri">Share</button><button id="cardClose">Close</button></div><label class="chk" id="cardSnapL" data-css="display:none"><input type="checkbox" id="cardSnap" checked> Include 3D snapshot</label><p class="note" id="cardHint">Long-press the image to save it to Photos.</p></div></div>
 
-<div id="rpBar" style="display:none" role="group" aria-label="Replay controls"><div class="row"><button id="rpbPlay" aria-label="Play or pause">❚❚</button><span class="seg" id="rpbSpeed"><button data-v="1">1×</button><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button><button data-v="120">120×</button></span><button id="rpb3d">3D</button><button id="rpbMap">Map</button><button id="rpbExit">Exit</button></div><div class="row"><span id="rpbTitle"></span><span id="rpbTime"></span></div><input type="range" id="rpbSlider" min="0" max="1000" value="0" aria-label="Replay position"></div>
+<div id="rpBar" data-css="display:none" role="group" aria-label="Replay controls"><div class="row"><button id="rpbPlay" aria-label="Play or pause">❚❚</button><span class="seg" id="rpbSpeed"><button data-v="1">1×</button><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button><button data-v="120">120×</button></span><button id="rpb3d">3D</button><button id="rpbMap">Map</button><button id="rpbExit">Exit</button></div><div class="row"><span id="rpbTitle"></span><span id="rpbTime"></span></div><input type="range" id="rpbSlider" min="0" max="1000" value="0" aria-label="Replay position"></div>
 <div id="glOv" role="dialog" aria-label="Glance mode"><div id="glHead"><span id="glTop"></span><span><button id="glDim">Dim</button><button id="glX">✕</button></span></div>
 <div class="glc"><div class="gll">ETA</div><div class="glv" id="glEta">--:--</div><div class="glu" id="glEtaS"></div></div>
 <div class="glc"><div class="gll">ALTITUDE</div><div class="glv" id="glAlt">---</div><div class="glu" id="glAltU">FT</div></div>
 <div class="glc"><div class="gll">GROUNDSPEED</div><div class="glv" id="glSpd">---</div><div class="glu" id="glSpdU">KT</div></div>
 <div class="glc"><div class="gll">DISTANCE</div><div class="glv" id="glDtg">---</div><div class="glu" id="glDtgU">NM TO GO</div></div></div>
 <div id="bpOv" role="dialog" aria-label="Scan boarding pass"><video id="bpVid" playsinline muted autoplay></video><div id="bpFrame"></div><div id="bpBar"><span id="bpScanTxt"></span><button id="bpX">✕ Close</button></div></div>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="fIron" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".3 .59 .11 0 0 .3 .59 .11 0 0 .3 .59 .11 0 0 0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues="0 0.25 0.6 0.9 1 1"/><feFuncG type="table" tableValues="0 0 0.05 0.35 0.75 1"/><feFuncB type="table" tableValues="0.05 0.45 0.55 0.1 0 0.85"/></feComponentTransfer></filter></svg>
+<svg width="0" height="0" data-css="position:absolute" aria-hidden="true" focusable="false"><filter id="fIron" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".3 .59 .11 0 0 .3 .59 .11 0 0 .3 .59 .11 0 0 0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues="0 0.25 0.6 0.9 1 1"/><feFuncG type="table" tableValues="0 0 0.05 0.35 0.75 1"/><feFuncB type="table" tableValues="0.05 0.45 0.55 0.1 0 0.85"/></feComponentTransfer></filter></svg>
 <div id="fwOv" role="dialog" aria-label="Follow a shared flight"><div id="fwTop"><span id="fwHead">Follow a flight</span><button id="fwExit">✕ Close</button></div><canvas id="fwCv" aria-label="Map of the shared flight"></canvas><div id="fwInfo" role="status"></div></div>
 <div id="dyOv" role="dialog" aria-label="Flight diary"><div class="tile"><div class="lab"><span id="dyOvT">Diary</span><button id="dyOvX">✕ Close</button></div><ul class="lm" id="dyOvList"></ul><textarea id="dyOvIn" maxlength="1000" placeholder="Add a note to this flight" aria-label="Diary note"></textarea><div class="row"><button id="dyOvAdd" class="pri">Add note</button><button id="dyOvExp">Export text</button></div><div class="note" id="dyOvTxt"></div></div></div>
 
-<div id="drvPax" role="dialog" aria-modal="true" aria-labelledby="drvPaxT" style="display:none"><div class="drvPaxBox"><div class="mfdT"><b>CHECK</b><span>Passenger only</span><i class="mfdS"></i></div>
+<div id="drvPax" role="dialog" aria-modal="true" aria-labelledby="drvPaxT" data-css="display:none"><div class="drvPaxBox"><div class="mfdT"><b>CHECK</b><span>Passenger only</span><i class="mfdS"></i></div>
 <h3 id="drvPaxT">PASSENGER CHECK</h3><p id="drvPaxP">Drive mode is for passengers only.</p><div class="row"><button id="drvPaxOk" class="pri">I'm the passenger</button><button id="drvPaxNo">Cancel</button></div>
 <small>You'll be asked again after every 4 hours in Drive mode.</small></div></div>
 <script src="app.js"></script>
