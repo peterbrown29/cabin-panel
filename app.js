@@ -1863,7 +1863,7 @@ function gauge(x,ac,id,cx,cy,s,V){const u=s/2.24,img=RET.img[ac+"_"+id],P51=ac==
 applySeg();retroApply();
 
 /* ================= v26: recorded callout pack =================
-   Short recorded callouts (v-*.mp3 in the app folder, ElevenLabs premade voice "Daniel", a calm broadcast voice, 40 kbps mono,
+   Short recorded callouts (v-*.mp3 in the app folder, ElevenLabs free premade female voice "Sarah", calm and confident, 32 kbps mono,
    precached by the service worker) for the key moments; everything else, the dynamic detail (names, times, numbers), and any
    clip that is missing or fails to play, falls back to the phone's own voice. Settings → Voice: Recorded / System / Off.
    (The stored setting keeps its old value "female" so existing phones carry on.) */
@@ -1874,9 +1874,9 @@ const VOX={"v1":"V one","rotate":"Rotate","positive-climb":"Positive climb","top
   "drive-on":"Drive mode on. Passenger only.","flight-mode":"Flight mode","drive-started":"Drive started","rest-stop":"Rest stop. Time for the driver to take a break.","arriving":"Arriving at destination",
   "game-on":"Alien game on. Passengers only.","game-off":"Game off","contact":"Contact. Alien bogey inbound.","fox":"Fox three","guns":"Guns, guns","splash":"Splash one","mothership":"Mothership down",
   "ground-hot":"Alien ground forces. Cleared hot.","winchester":"Winchester","gunship":"Gunship view","mission":"Mission complete","badge":"New patch earned"};
-/* v26: Peter wants every voice female. The committed clip pack is the male premade voice "Daniel", so it is switched off
-   (VOX_PACK=false) and all callouts use the phone's female voice until a female premade pack (e.g. "Sarah") is generated. */
-const VOX_PACK=false;
+/* v26: every voice is female. Recorded pack = ElevenLabs free premade voice "Sarah" (calm, confident assistant style;
+   a stock voice, not a clone or imitation of anyone), 32 kbps mono. The phone fallback also prefers a female voice. */
+const VOX_PACK=true;
 const VOXQ={q:[],cur:null,bad:{},el:{},n:0};
 if(!S.vox){S.vox="female";saveS()}
 function voxFemale(v){try{const en=v.filter(x=>/^en/i.test(x.lang)),f=/female|karen|catherine|samantha|serena|moira|tessa|fiona|victoria|allison|ava|susan|zira|hazel|libby|natasha|sonia|aria|jenny|nicky|kate|stephanie|zoe|siri.*(voice 2|female)/i;
