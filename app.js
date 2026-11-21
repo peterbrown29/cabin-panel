@@ -470,7 +470,7 @@ function tzOff(city){try{const s=new Intl.DateTimeFormat("en-AU",{timeZone:"Aust
 
 /* ---------- voice ---------- */
 let voiceOn=false,auVoice=null,toastT=0;
-function pickVoice(){try{const v=speechSynthesis.getVoices();auVoice=(S.vox!=="system"&&voxFemale(v))||v.find(x=>/en-AU/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}catch(e){}}
+function pickVoice(){try{const v=speechSynthesis.getVoices();auVoice=voxFemale(v)||v.find(x=>/en-AU/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}catch(e){}}
 try{speechSynthesis.onvoiceschanged=pickVoice;pickVoice()}catch(e){}
 function say(text,low){
   $("toast").textContent=text;$("toast").style.display="";{const ft=$("fhToast");if(ft){ft.textContent=text;ft.classList.remove("gone");ft.style.opacity="1";clearTimeout(window.__ftT);window.__ftT=setTimeout(()=>{ft.style.opacity="0";ft.classList.add("gone")},7000)}}clearTimeout(toastT);toastT=setTimeout(()=>{$("toast").style.display="none"},9000);
@@ -1874,14 +1874,17 @@ const VOX={"v1":"V one","rotate":"Rotate","positive-climb":"Positive climb","top
   "drive-on":"Drive mode on. Passenger only.","flight-mode":"Flight mode","drive-started":"Drive started","rest-stop":"Rest stop. Time for the driver to take a break.","arriving":"Arriving at destination",
   "game-on":"Alien game on. Passengers only.","game-off":"Game off","contact":"Contact. Alien bogey inbound.","fox":"Fox three","guns":"Guns, guns","splash":"Splash one","mothership":"Mothership down",
   "ground-hot":"Alien ground forces. Cleared hot.","winchester":"Winchester","gunship":"Gunship view","mission":"Mission complete","badge":"New patch earned"};
+/* v26: Peter wants every voice female. The committed clip pack is the male premade voice "Daniel", so it is switched off
+   (VOX_PACK=false) and all callouts use the phone's female voice until a female premade pack (e.g. "Sarah") is generated. */
+const VOX_PACK=false;
 const VOXQ={q:[],cur:null,bad:{},el:{},n:0};
 if(!S.vox){S.vox="female";saveS()}
-function voxFemale(v){try{const en=v.filter(x=>/^en/i.test(x.lang)),f=/female|karen|catherine|samantha|serena|moira|tessa|fiona|victoria|allison|ava|susan|zira|hazel|libby|natasha|sonia|aria|jenny/i;
+function voxFemale(v){try{const en=v.filter(x=>/^en/i.test(x.lang)),f=/female|karen|catherine|samantha|serena|moira|tessa|fiona|victoria|allison|ava|susan|zira|hazel|libby|natasha|sonia|aria|jenny|nicky|kate|stephanie|zoe|siri.*(voice 2|female)/i;
   return en.find(x=>/en-AU/i.test(x.lang)&&f.test(x.name))||en.find(x=>f.test(x.name))||null}catch(e){return null}}
 function voxTTS(text){try{const u=new SpeechSynthesisUtterance(text);if(auVoice)u.voice=auVoice;u.rate=1.05;speechSynthesis.speak(u)}catch(e){}}
 function voxNext(){if(VOXQ.cur||!VOXQ.q.length)return;const it=VOXQ.q.shift();
   if(it.tts){VOXQ.cur=it;voxTTS(it.tts);VOXQ.cur=null;voxNext();return}
-  const k=it.k;if(VOXQ.bad[k]){VOXQ.q.unshift({tts:VOX[k]});voxNext();return}
+  const k=it.k;if(VOXQ.bad[k]||!VOX_PACK){VOXQ.q.unshift({tts:VOX[k]});voxNext();return}
   let a=VOXQ.el[k];if(!a){a=new Audio("v-"+k+".mp3");a.preload="auto";VOXQ.el[k]=a}
   VOXQ.cur=it;VOXQ.n++;const done=()=>{a.onended=a.onerror=null;VOXQ.cur=null;setTimeout(voxNext,it.gap||60)};
   a.onended=done;a.onerror=()=>{VOXQ.bad[k]=1;VOXQ.cur=null;VOXQ.q.unshift({tts:VOX[k]});voxNext()};
