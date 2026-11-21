@@ -22,8 +22,9 @@ export const ASP_KEY=id=>new URL("./sv-asp/"+id+".json",location.href).href;
 const AVG={"d8":110000,"i10":14000,"d11":49000,"i12":15000,"i14":10000,"n8":45000};
 export const keyUrl=k=>{const [l,z,x,y]=k.split("/");return SRC[l](+z,+x,+y)};
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
-let SZM=null;const szm=()=>SZM||(SZM=ls.get(SZ,{}));const szSave=()=>ls.set(SZ,SZM||{});
-export const packs=()=>ls.get(IDX,{});
+let SZM=null;const szm=()=>{if(SZM)return SZM;const v=ls.get(SZ,{});return SZM=v&&typeof v==="object"&&!Array.isArray(v)?v:{}};const szSave=()=>ls.set(SZ,SZM||{});
+/* v24c: ignore malformed index entries instead of breaking the Route page (stored record left as is) */
+export const packs=()=>{const v=ls.get(IDX,{}),o={};if(v&&typeof v==="object"&&!Array.isArray(v))for(const [k,p] of Object.entries(v))if(p&&typeof p==="object"&&typeof p.from==="string"&&typeof p.to==="string")o[k]=p;return o};
 const packsSave=p=>ls.set(IDX,p);
 export const have=k=>{const v=szm()[k];return v!=null&&v>0};
 export const known=k=>szm()[k]!=null;
