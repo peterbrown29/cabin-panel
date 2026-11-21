@@ -3417,7 +3417,6 @@ window.cpDrive={state:()=>({on:!!DRV.on,pax:DRV.pax,paxNeeded:paxNeeded(),guard:
 if(!DRV.on&&PH.p==="drive"){PH.p="parked";savePH()}
 /* the demo flight is a flight: not available in Drive mode (it would be logged as a drive) */
 {const _db=$("demoBtn").onclick;$("demoBtn").onclick=function(){if(DRV.on&&!demo){drvMsg("Demo flight works in flight mode. Flip the DRIVE switch down first.");try{$("drvTile").scrollIntoView({block:"start",behavior:"smooth"})}catch(e){}return}return _db.apply(this,arguments)}}
-}
 
 /* ================= v26: Alien game (optional AR game layer, passengers only, off by default) =================
    Imaginary targets only, always drawn as RED boxes tagged ALIEN, kept clear of real boxes (aircraft, towns,
@@ -3620,3 +3619,4 @@ window.cpGame={state:()=>({on:S.gameOn,ever:!!S.gameEver,live:GM.tg.filter(t=>!t
   pos:id=>{const v=gmView(),t=GM.tg.find(q=>q.id===id);return v&&t?gmPos(t,v):null},gs:{open:()=>{const t=GM.tg.find(q=>!q.dead&&q.type==="gnd");return t?(gsOpen(t),true):false},close:gsClose,fire:k=>GM.gs&&GM.gs.fire(k),aimAt:i=>GM.gs&&GM.gs.aimAt(i),view:()=>GM.gs&&GM.gs.view()},
   badges:gmBadges,reset:()=>{GM.st={score:0,best:0,kills:0,air:0,ground:0,mom:0,shots:0,hits:0,waves:0};gmSave()},toggle:gmToggle,
   tris:async()=>(await gmMod()).stats()};
+}
