@@ -1575,7 +1575,7 @@ function arFrame(ts){AR.raf=0;if(!arOn)return;const dt=AR.lt?Math.min(0.5,(ts-AR
   if(ts-AR.tgAt>1000){AR.tgAt=ts;try{AR.tg=arTargets()}catch(e){AR.tg=[]}const m=arStatus(),el=$("arMsg");if(m!==AR.msgShown){AR.msgShown=m;el.textContent=m;el.style.display=m?"":"none"}if(AR.sen==="wait"&&AR.ot)AR.sen="ok";$("arSen").style.display=AR.listen&&AR.ot?"none":"";$("arPhase").textContent=PHN[PH.p]||""}
   try{arDraw(dt)}catch(e){console.warn(e)}
   AR.raf=requestAnimationFrame(arFrame)}
-window.cpAR=()=>({bias:AR.bias,flt:S.arFlt,on:arOn,cam:AR.cam,sen:AR.sen,src:AR.src,hdg:AR.hs,pitch:AR.ps,roll:AR.rs,targets:AR.tg.length,view:AR.view||null,lock:AR.lock,hits:(AR.hits||[]).slice(0,12),lay:AR.lay||null});
+window.cpAR=()=>({bias:AR.bias,flt:S.arFlt,on:arOn,cam:AR.cam,sen:AR.sen,src:AR.src,hdg:AR.hs,pitch:AR.ps,roll:AR.rs,targets:AR.tg.length,view:AR.view||null,lock:AR.lock,hits:(AR.hits||[]).slice(0,12),lay:AR.lay||null,labs:(AR.labs||[]).slice(0,16)});
 /* heading solution: FUSED (default) = phone compass for orientation (+WMM variation) with a slow GPS-track drift/bias
    correction learned while you look out of the chosen window; COMPASS = compass only; GPS = track ±90°.
    Box size = heading uncertainty: ~1° compass (measured in flight) + 0.5° lens/FOV + GPS terms, widened if iOS reports
@@ -1648,7 +1648,16 @@ function arDraw(dt){
   const br=[(so.src||"NO HDG")+(unc!=null?" ±"+unc.toFixed(1)+"°":""),(tiltOk?"EL "+(pitch>=0?"+":"")+pitch.toFixed(1)+"°":"EL ---")+"  TRIM "+(S.arTrim>0?"+":"")+S.arTrim,"BIAS "+(AR.bias>=0?"+":"")+AR.bias.toFixed(1)+"°  VAR "+(so.dec>=0?"E":"W")+Math.abs(so.dec).toFixed(0)];
   let brB=yB;if(arMin){const gr=$("arShow").getBoundingClientRect();if(gr.height)brB=Math.min(yB,gr.top-cT-8)}
   x.font=F(10);const brW=Math.max(...br.map(s=>x.measureText(s).width));br.forEach((s,i)=>T(s,W-8,brB-22+i*11,10,"right",i?DIM:SYM));res([W-brW-12,brB-34,brW+14,38]);
-  AR.hits=[];AR.lay={labels:0,hidden:0,cues:0};
+  AR.hits=[];AR.lay={labels:0,hidden:0,cues:0};AR.labs=[];
+  /* v26b: every target box carries its own label (name + type/alt + range), re-placed beside the box every frame */
+  const labTxt=t=>{const nm=(t.n.length>18?t.n.slice(0,17)+"\u2026":t.n).toUpperCase(),rg=fDst(t.d),rs=(rg<10?rg.toFixed(1):Math.round(rg).toLocaleString())+" "+S.dst.toUpperCase();
+    const info=t.kind==="ac"?(t.note||"").toUpperCase():"";return [nm,(info?(info.length>30?info.slice(0,29)+"\u2026":info)+" \u00b7 ":"")+rs]};
+  const lab=(t,bx,by,hw,hh,col,al)=>{const [l1,l2]=labTxt(t);x.font=F(10);const lw=Math.max(x.measureText(l1).width,x.measureText(l2).width),lh=24;
+    const cands=[[bx+hw+5,by-hh+9,"left"],[bx-hw-5,by-hh+9,"right"],[bx-lw/2,by+hh+12,"left"],[bx-lw/2,by-hh-17,"left"]];let pick=null;
+    for(const [ci,c] of cands.entries()){const x0=c[2]==="left"?c[0]:c[0]-lw,r=[x0-2,c[1]-10,lw+4,lh];if(r[0]<2||r[0]+r[2]>W-2||r[1]<tY+30||r[1]+r[3]>H-2||hitR(r))continue;pick=c;pick.i=ci;res(r);break}
+    if(!pick){const i=cands[0][0]+lw>W-2?1:0;pick=cands[i];pick.i=i;pick.fb=1}
+    const ga=x.globalAlpha;x.globalAlpha=Math.max(ga,al||0.9);T(l1,pick[0],pick[1],10,pick[2],col);T(l2,pick[0],pick[1]+11,9,pick[2],DIM);x.globalAlpha=ga;AR.lay.labels++;
+    AR.labs.push({n:t.n,bx:+bx.toFixed(1),by:+by.toFixed(1),lx:+pick[0].toFixed(1),ly:+pick[1].toFixed(1),al:pick[2],ci:pick.i,fb:!!pick.fb,t1:l1,t2:l2})};
   if(az==null||!L)return;
   /* targets */
   const hf=W/ppd/2,vf=H/ppd/2,on=[],offL=[],offR=[];
@@ -1676,7 +1685,7 @@ function arDraw(dt){
     if(lk){x.lineWidth=1;x.strokeRect(des.px-hw-3,des.py-hh-3,2*hw+6,2*hh+6)}x.restore();
     S2(()=>{x.moveTo(des.px-5,des.py);x.lineTo(des.px+5,des.py);x.moveTo(des.px,des.py-5);x.lineTo(des.px,des.py+5)},1.2);
     const tt=lk?"TGT LOCK":"TGT";x.font=F(10);const tw2=x.measureText(tt).width;let ty=des.py-hh-(lk?10:7);if(ty<tY+36)ty=des.py+hh+(lk?18:15);
-    T(tt,des.px,ty,10,"center",c);res([des.px-tw2/2-3,ty-11,tw2+6,14]);res([des.px-hw-4,des.py-hh-4,2*hw+8,2*hh+8]);
+    T(tt,des.px,ty,10,"center",c);res([des.px-tw2/2-3,ty-11,tw2+6,14]);res([des.px-hw-4,des.py-hh-4,2*hw+8,2*hh+8]);lab(des,des.px,des.py,hw,hh,c,1);
     AR.hits.push({n:des.n,x0:des.px-hw-8,x1:des.px+hw+8,y0:des.py-hh-8,y1:des.py+hh+8})}
   /* off-screen cues: max 3 a side, stacked into free slots, lower priority dropped if no room */
   const yTop=tY+68,yBot=yB-4;
@@ -1694,10 +1703,7 @@ function arDraw(dt){
   const others=on.filter(t=>t!==des).sort((a,b)=>pri(a)-pri(b)).slice(0,9);
   for(const t of others){const s=Math.max(4,Math.min(26,Math.max(unc,Math.min(3,deg(Math.atan2(t.r*0.5,t.d))))*ppd*0.72));x.save();const bR=[t.px-s,t.py-s,2*s,2*s],undr=[RS[1],RS[2],RS[4]].some(q=>bR[0]<q[0]+q[2]&&bR[0]+bR[2]>q[0]&&bR[1]<q[1]+q[3]&&bR[1]+bR[3]>q[1]);x.globalAlpha=undr?.22:t.hid?.45:.9;
     if(s>7)S2(()=>{x.rect(t.px-s,t.py-s*0.7,2*s,1.4*s)},1);else S2(()=>{x.moveTo(t.px,t.py-5);x.lineTo(t.px+5,t.py);x.lineTo(t.px,t.py+5);x.lineTo(t.px-5,t.py);x.closePath()},1.2);
-    const nm=(t.n.length>18?t.n.slice(0,17)+"…":t.n).toUpperCase();x.font=F(10);const lw=x.measureText(nm).width,ly=t.py-Math.max(s*0.7,5)+9;
-    const cands=[[t.px+Math.max(s,5)+3,"left"],[t.px-Math.max(s,5)-3,"right"]];let done=false;
-    for(const [lx,al] of cands){const r=al==="left"?[lx-2,ly-10,lw+4,13]:[lx-lw-2,ly-10,lw+4,13];if(r[0]<2||r[0]+r[2]>W-2||hitR(r))continue;res(r);T(nm,lx,ly,10,al,DIM);done=true;AR.lay.labels++;break}
-    if(!done)AR.lay.hidden++;
+    lab(t,t.px,t.py,Math.max(s,5),Math.max(s*0.7,5),t.kind==="ac"?SYM:DIM,undr?0.55:0.9);
     x.restore();AR.hits.push({n:t.n,x0:t.px-s-8,x1:t.px+s+8,y0:t.py-s-8,y1:t.py+s+8})}
 }
 $("arCv").addEventListener("click",e=>{const r=$("arCv").getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;const h=AR.hits.find(b=>px>=b.x0&&px<=b.x1&&py>=b.y0&&py<=b.y1);AR.lock=h?(AR.lock===h.n?null:h.n):null;if(AR.lock)try{voxPlay("target-locked")}catch(_){}hap(10)});
@@ -3427,26 +3433,34 @@ if(!DRV.on&&PH.p==="drive"){PH.p="parked";savePH()}
    while the crosshair stays inside the target's box. GROUND: alien bases and tripod drones, engaged from a
    top-down thermal "gunship" view (arcade, non-gory: hits flash and vanish). Scores feed four game patches.
    Rendering: game.js (three.js, low-poly, 2 draw calls per model, capped at 10 models); pauses when hidden. */
-const GM={tg:[],rd:[],ms:[],fx:[],lock:null,pan:{a:0,e:0},c:null,next:0,seq:1,ar:null,gs:null,mod:null,modErr:"",
+const GM={tg:[],rd:[],ms:[],fx:[],labs:[],lock:null,pan:{a:0,e:0},c:null,next:0,seq:1,ar:null,gs:null,mod:null,modErr:"",
   ammo:{msl:4,gun:300},rl:{msl:0,gun:0},firing:0,gsOn:false,gsWave:null,arWas:false,info:{calls:0,tris:0},noteAt:0,lastT:0,
   st:Object.assign({score:0,best:0,kills:0,air:0,ground:0,mom:0,shots:0,hits:0,waves:0},store.get("game")||{})};
 if(typeof S.gameOn!=="boolean")S.gameOn=false;
 const GMT={ftr:{n:"FIGHTER",tag:"FTR",m:70,d:[2.5,5],hp:3,pts:100,spd:3.2},rdr:{n:"RAIDER",tag:"RDR",m:120,d:[4,7],hp:5,pts:150,spd:2},
   msh:{n:"MOTHERSHIP",tag:"MSHIP",m:2400,d:[32,45],hp:24,pts:1000,spd:0.35},gnd:{n:"ALIEN BASE",tag:"BASE",m:260,d:[4,9],hp:1,pts:0,spd:0}};
 const GM_CONE={a:16,eLo:-4,eHi:14,gLo:-19,gHi:-7};
+/* v26b: on the ground (gate, taxi, parked, a car, or no GPS yet) air targets fly above the horizon and ground targets sit
+   a few hundred metres to ~1.5 km away across the airfield, just below the horizon from a terminal or seat window */
+const GM_CONE_GND={a:16,eLo:2,eHi:16,gLo:-3.2,gHi:-0.4};
+function gmGround(){const L=last;if(DRV.on)return true;if(demo)return demo.stg!=="air";if(!L)return true;return GROUND.includes(PH.p)||((L.alt==null||L.alt<300)&&(L.spd==null||L.spd<40))}
+function gmCone(){return gmGround()?GM_CONE_GND:GM_CONE}
 function gmSave(){store.set("game",GM.st)}
-function gmLive(){return DRV.on?PH.p==="drive":["climb","cruise","descent"].includes(PH.p)}
+/* v26b: the game runs in every phase (gate, parked, taxi, airborne), in Demo flight and with no GPS at all. The only gate kept is
+   Drive mode's passenger check: while it is unanswered (first arming, or the 4-hourly re-check) nothing spawns. */
+function gmLive(){if(DRV.on)return !paxNeeded();return true}
+function gmFirst(){return Date.now()+gmRand(30000,90000)}
 function gmMod(){return GM.mod||(GM.mod=import("./game.js").catch(e=>{GM.modErr=String(e&&e.message||e);GM.mod=null;throw e}))}
 function gmNote(t,clip){const el=$("gmMsg");if(el){el.textContent=t;el.style.display="block";clearTimeout(GM.noteT);GM.noteT=setTimeout(()=>{el.style.display="none"},6000)}
   if(!arOn&&!GM.gsOn){$("toast").textContent=t;$("toast").style.display="";clearTimeout(toastT);toastT=setTimeout(()=>{$("toast").style.display="none"},9000)}
   if(clip)try{voxPlay(clip)}catch(e){}}
 function gmAnchor(){try{const so=arSolve(0);if(so.win!=null)return so.win;if(so.az!=null)return so.az}catch(e){}const L=last;if(L&&L.trk!=null)return (L.trk+(S.arSide==="right"?90:-90)+360)%360;return AR.pj&&AR.pj.az!=null?AR.pj.az:0}
 function gmRand(a,b){return a+Math.random()*(b-a)}
-function gmAdd(type,o){const T=GMT[type],t={id:GM.seq++,type,rA:gmRand(-GM_CONE.a+3,GM_CONE.a-3),rE:type==="gnd"?gmRand(GM_CONE.gLo+2,GM_CONE.gHi-2):type==="msh"?gmRand(6,11):gmRand(GM_CONE.eLo+2,GM_CONE.eHi-2),
-    vA:0,vE:0,d:gmRand(T.d[0],T.d[1]),hp:T.hp,hp0:T.hp,born:Date.now(),life:type==="gnd"?240000:type==="msh"?150000:gmRand(70000,100000),dead:0,hd:0,bank:0,jk:0,troops:type==="gnd"?(o&&o.troops)||6:0,bases:type==="gnd"?(o&&o.bases)||1:0};
+function gmAdd(type,o){const T=GMT[type],g=gmGround(),C=g?GM_CONE_GND:GM_CONE,t={id:GM.seq++,type,gnd0:g,rA:gmRand(-C.a+3,C.a-3),rE:type==="gnd"?(g?gmRand(C.gLo+0.4,C.gHi-0.3):gmRand(C.gLo+2,C.gHi-2)):type==="msh"?(g?gmRand(9,13):gmRand(6,11)):gmRand(C.eLo+2,C.eHi-2),
+    vA:0,vE:0,d:type==="gnd"&&g?gmRand(0.4,1.5):gmRand(T.d[0],T.d[1]),sc:type==="gnd"&&g?0.1:1,hp:T.hp,hp0:T.hp,born:Date.now(),life:type==="gnd"?240000:type==="msh"?150000:gmRand(70000,100000),dead:0,hd:0,bank:0,jk:0,troops:type==="gnd"?(o&&o.troops)||6:0,bases:type==="gnd"?(o&&o.bases)||1:0};
   const a=Math.random()*Math.PI*2;t.vA=Math.cos(a)*T.spd;t.vE=Math.sin(a)*T.spd*0.4;if(o)Object.assign(t,o);GM.tg.push(t);return t}
 function gmWave(kind){if(GM.c==null||!GM.tg.some(t=>!t.dead))GM.c=gmAnchor();
-  if(!kind){const r=Math.random();kind=DRV.on?(r<0.55?"gnd":r<0.95?"air":"msh"):(r<0.25?"gnd":r<0.85||PH.p!=="cruise"?"air":"msh")}
+  if(!kind){const r=Math.random();kind=DRV.on?(r<0.55?"gnd":r<0.95?"air":"msh"):gmGround()?(r<0.35?"gnd":r<0.9?"air":"msh"):(r<0.25?"gnd":r<0.85||PH.p!=="cruise"?"air":"msh")}
   const out=[];if(kind==="air"){const n=2+Math.floor(Math.random()*2);for(let i=0;i<n;i++)out.push(gmAdd(i===0&&Math.random()<0.4?"rdr":"ftr"))}
   else if(kind==="msh"){out.push(gmAdd("msh"));out.push(gmAdd("ftr"));out.push(gmAdd("ftr"))}
   else if(kind==="gnd"){out.push(gmAdd("gnd",{bases:1+Math.floor(Math.random()*2),troops:4+Math.floor(Math.random()*4)}))}
@@ -3458,7 +3472,7 @@ function gmTick(){if(!S.gameOn||document.hidden)return;const now=Date.now();
   for(const t of GM.tg)if(!t.dead&&now-t.born>t.life){t.dead=now;t.gone=1;if(GM.lock===t.id)GM.lock=null}
   GM.tg=GM.tg.filter(t=>!t.dead||now-t.dead<1500);
   if(now-GM.rl.msl>20000&&GM.ammo.msl<4){GM.ammo.msl++;GM.rl.msl=now}if(GM.ammo.gun<=0&&now-GM.rl.gun>15000){GM.ammo.gun=300}
-  if(!gmLive()&&!GM.force)return;if(!GM.next)GM.next=now+gmRand(20000,40000);
+  if(!gmLive()&&!GM.force)return;if(!GM.next)GM.next=gmFirst();
   if(now>=GM.next&&GM.tg.filter(t=>!t.dead).length<6){gmWave();GM.next=now+gmRand(45000,195000)}}
 setInterval(()=>{try{gmTick();gmUI()}catch(e){}},1000);
 function gmUI(){const on=!!S.gameOn,b=$("gmTgl");if(b){b.textContent=on?"Alien game: ON":"Alien game: off";b.classList.toggle("pri",on);b.setAttribute("aria-pressed",on?"true":"false")}
@@ -3467,7 +3481,7 @@ function gmUI(){const on=!!S.gameOn,b=$("gmTgl");if(b){b.textContent=on?"Alien g
   if($("gmMsl"))$("gmMsl").textContent="MSL "+GM.ammo.msl;if($("gmGun"))$("gmGun").textContent=GM.ammo.gun>0?"GUN "+GM.ammo.gun:"GUN · RELOAD";
   if($("gmGs"))$("gmGs").style.display=live.some(t=>t.type==="gnd")?"":"none";if($("gmId"))$("gmId").classList.toggle("lk",!!GM.lock)}
 function gmToggle(){if(!S.gameOn){if(!confirm("Alien game: passengers only (not the pilot, crew or the driver). Imaginary targets for fun, never real aircraft. Turn it on?"))return false;
-    S.gameOn=true;S.gameEver=1;saveS();GM.next=0;GM.c=null;gmPrep();try{voxPlay("game-on")}catch(e){}}
+    S.gameOn=true;S.gameEver=1;saveS();GM.next=gmFirst();GM.c=null;gmPrep();try{voxPlay("game-on")}catch(e){}}
   else{S.gameOn=false;saveS();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmStopGun();try{GM.ar&&GM.ar.clear()}catch(e){}try{voxPlay("game-off")}catch(e){}}
   gmUI();try{statsRender()}catch(e){}hap(20);return S.gameOn}
 function gmPrep(){if(GM.ar||!S.gameOn)return;gmMod().then(m=>{if(GM.ar)return;try{GM.ar=m.createAR($("gmCv"))}catch(e){GM.modErr="webgl";GM.ar=null}}).catch(()=>{})}
@@ -3475,14 +3489,17 @@ function gmPrep(){if(GM.ar||!S.gameOn)return;gmMod().then(m=>{if(GM.ar)return;tr
 function gmView(){const pj=AR.pj;if(!pj)return null;const sensor=AR.ot&&Date.now()-AR.ot<5000;if(sensor){GM.pan.a=0;GM.pan.e=0}
   const az=(pj.az!=null?pj.az:(GM.c!=null?GM.c:0))+GM.pan.a,el=(pj.pitch||0)+GM.pan.e;return {az,el,pj}}
 function gmPos(t,v){const T=GMT[t.type],tAz=(GM.c||0)+t.rA,dA=w180(tAz-v.az),dE=t.rE-v.el,pj=v.pj,dx=dA*pj.ppd,dy=dE*pj.ppd;
-  const x=pj.cx+dx*pj.cr+dy*pj.sr,y=pj.cy+dx*pj.sr-dy*pj.cr,ang=deg(Math.atan(T.m/(t.d*1000)))*(t.type==="gnd"?1.6:1),s=Math.max(18,ang*pj.ppd);
+  const x=pj.cx+dx*pj.cr+dy*pj.sr,y=pj.cy+dx*pj.sr-dy*pj.cr,ang=deg(Math.atan(T.m*(t.sc||1)/(t.d*1000)))*(t.type==="gnd"?1.6:1),s=Math.max(18,ang*pj.ppd);
   return {x,y,s,h:Math.max(16,s*0.62+8)}}
 function gmStep(dt){const now=Date.now(),v=gmView();if(!v)return;const so=AR.so;
   if(so&&so.win!=null&&GM.c!=null)GM.c=(GM.c+(1-Math.exp(-dt/12))*w180(so.win-GM.c)+360)%360;
+  /* v26b: no window direction (parked at the gate, no GPS track): centre the game on where the phone looks when the view opens,
+     then follow the view slowly so the aliens stay out the window you're watching */
+  else if(!GM.cv||GM.c==null){if(v.pj.az!=null||GM.c==null){GM.c=(v.az%360+360)%360;GM.cv=v.pj.az!=null?1:0}}else GM.c=(GM.c+(1-Math.exp(-dt/20))*w180(v.az-GM.pan.a-GM.c)+360)%360;
   for(const t of GM.tg){if(t.dead)continue;const T=GMT[t.type];
     if(t.type==="ftr"){t.jk-=dt;if(t.jk<=0){t.jk=gmRand(1.2,3.5);const a=Math.random()*Math.PI*2;t.vA=Math.cos(a)*T.spd;t.vE=Math.sin(a)*T.spd*0.45}}
-    t.rA+=t.vA*dt;t.rE+=t.vE*dt;const lo=t.type==="gnd"?GM_CONE.gLo:GM_CONE.eLo,hi=t.type==="gnd"?GM_CONE.gHi:GM_CONE.eHi;
-    if(t.rA>GM_CONE.a){t.rA=GM_CONE.a;t.vA=-Math.abs(t.vA)}if(t.rA<-GM_CONE.a){t.rA=-GM_CONE.a;t.vA=Math.abs(t.vA)}if(t.rE>hi){t.rE=hi;t.vE=-Math.abs(t.vE)}if(t.rE<lo){t.rE=lo;t.vE=Math.abs(t.vE)}
+    t.rA+=t.vA*dt;t.rE+=t.vE*dt;const C=gmCone(),lo=t.type==="gnd"?C.gLo:t.type==="msh"&&C===GM_CONE_GND?6:C.eLo,hi=t.type==="gnd"?C.gHi:C.eHi;
+    if(t.rA>C.a){t.rA=C.a;t.vA=-Math.abs(t.vA)}if(t.rA<-C.a){t.rA=-C.a;t.vA=Math.abs(t.vA)}if(t.rE>hi){t.rE=hi;t.vE=-Math.abs(t.vE)}if(t.rE<lo){t.rE=lo;t.vE=Math.abs(t.vE)}
     const hd=Math.atan2(-t.vE,t.vA);t.hd=t.type==="msh"||t.type==="gnd"?0:hd;t.bank=t.type==="ftr"?Math.max(-0.6,Math.min(0.6,t.vE*0.2)):0;
     /* never sit on a real box (aircraft, towns, landmarks): push away from it */
     const p=gmPos(t,v);for(const b of AR.hits||[]){if(p.x+p.h>b.x0&&p.x-p.h<b.x1&&p.y+p.h>b.y0&&p.y-p.h<b.y1){const bx=(b.x0+b.x1)/2,by=(b.y0+b.y1)/2;t.rA+=(p.x>=bx?1:-1)*20*dt;t.rE+=(p.y<=by?1:-1)*10*dt;t.cl=(t.cl||0)+1}}}
@@ -3517,7 +3534,7 @@ function gmStopGun(){if(GM.firing){clearInterval(GM.firing);GM.firing=0}gmUI()}
 /* ---------- drawing: red ALIEN boxes + models + tracers, on the overlay canvases above the real symbology ---------- */
 function gmDraw(dt){const ov=$("gmOv"),pj=AR.pj;if(!ov||!pj)return;const W=pj.W,H=pj.H,dpr=window.devicePixelRatio||1;
   if(ov.width!==Math.round(W*dpr)||ov.height!==Math.round(H*dpr)){ov.width=Math.round(W*dpr);ov.height=Math.round(H*dpr)}const x=ov.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
-  if(!S.gameOn||GM.gsOn){if(GM.ar&&GM.info.calls)try{GM.ar.clear();GM.info={calls:0,tris:0}}catch(e){}return}
+  if(!S.gameOn||GM.gsOn){GM.labs=[];if(GM.ar&&GM.info.calls)try{GM.ar.clear();GM.info={calls:0,tris:0}}catch(e){}return}
   gmStep(dt);const v=gmView();if(!v)return;const t0=performance.now()/1000,RED="#ff3b3b",F=s=>"700 "+s+"px \"B612 Mono\",monospace";
   const T=(s,X,Y,size,al,c)=>{x.font=F(size);x.textAlign=al||"left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";x.strokeText(s,X,Y);x.fillStyle=c||RED;x.fillText(s,X,Y)};
   const list=[],boxes=[];
@@ -3527,12 +3544,14 @@ function gmDraw(dt){const ov=$("gmOv"),pj=AR.pj;if(!ov||!pj)return;const W=pj.W,
     if(!t.dead)boxes.push([t,p])}
   try{if(GM.ar){const cv=$("gmCv");GM.ar.size(W,H,dpr);GM.info=GM.ar.render(list,t0)}else gmFallback(x,list)}catch(e){GM.ar=null;GM.modErr="render";gmFallback(x,list)}
   /* red ALIEN boxes: dashed corners + tag; locked = solid box + diamond */
-  x.lineJoin="miter";
+  x.lineJoin="miter";GM.labs=[];
   for(const [t,p] of boxes){const lk=GM.lock===t.id,h=p.h,X0=p.x-h,Y0=p.y-h,cl=h*0.45;x.strokeStyle="rgba(0,0,0,.85)";x.lineWidth=4.2;
     const path=()=>{x.beginPath();if(lk){x.rect(X0,Y0,2*h,2*h)}else for(const [sx,sy] of [[0,0],[1,0],[1,1],[0,1]]){const X=X0+sx*2*h,Y=Y0+sy*2*h;x.moveTo(X+(sx?-cl:cl),Y);x.lineTo(X,Y);x.lineTo(X,Y+(sy?-cl:cl))}};
     path();x.stroke();x.strokeStyle=RED;x.lineWidth=2;path();x.stroke();
     if(lk){x.beginPath();x.moveTo(p.x,Y0-9);x.lineTo(p.x+7,Y0-2);x.lineTo(p.x,Y0+5);x.lineTo(p.x-7,Y0-2);x.closePath();x.fillStyle=RED;x.fill()}
-    const tg=GMT[t.type].tag;T("ALIEN "+tg+(lk?" · LOCK":""),X0,Y0-6-(lk?8:0),10,"left");if(t.type==="gnd")T("TAP · GUNSHIP",X0,p.y+h+12,9,"left");
+    const tg=GMT[t.type].tag,rg=fDst(t.d*1000),lt="ALIEN "+tg+(lk?" · LOCK":"")+" · "+(rg<10?rg.toFixed(1):Math.round(rg))+" "+S.dst.toUpperCase();x.font=F(10);
+    const lw=x.measureText(lt).width,lx=Math.max(2,Math.min(W-lw-2,X0)),ly=Y0-6-(lk?8:0)<14?p.y+h+(t.hp0>1&&t.type!=="gnd"?20:14):Y0-6-(lk?8:0);T(lt,lx,ly,10,"left");
+    GM.labs.push({id:t.id,bx:+p.x.toFixed(1),by:+p.y.toFixed(1),lx:+lx.toFixed(1),ly:+ly.toFixed(1),t:lt});if(t.type==="gnd")T("TAP · GUNSHIP",X0,p.y+h+12,9,"left");
     if(t.hp0>1&&t.type!=="gnd"){const w=2*h*Math.max(0,t.hp/t.hp0);x.fillStyle="rgba(0,0,0,.7)";x.fillRect(X0,p.y+h+4,2*h,4);x.fillStyle=RED;x.fillRect(X0,p.y+h+4,w,4)}}
   /* off-screen arrows so you can find them in the window */
   for(const t of GM.tg){if(t.dead)continue;const p=gmPos(t,v);if(p.x>=0&&p.x<=W&&p.y>=0&&p.y<=H)continue;const a=Math.atan2(p.y-v.pj.cy,p.x-v.pj.cx),R=Math.min(W,H)*0.42,ax=v.pj.cx+Math.cos(a)*R,ay=v.pj.cy+Math.sin(a)*R;
@@ -3608,11 +3627,11 @@ $("bdgOut").addEventListener("click",e=>{const t=e.target.closest(".bdg");if(!t|
   const i=GBADGES.findIndex(x=>x[0]===b.k);ptOpen({key:b.k,img:"patches/"+b.k+".svg",got:b.got,n:b.n,k:"GAME BADGE · "+(i+1)+" / "+GBADGES.length,d:b.d+". Alien game, just for fun.",s:b.got?"EARNED":(b.g>1?"PROGRESS "+bdgProg(b):"LOCKED · NOT YET EARNED")})},true);
 /* tap to close: AR and 3D view messages */
 $("arMsg").addEventListener("click",()=>{$("arMsg").style.display="none"});$("svMsg").addEventListener("click",()=>{$("svMsg").style.display="none"});
-{const _ao=arOpen;arOpen=function(){const r=_ao.apply(this,arguments);if(S.gameOn){gmPrep();if(GM.c==null)GM.c=gmAnchor()}gmUI();return r}}
+{const _ao=arOpen;arOpen=function(){const r=_ao.apply(this,arguments);GM.cv=0;if(S.gameOn){gmPrep();if(GM.c==null)GM.c=gmAnchor()}gmUI();return r}}
 $("arBtn").onclick=arOpen;
-gmUI();if(S.gameOn)gmPrep();
+gmUI();if(S.gameOn){gmPrep();GM.next=gmFirst()}
 window.cpGame={state:()=>({on:S.gameOn,ever:!!S.gameEver,live:GM.tg.filter(t=>!t.dead).map(t=>({id:t.id,type:t.type,rA:+t.rA.toFixed(2),rE:+t.rE.toFixed(2),hp:t.hp,d:+t.d.toFixed(1),cl:t.cl||0})),lock:GM.lock,ammo:Object.assign({},GM.ammo),
-    rounds:GM.rd.length,homing:GM.rd.filter(r=>r.home).length,msl:GM.ms.length,st:Object.assign({},GM.st),c:GM.c,gl:!!GM.ar,err:GM.modErr,info:GM.info,gs:GM.gs?GM.gs.state():null,gsOn:GM.gsOn,pan:Object.assign({},GM.pan),next:GM.next,cone:GM_CONE}),
+    rounds:GM.rd.length,homing:GM.rd.filter(r=>r.home).length,msl:GM.ms.length,st:Object.assign({},GM.st),c:GM.c,gl:!!GM.ar,err:GM.modErr,info:GM.info,gs:GM.gs?GM.gs.state():null,gsOn:GM.gsOn,pan:Object.assign({},GM.pan),next:GM.next,cone:gmCone(),ground:gmGround(),live2:gmLive(),labs:GM.labs.slice()}),
   wave:k=>gmWave(k).map(t=>t.id),force:v=>{GM.force=!!v},tick:gmTick,ident:gmIdent,msl:gmMsl,gun:on=>on?gmStartGun():gmStopGun(),
   place:(id,rA,rE,still)=>{const t=GM.tg.find(q=>q.id===id);if(!t)return false;t.rA=rA;t.rE=rE;if(still){t.vA=t.vE=0;t.jk=1e9}return true},
   pan:(a,e)=>{GM.pan.a=a;GM.pan.e=e},aim:id=>{const t=GM.tg.find(q=>q.id===id);const pj=AR.pj;if(!t||!pj)return false;const base=pj.az!=null?pj.az:(GM.c||0);GM.pan.a=w180((GM.c||0)+t.rA-base);GM.pan.e=t.rE-(pj.pitch||0);return true},
