@@ -1862,13 +1862,18 @@ function gauge(x,ac,id,cx,cy,s,V){const u=s/2.24,img=RET.img[ac+"_"+id],P51=ac==
   glare(x,u);x.restore()}
 applySeg();retroApply();
 
-/* ================= v22: female voice callout pack =================
-   Short recorded callouts (v-*.mp3 in the app folder, ElevenLabs premade female voice) for the key moments;
-   everything else, and any clip that is missing or fails to play, falls back to the phone's own voice.
-   Settings → Voice: Female callouts / System / Off. */
+/* ================= v26: recorded callout pack =================
+   Short recorded callouts (v-*.mp3 in the app folder, ElevenLabs premade voice "Daniel", a calm broadcast voice, 40 kbps mono,
+   precached by the service worker) for the key moments; everything else, the dynamic detail (names, times, numbers), and any
+   clip that is missing or fails to play, falls back to the phone's own voice. Settings → Voice: Recorded / System / Off.
+   (The stored setting keeps its old value "female" so existing phones carry on.) */
 const VOX={"v1":"V one","rotate":"Rotate","positive-climb":"Positive climb","top-of-descent":"Top of descent","approaching":"Approaching destination",
   "fifty-above":"Fifty above","minimums":"Minimums","50":"Fifty","40":"Forty","30":"Thirty","20":"Twenty","10":"Ten",
-  "landed":"Landed","parked":"Parked","target-locked":"Target locked","altitude":"Altitude, altitude","bingo":"Bingo"};
+  "landed":"Landed","parked":"Parked","target-locked":"Target locked","altitude":"Altitude, altitude","bingo":"Bingo fuel",
+  "takeoff-roll":"Takeoff roll","cruise":"Reaching cruise","tod-5":"Top of descent in five minutes","ten-thousand":"Passing ten thousand","go-around":"Going around","turbulence":"Turbulence ahead","state-line":"Crossing state line",
+  "drive-on":"Drive mode on. Passenger only.","flight-mode":"Flight mode","drive-started":"Drive started","rest-stop":"Rest stop. Time for the driver to take a break.","arriving":"Arriving at destination",
+  "game-on":"Alien game on. Passengers only.","game-off":"Game off","contact":"Contact. Alien bogey inbound.","fox":"Fox three","guns":"Guns, guns","splash":"Splash one","mothership":"Mothership down",
+  "ground-hot":"Alien ground forces. Cleared hot.","winchester":"Winchester","gunship":"Gunship view","mission":"Mission complete","badge":"New patch earned"};
 const VOXQ={q:[],cur:null,bad:{},el:{},n:0};
 if(!S.vox){S.vox="female";saveS()}
 function voxFemale(v){try{const en=v.filter(x=>/^en/i.test(x.lang)),f=/female|karen|catherine|samantha|serena|moira|tessa|fiona|victoria|allison|ava|susan|zira|hazel|libby|natasha|sonia|aria|jenny/i;
@@ -1881,16 +1886,22 @@ function voxNext(){if(VOXQ.cur||!VOXQ.q.length)return;const it=VOXQ.q.shift();
   VOXQ.cur=it;VOXQ.n++;const done=()=>{a.onended=a.onerror=null;VOXQ.cur=null;setTimeout(voxNext,it.gap||60)};
   a.onended=done;a.onerror=()=>{VOXQ.bad[k]=1;VOXQ.cur=null;VOXQ.q.unshift({tts:VOX[k]});voxNext()};
   try{a.currentTime=0;const p=a.play();if(p&&p.catch)p.catch(()=>{if(VOXQ.cur===it){VOXQ.bad[k]=1;VOXQ.cur=null;VOXQ.q.unshift({tts:VOX[k]});voxNext()}})}catch(e){a.onerror()}
-  setTimeout(()=>{if(VOXQ.cur===it)done()},4000)}
+  setTimeout(()=>{if(VOXQ.cur===it)done()},4500)}
 /* play one callout now (heights cut the queue so they stay on time) */
 function voxPlay(k,urgent){if(!voiceOn||S.vox==="off"||!VOX[k])return false;
   if(S.vox!=="female"){try{if(urgent)speechSynthesis.cancel()}catch(e){}voxTTS(VOX[k]);return true}
   if(urgent){VOXQ.q=VOXQ.q.filter(x=>!x.h);}VOXQ.q.push({k,h:!!urgent});voxNext();return true}
-/* the app's spoken lines that have a recorded clip: play the clip, then speak any extra detail */
-const VOXMAP=[[/^Airborne at /,"positive-climb",false],[/^Top of descent\. /,"top-of-descent",false],[/^On approach,/,"approaching",false],
-  [/touchdown/i,"landed",true],[/^Parked\./,"parked",true]];
+/* the app's spoken lines that have a recorded clip: play the clip, then speak any dynamic detail with the phone voice.
+   [pattern, clip, rest(text) -> extra words to speak, or "" for none] */
+const VOXMAP=[[/^Airborne at /,"positive-climb",()=>""],[/^Top of descent\. /,"top-of-descent",()=>""],[/^On approach,/,"approaching",()=>""],
+  [/touchdown/i,"landed",t=>t.replace(/^.*?touchdown[^.]*\.\s*/i,"")],[/^Parked\./,"parked",t=>t.replace(/^Parked\.\s*/,"")],
+  [/^Takeoff roll\.$/,"takeoff-roll",()=>""],[/^Reaching cruise/,"cruise",t=>t.replace(/^Reaching cruise,?\s*/,"")],[/^Top of descent in about (5|five) minutes\.$/,"tod-5",()=>""],
+  [/^Passing ten thousand feet\./,"ten-thousand",t=>t.replace(/^Passing ten thousand feet\.\s*/,"")],[/^Going around\.$/,"go-around",()=>""],
+  [/^Turbulence master warning\./,"turbulence",t=>t.replace(/^Turbulence master warning\.\s*/,"")],[/^Crossing into /,"state-line",t=>t.replace(/^Crossing into /,"Now in ")],
+  [/^Drive mode on\. Passenger only\.$/,"drive-on",()=>""],[/^Flight mode\.$/,"flight-mode",()=>""],[/^Drive started/,"drive-started",t=>t.replace(/^Drive started\.?\s*/,"").replace(/^to /,"Heading to ").replace(/\s*Passenger mode\.$/,"")],
+  [/^Rest stop reminder\./,"rest-stop",t=>{const m=t.match(/About [^.]+ of driving\./);return m?m[0]:""}],[/^Arriving at /,"arriving",t=>t.replace(/^Arriving at /,"")]];
 function voxSay(text,low){if(S.vox!=="female"||!voiceOn)return false;const m=VOXMAP.find(r=>r[0].test(text));if(!m)return false;
-  VOXQ.q.push({k:m[1]});if(m[2]){const rest=m[1]==="parked"?text.replace(/^Parked\.\s*/,""):text.replace(/^.*?touchdown[^.]*\.\s*/i,"");if(rest)VOXQ.q.push({tts:rest})}voxNext();return true}
+  VOXQ.q.push({k:m[1]});let rest="";try{rest=(m[2](text)||"").trim()}catch(e){}if(rest&&rest!==text)VOXQ.q.push({tts:rest});voxNext();return true}
 /* callouts the older app never made: V1 / rotate on the roll, height calls on short final, altitude, bingo */
 const VXS={said:{},lastAlt:0,tm:[]};
 function voxTick(){const L=last;if(!L||!voiceOn||S.vox==="off")return;const p=PH.p,kt=(L.spd||0)*1.94384,now=Date.now();
