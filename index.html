@@ -364,6 +364,27 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
 #cueBar{background:var(--box);border:1px solid var(--sel);border-radius:0;color:var(--lbl);box-shadow:none}
 #cueBar::before{content:"CABIN \25B8  ";color:var(--sel);font:700 11px var(--mono);letter-spacing:.08em}
 #spBan{background:var(--box);border:1px solid var(--sel);border-radius:0;box-shadow:none}
+/* v24c: unit-patch badges + spotter rank tabs */
+.bdgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px}
+.bdg{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;background:var(--box);border:1px solid var(--div);cursor:pointer;max-width:none;opacity:1;text-align:center;min-height:44px}
+.bdg:focus-visible,.spRank:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+.bdg img{width:60px;height:70px;display:block}
+.bdg:not(.got) img{filter:grayscale(1) brightness(.55) contrast(.9);opacity:.6}
+.bdg b{font:700 10px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--lbl)}
+.bdg.got{border-color:var(--ok)}.bdg.got b{color:var(--ok)}.bdg:not(.got) b{color:#9aa4ab}
+.bdg small{font:400 10px var(--mono);color:#9aa4ab;text-transform:uppercase}.bdg.got small{color:var(--ok)}
+.pbar{display:block;width:100%;height:3px;background:var(--div);font-style:normal}.pbar>i{display:block;height:100%;background:var(--sel)}.bdg.got .pbar>i{background:var(--ok)}
+.spRank{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;margin:4px 0 8px;background:var(--box);border:1px solid var(--div);cursor:pointer}
+.spRank img{width:120px;height:60px;flex:0 0 auto}.spRank span{flex:1;display:flex;flex-direction:column;gap:3px}
+.spRank b{font:700 12px var(--mono);color:var(--ok);letter-spacing:.06em}.spRank small{font:400 10px var(--mono);color:var(--lbl);text-transform:uppercase}
+#ptOv{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.84);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 40px)}
+#ptBox{background:var(--frame);border:2px solid var(--frameIn);padding:8px 12px 12px;width:min(92vw,420px);display:flex;flex-direction:column;align-items:center}
+#ptBox .mfdT{width:100%;display:flex;justify-content:space-between;gap:10px;font:700 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--lbl);border-bottom:1px solid var(--div);padding-bottom:5px;margin-bottom:10px}
+#ptN{color:var(--ok)}#ptK{color:var(--sel)}
+#ptImg{width:min(64vw,260px);height:auto;aspect-ratio:120/140;display:block}#ptImg.lock{filter:grayscale(1) brightness(.6);opacity:.7}
+#ptD{margin:10px 0 4px;color:var(--lbl);text-align:center;font:400 14px/1.4 "B612",sans-serif}
+#ptS{margin:0;font:700 12px var(--mono);color:var(--warn);letter-spacing:.08em}#ptS.ok{color:var(--ok)}
+#ptOv.tapClose::after{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);text-align:center;font-size:11px}
 /* v24c: gauge pop-out */
 #gzOv{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 12px)}
 #gzBox{background:var(--frame);border:2px solid var(--frameIn);padding:8px 10px 10px;display:flex;flex-direction:column;align-items:center}
@@ -517,7 +538,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
   </div>
   <div class="tile" id="spTile">
     <div class="lab"><span>Spot the other plane</span><span class="seg" data-k="spot"><button data-v="on" data-net>On</button><button data-v="off">Off</button></span></div>
-    <div class="bigv" id="spPts" style="font-size:16px;margin:6px 0">0 pts</div>
+    <div class="bigv" id="spPts" style="font-size:16px;margin:6px 0">0 pts</div><button type="button" id="spRank" class="spRank ptc"></button>
     <p class="note" style="margin:0 0 6px">With internet, Cabin Panel checks for aircraft within 25 nm about once a minute (via its own server, from adsb.lol). When one is close enough to see, you get an alert to open AR; put the crosshair on its box and hold for a second to collect it. New types and airlines score extra.</p>
     <ul class="lm" id="spOut"></ul>
   </div>
@@ -748,6 +769,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
   <div id="svAttrMini">Imagery: Sentinel-2 cloudless 2016 by EOX (CC BY 4.0) · Terrain: Mapterhorn · Night: NASA · Not for navigation</div>
   <button id="svShow" aria-label="Show controls">⚙</button>
 </div>
+<div id="ptOv" class="tapClose" title="Tap to close" style="display:none" role="dialog" aria-modal="true" aria-label="Patch"><div id="ptBox"><div class="mfdT"><b id="ptN">Badge</b><span id="ptK"></span></div><img id="ptImg" alt=""><p id="ptD"></p><p id="ptS"></p></div></div>
 <div id="gzOv" class="tapClose" title="Tap to close" style="display:none" role="dialog" aria-modal="true" aria-label="Enlarged gauge"><div id="gzBox"><div class="mfdT"><b id="gzT">Gauge</b><span id="gzCode"></span></div><canvas id="gzCv" aria-label="Enlarged gauge, live"></canvas></div></div>
 <div id="fhOv" aria-label="Full screen HUD"><button id="fhExit">✕ Exit</button><span id="fhPhase" class="chip"></span><div id="fhSlot"></div><div id="fhToast" class="tapClose gone" title="Tap to close"></div></div>
 <div id="cardOv"><div class="cardBox"><img id="cardImg" alt="Flight summary card"><div class="row"><button id="cardShare" class="pri">Share</button><button id="cardClose">Close</button></div><label class="chk" id="cardSnapL" style="display:none"><input type="checkbox" id="cardSnap" checked> Include 3D snapshot</label><p class="note" id="cardHint">Long-press the image to save it to Photos.</p></div></div>

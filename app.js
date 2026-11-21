@@ -2516,7 +2516,7 @@ setInterval(()=>{const hud=$("spHud");if(!arOn||!AR.view||S.spot!=="on"){if(hud)
   const now=Date.now();if(!best){SPOT.hold={};if(hud){hud.style.display=acs.length?"":"none";setTx(hud,acs.length+" aircraft nearby · put the crosshair on one")}return}
   if(SPOT.hold.n!==best.n)SPOT.hold={n:best.n,t0:now};const p=Math.min(1,(now-SPOT.hold.t0)/1000);if(hud){hud.style.display="";setTx(hud,"LOCKING "+best.n+" "+Math.round(p*100)+"%")}
   if(p>=1&&!SPOT.hold.done){SPOT.hold.done=true;const pts=spotCatch(best);if(hud)setTx(hud,pts?"SPOTTED "+best.n+" +"+pts:"Already spotted "+best.n+" today")}},100);
-function spotRender(){const el=$("spOut");if(!el)return;const types=Object.entries(SPC.types).sort((a,b)=>b[1]-a[1]),airl=Object.entries(SPC.airl).sort((a,b)=>b[1]-a[1]);
+function spotRender(){const el=$("spOut");if(!el)return;try{spRankRender()}catch(e){}const types=Object.entries(SPC.types).sort((a,b)=>b[1]-a[1]),airl=Object.entries(SPC.airl).sort((a,b)=>b[1]-a[1]);
   $("spPts").textContent=SPC.pts.toLocaleString()+" pts · "+SPC.caught.length+" spotted · "+types.length+" types · "+airl.length+" airlines";
   el.innerHTML=(SPOT.msg?`<li><span>${esc(SPOT.msg)}</span></li>`:"")+(S.spot==="on"?`<li><span>${spotNow().length} aircraft within ${Math.round(fDst(40000))} ${S.dst} at the last lookup${SPOT.at?" ("+hhmm(SPOT.at)+")":""}.</span></li>`:"")+
     (types.length?`<li><b>Types</b><span>${types.slice(0,12).map(x=>esc(x[0])+" ×"+x[1]).join(", ")}</span></li>`:"")+(airl.length?`<li><b>Airlines</b><span>${airl.slice(0,12).map(x=>esc(x[0])+" ×"+x[1]).join(", ")}</span></li>`:"")+
@@ -2647,6 +2647,7 @@ const near=(b,lat,lon,km)=>(b.pts||[]).some(p=>dist({lat:p[0],lon:p[1]},{lat,lon
 function sunElAt(t,lat,lon){try{return sunPos(t,lat,lon).el}catch(e){return 0}}
 function tdNight(b){const to=apBy(b.to);return !!(b.ev&&b.ev.td&&to&&sunElAt(b.ev.td,to.lat,to.lon)<-6)}
 function sunXing(b){const p=(b.pts||[]).filter(q=>q[2]!=null&&q[2]>1500);if(p.length<2)return false;const a=sunElAt(p[0][3],p[0][0],p[0][1])-sunThr(p[0][2]),z=sunElAt(p[p.length-1][3],p[p.length-1][0],p[p.length-1][1])-sunThr(p[p.length-1][2]);return (a>0)!==(z>0)}
+const PT={bdg:null};
 const BADGES=[
  ["first","First flight","Log your first flight",r=>[r.n,1]],["f5","Frequent flyer","5 flights",r=>[r.n,5]],["f10","Ten up","10 flights",r=>[r.n,10]],["f25","Road warrior","25 flights",r=>[r.n,25]],["f50","Half century","50 flights",r=>[r.n,50]],
  ["night","Night landing","Land after dark",r=>[r.B.some(tdNight)?1:0,1]],["sun","Sun chaser","See a sunrise or sunset in flight",r=>[r.B.some(sunXing)?1:0,1]],
@@ -2666,7 +2667,23 @@ function statsRender(){const el=$("bdgOut"),kv=$("totKv");if(!el||!FEAT.stats)re
   kv.innerHTML=[["Flights",r.n],["Distance",Math.round(fDst(r.km)).toLocaleString()+" "+S.dst],["Hours",hm(r.secs)],["Airports",r.aps.size],["Aircraft types",r.types.size||"—"],
     ["Longest (time)",r.lg?hm(r.lg.v)+rt(r.lg):"—"],["Longest (distance)",r.ld?Math.round(fDst(r.ld.v)).toLocaleString()+" "+S.dst+rt(r.ld):"—"],["Highest",r.hi?Math.round(fAlt(r.hi.v)).toLocaleString()+" "+S.alt+rt(r.hi):"—"],["Fastest",r.fa?Math.round(fSpd(r.fa.v))+" "+S.spd+rt(r.fa):"—"]].map(x=>`<div>${esc(x[0])}<b>${esc(x[1])}</b></div>`).join("");
   const got=r.badges.filter(b=>b.got).length;$("bdgHead").textContent="Badges "+got+" of "+r.badges.length;
-  el.innerHTML=r.badges.map(b=>`<span class="bdg${b.got?" got":""}" title="${esc(b.d)}"><b>${b.got?"★":"☆"} ${esc(b.n)}</b><small>${esc(b.d)}${!b.got&&b.g>1?" · "+b.v.toLocaleString()+"/"+b.g.toLocaleString():""}</small></span>`).join("")}
+  el.innerHTML=r.badges.map((b,i)=>`<button type="button" class="bdg ptc${b.got?" got":""}" data-b="${i}" aria-label="${esc(b.n)}: ${esc(b.d)}${b.got?" (earned)":" (locked)"}"><img src="patches/${esc(b.k)}.svg" alt="" width="60" height="70" draggable="false"><b>${esc(b.n)}</b><small>${b.got?"EARNED":bdgProg(b)}</small><i class="pbar"><i style="width:${Math.round(100*Math.min(1,b.v/b.g))}%"></i></i></button>`).join("");PT.bdg=r.badges}
+/* v24c: unit-patch style badges (original designs, patches/*.svg). Tap to enlarge with description. */
+function bdgProg(b){return b.g>1?b.v.toLocaleString()+" / "+b.g.toLocaleString():"LOCKED"}
+function ptOpen(o){$("ptImg").src=o.img;$("ptImg").className=o.got?"":"lock";$("ptN").textContent=o.n;$("ptK").textContent=o.k;$("ptD").textContent=o.d;$("ptS").textContent=o.s;$("ptS").className=o.got?"ok":"";
+  $("ptOv").style.display="";$("ptOv").dataset.k=o.key}
+function ptClose(){$("ptOv").style.display="none";$("ptOv").dataset.k=""}
+$("ptOv").addEventListener("click",ptClose);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("ptOv").style.display!=="none")ptClose()});
+$("bdgOut").addEventListener("click",e=>{const t=e.target.closest(".bdg");if(!t||!PT.bdg)return;const b=PT.bdg[+t.dataset.b];if(!b)return;
+  ptOpen({key:b.k,img:"patches/"+b.k+".svg",got:b.got,n:b.n,k:"BADGE · "+(BADGES.findIndex(x=>x[0]===b.k)+1)+" / "+BADGES.length,d:b.d,s:b.got?"EARNED":(b.g>1?"PROGRESS "+bdgProg(b):"LOCKED · NOT YET EARNED")})});
+/* spotter ranks: made-up titles, not real ranks */
+const SPR=[[0,"Cadet spotter"],[100,"Apron watcher"],[300,"Line spotter"],[750,"Flight spotter"],[1500,"Senior spotter"],[3000,"Chief spotter"],[6000,"Spotter ace"]];
+function spRank(pts){pts=+pts||0;let i=0;for(let j=0;j<SPR.length;j++)if(pts>=SPR[j][0])i=j;const nx=SPR[i+1];return {i,n:SPR[i][1],pts,next:nx?nx[0]:null,nextN:nx?nx[1]:null,f:nx?(pts-SPR[i][0])/(nx[0]-SPR[i][0]):1}}
+function spRankRender(){const el=$("spRank");if(!el)return;const r=spRank(SPC.pts);
+  el.innerHTML=`<img src="patches/r${r.i}.svg" alt="" width="120" height="60"><span><b>${esc(r.n.toUpperCase())}</b><small>${r.next!=null?(r.next-r.pts).toLocaleString()+" pts to "+esc(r.nextN.toUpperCase()):"TOP RANK"}</small><i class="pbar"><i style="width:${Math.round(100*r.f)}%"></i></i></span>`;
+  el.setAttribute("aria-label","Spotter rank "+r.n+", "+r.pts+" points")}
+$("spRank").addEventListener("click",()=>{const r=spRank(SPC.pts);ptOpen({key:"r"+r.i,img:"patches/r"+r.i+".svg",got:true,n:r.n,k:"SPOTTER RANK · "+(r.i+1)+" / "+SPR.length,d:"Spot-the-plane points: "+r.pts.toLocaleString()+". Ranks are made-up titles for fun, not real ranks.",s:r.next!=null?(r.next-r.pts).toLocaleString()+" PTS TO "+r.nextN.toUpperCase():"TOP RANK"})});
+window.cpPatch={rank:spRank,open:i=>{const b=$("bdgOut").querySelectorAll(".bdg")[i];if(b)b.click()},close:ptClose,state:()=>({open:$("ptOv").style.display!=="none",k:$("ptOv").dataset.k||""})};
 window.cpStats=()=>{const r=statsCalc();return {n:r.n,km:Math.round(r.km/1000),aps:[...r.aps],types:[...r.types],got:r.badges.filter(b=>b.got).map(b=>b.k),badges:r.badges.length}};
 $("bookList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const i=+b.dataset.i,en=BOOK[i];if(!en)return;
   if(b.dataset.a==="dy")dyOpen(i);
