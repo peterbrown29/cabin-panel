@@ -2992,8 +2992,9 @@ function exRun(kind){const B=exBook(),stamp=new Date().toISOString().slice(0,10)
 for(const k of ["csv","trk","gpx","kml"]){const b=$("ex_"+k);if(b)b.onclick=()=>exRun(k)}
 window.cpExport={csv:()=>exCsvBook(exBook()),tracks:()=>exCsvTracks(exBook()),gpx:()=>exGpx(exBook()),kml:()=>exKml(exBook()),run:exRun};
 
-/* follow link points at the light standalone page (follow.html) so family don't need the app; the id stays in the #fragment */
-function shLink2(id){return location.origin+location.pathname.replace(/[^/]*$/,"")+"follow.html#id="+id}
+/* v25: the follow link points at the light follow page served by the share server itself (not the app's web host), so family
+   don't need the app and the link carries no account or personal name; the id stays in the #fragment */
+function shLink2(id){return "https://cabin-adsb.cabinpanel-pb.workers.dev/follow/#id="+id}  /* a literal: this runs during boot, before later consts exist */
 
 /* periodic display refresh for 16-22 */
 function v23gRender(){try{poiRender()}catch(e){}try{recRender()}catch(e){}try{cnRender()}catch(e){}try{batUI()}catch(e){}}

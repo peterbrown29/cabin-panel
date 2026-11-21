@@ -4,6 +4,8 @@
 "use strict";
 /* v25: refuse to run inside a frame (static hosting cannot send frame-ancestors) */
 if(window.top!==window.self){try{window.top.location=window.location.href}catch(e){document.documentElement.style.display="none"}}
+/* v25: the follow page now lives on the share server; old links to this copy on the app's web host move there, keeping the #id */
+if(/\.github\.io$/i.test(location.hostname)){location.replace("https://cabin-adsb.cabinpanel-pb.workers.dev/follow/"+location.hash);throw new Error("moved")}
 (()=>{
 const API="https://cabin-adsb.cabinpanel-pb.workers.dev/share/",POLL=30000,R=6371008.8,NM=1852,FT=3.28084;
 const $=id=>document.getElementById(id),rad=d=>d*Math.PI/180,deg=r=>r*180/Math.PI;
