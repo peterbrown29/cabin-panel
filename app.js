@@ -217,7 +217,7 @@ setInterval(()=>{
   if(PH.ev&&PH.ev.up&&!PH.ev.td&&n.getSeconds()%10===0)evRender();
   {const ph=tkOn()?"ADS-B · "+PHN[tkPhase()]:PHN[PH.p];if($("phase").textContent!==ph)$("phase").textContent=ph}
   if(tkOn()&&(watchId==null||GROUND.includes(PH.p))){const a=Math.max(0,Math.round((Date.now()-TKS.L.t)/1000));$("stat").textContent="ADS-B "+TKS.reg+" · "+(tkStale()?"last seen "+(a<5400?Math.round(a/60)+" min":Math.round(a/3600)+" h")+" ago":"report "+a+" s ago"+(a>20?" · moving it on (EST)":""));$("dot").className="dot "+(tkStale()?"warn":"ok");return}
-  if(watchId==null&&!demo)return;
+  if(watchId==null&&!demo){tkStatReset();return}
   const age=(Date.now()-lastFixAt)/1000;
   if(watchId!=null&&last&&!demo&&!REPLAY&&(Date.now()-last.t)>8000&&n.getSeconds()%5===0){try{render()}catch(e){}}
   if(resuming()){$("stat").textContent="Resuming GPS…"+(lastFixAt?" last fix "+Math.round((Date.now()-lastFixAt)/1000)+"s ago":"");$("dot").className="dot warn";return}
@@ -2099,7 +2099,9 @@ async function tkStart(){const reg=tkNormReg($("tkReg").value),flt=String($("tkF
   TKX.err="";TKX.back=0;tkSave();tkRender();hap(15);
   if(!same&&TKS.reg){const h=await tkHexOf(TKS.reg);if(h&&TKS){TKS.hex=h.hex;TKS.type=h.type||TKS.type;TKS.desc=h.desc||"";TKS.op=h.op||""}if(TKS&&TKS.hex)await tkTrace()}
   if(TKS&&TKS.wx)TKS.wx.at=0;await tkPoll()}
-function tkStop(){clearTimeout(TKT);TKT=0;TKS=null;S.tkMini="off";saveS();store.set("tk",null);TKX.err="";document.body.classList.remove("tking");tkRender();try{render();drawMap()}catch(e){};hap(10)}
+/* v24b: after Stop tracking, clear the "ADS-B <reg> · report N s ago" status if GPS is off (the GPS branch overwrites it when GPS is on) */
+function tkStatReset(){const s=$("stat");if(!tkOn()&&s&&/^ADS-B /.test(s.textContent)){s.textContent=watchId!=null?"Resuming GPS…":"GPS off";$("dot").className="dot"+(watchId!=null?" warn":"")}}
+function tkStop(){clearTimeout(TKT);TKT=0;TKS=null;S.tkMini="off";saveS();store.set("tk",null);TKX.err="";document.body.classList.remove("tking");tkRender();tkStatReset();try{render();drawMap()}catch(e){};hap(10)}
 $("tkGo").onclick=tkStart;$("tkStop").onclick=tkStop;$("tkReg").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();tkStart()}});
 $("tkReg").addEventListener("blur",()=>{const v=tkNormReg($("tkReg").value);if(v)$("tkReg").value=v});
 for(const id of ["tkDep","tkTurn","tkAp"])$(id).addEventListener("change",()=>{if(!TKS||!TKS.on)return;TKS.dep=$("tkDep").value;TKS.turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));const v=String($("tkAp").value||"").toUpperCase().trim();if(v)TKS.ap=v;TKS.arrAt=null;TKS.depAt=null;tkArrFromTrail();tkLegState();tkSave();tkRender();tkWxMaybe(true)});
