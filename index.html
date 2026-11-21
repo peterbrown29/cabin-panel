@@ -379,24 +379,34 @@
 <div id="arOv" role="dialog" aria-label="AR window view">
   <video id="arVid" playsinline muted autoplay></video>
   <canvas id="arCv" aria-label="Camera view with landmark boxes"></canvas>
+  <canvas id="gmCv" aria-hidden="true"></canvas><canvas id="gmOv" aria-hidden="true"></canvas>
   <button id="arExit">✕ Exit</button><span id="arPhase" class="chip"></span>
   <div id="arBar">
-    <div id="arMsg" data-css="display:none"></div>
+    <div id="arMsg" class="tapClose" title="Tap to close" data-css="display:none"></div>
     <div class="row"><button id="arCam">Camera on</button><button id="arSen" class="pri">Enable compass</button><button id="arAlign">Align</button><button id="arHide" aria-label="Hide controls">Hide</button></div>
     <div class="row"><span class="seg" data-k="arSrc"><button data-v="fus">Fused</button><button data-v="cmp">Compass</button><button data-v="gps">GPS</button></span><span class="seg" data-k="arFlt"><button data-v="norm">TV</button><button data-v="grn">GRN</button><button data-v="wht">WHT</button><button data-v="nvg">NVG</button><button data-v="flir">FLIR</button><button data-v="ir">IR</button></span></div>
+    <div class="row"><button id="gmTgl" aria-pressed="false">Alien game: off</button><span class="sub gmSub">Passengers only · imaginary targets</span></div>
     <div class="row"><span class="seg" data-k="arSky"><button data-v="auto">Sky auto</button><button data-v="on">Sky on</button><button data-v="off">Sky off</button></span></div>
     <div class="row"><span class="seg" data-k="arSide"><button data-v="left">Left window</button><button data-v="right">Right window</button></span><span class="sub">Trim</span><input type="range" id="arTrim" min="-60" max="60" step="1" value="0" aria-label="Heading trim, degrees"><b id="arTrimV">0°</b></div>
   </div>
   <button id="arShow" aria-label="Show controls">⚙</button>
   <button id="arIdBtn" aria-label="Identify what is under the crosshair">IDENTIFY</button><div id="arIdOut" class="tapClose" title="Tap to close" role="status"></div><div id="spHud" role="status"></div>
+  <div id="gmHud" role="group" aria-label="Alien game controls"><span id="gmSc">0 PTS</span><button id="gmId" aria-label="Lock the alien nearest the crosshair">IDENT</button><button id="gmMsl" aria-label="Fire a fire-and-forget missile at the locked alien">MSL 4</button><button id="gmGun" aria-label="Hold to fire smart gun rounds">GUN 300</button><button id="gmGs" aria-label="Open the gunship view for alien ground forces">GUNSHIP</button></div>
+  <div id="gmMsg" class="tapClose" title="Tap to close" role="status"></div>
   <div id="arDisc">Entertainment only · not for navigation · positions approximate</div>
+</div>
+<div id="gsOv" role="dialog" aria-label="Alien game gunship view">
+  <canvas id="gsCv" aria-label="Thermal gunship view of alien ground forces (game)"></canvas><canvas id="gsHud" aria-hidden="true"></canvas>
+  <button id="gsExit">✕ Exit</button><span class="chip" id="gsTag">GAME · GUNSHIP</span>
+  <div id="gsMsg" class="tapClose" title="Tap to close" role="status"></div>
+  <div id="gsBar"><button id="gs105" aria-label="Fire the 105 (big, slow)">105</button><button id="gs25" aria-label="Hold to fire the 25 mm">25 MM</button><button id="gsZm">ZOOM</button><button id="gsPol" aria-label="White-hot or black-hot">WHT</button></div>
 </div>
 <div id="svOv" role="dialog" aria-label="3D window view">
   <canvas id="svCv" aria-label="Synthetic 3D view out of the window"></canvas>
   <div id="svDrops"></div>
   <canvas id="svHud" aria-hidden="true"></canvas>
   <button id="svExit">✕ Exit</button><span id="svPhase" class="chip"></span>
-  <div id="svMsg" role="status"></div>
+  <div id="svMsg" class="tapClose" title="Tap to close" role="status"></div>
   <div id="svBar">
     <div class="row"><span class="seg" data-k="svfx"><button data-v="none">Normal</button><button data-v="nvg">NVG</button><button data-v="flir">FLIR</button><button data-v="crt">CRT</button></span><span class="seg" data-k="svview"><button data-v="fwd">Ahead</button><button data-v="left">Left</button><button data-v="right">Right</button></span></div>
     <div class="row"><span class="seg" data-k="svfps"><button data-v="30">30 fps</button><button data-v="15">15 fps saver</button></span><span class="seg" data-k="svwx"><button data-v="on">Weather</button><button data-v="off">Clear</button></span><button id="svSnap" aria-label="Save a 3D snapshot for your flight card">📸 Snapshot</button><button id="svHide" aria-label="Hide controls">Hide</button></div>

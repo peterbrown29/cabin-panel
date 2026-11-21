@@ -3415,3 +3415,205 @@ if(!DRV.on&&PH.p==="drive"){PH.p="parked";savePH()}
 /* the demo flight is a flight: not available in Drive mode (it would be logged as a drive) */
 {const _db=$("demoBtn").onclick;$("demoBtn").onclick=function(){if(DRV.on&&!demo){drvMsg("Demo flight works in flight mode. Flip the DRIVE switch down first.");try{$("drvTile").scrollIntoView({block:"start",behavior:"smooth"})}catch(e){}return}return _db.apply(this,arguments)}}
 }
+
+/* ================= v26: Alien game (optional AR game layer, passengers only, off by default) =================
+   Imaginary targets only, always drawn as RED boxes tagged ALIEN, kept clear of real boxes (aircraft, towns,
+   landmarks are green/amber and always drawn underneath nothing). Targets spawn at random during a flight
+   (climb/cruise/descent) or a drive, inside the cone you can see through a cabin or car window (about 32° wide by
+   42° high: a 25 x 35 cm window seen from 40-50 cm) on the side the phone faces, sized as if a few km away.
+   AIR: IDENT locks the target nearest the crosshair; MSL is fire-and-forget; GUN fires smart rounds that home only
+   while the crosshair stays inside the target's box. GROUND: alien bases and tripod drones, engaged from a
+   top-down thermal "gunship" view (arcade, non-gory: hits flash and vanish). Scores feed four game patches.
+   Rendering: game.js (three.js, low-poly, 2 draw calls per model, capped at 10 models); pauses when hidden. */
+const GM={tg:[],rd:[],ms:[],fx:[],lock:null,pan:{a:0,e:0},c:null,next:0,seq:1,ar:null,gs:null,mod:null,modErr:"",
+  ammo:{msl:4,gun:300},rl:{msl:0,gun:0},firing:0,gsOn:false,gsWave:null,arWas:false,info:{calls:0,tris:0},noteAt:0,lastT:0,
+  st:Object.assign({score:0,best:0,kills:0,air:0,ground:0,mom:0,shots:0,hits:0,waves:0},store.get("game")||{})};
+if(typeof S.gameOn!=="boolean")S.gameOn=false;
+const GMT={ftr:{n:"FIGHTER",tag:"FTR",m:70,d:[2.5,5],hp:3,pts:100,spd:3.2},rdr:{n:"RAIDER",tag:"RDR",m:120,d:[4,7],hp:5,pts:150,spd:2},
+  msh:{n:"MOTHERSHIP",tag:"MSHIP",m:2400,d:[32,45],hp:24,pts:1000,spd:0.35},gnd:{n:"ALIEN BASE",tag:"BASE",m:260,d:[4,9],hp:1,pts:0,spd:0}};
+const GM_CONE={a:16,eLo:-4,eHi:14,gLo:-19,gHi:-7};
+function gmSave(){store.set("game",GM.st)}
+function gmLive(){return DRV.on?PH.p==="drive":["climb","cruise","descent"].includes(PH.p)}
+function gmMod(){return GM.mod||(GM.mod=import("./game.js").catch(e=>{GM.modErr=String(e&&e.message||e);GM.mod=null;throw e}))}
+function gmNote(t,clip){const el=$("gmMsg");if(el){el.textContent=t;el.style.display="block";clearTimeout(GM.noteT);GM.noteT=setTimeout(()=>{el.style.display="none"},6000)}
+  if(!arOn&&!GM.gsOn){$("toast").textContent=t;$("toast").style.display="";clearTimeout(toastT);toastT=setTimeout(()=>{$("toast").style.display="none"},9000)}
+  if(clip)try{voxPlay(clip)}catch(e){}}
+function gmAnchor(){try{const so=arSolve(0);if(so.win!=null)return so.win;if(so.az!=null)return so.az}catch(e){}const L=last;if(L&&L.trk!=null)return (L.trk+(S.arSide==="right"?90:-90)+360)%360;return AR.pj&&AR.pj.az!=null?AR.pj.az:0}
+function gmRand(a,b){return a+Math.random()*(b-a)}
+function gmAdd(type,o){const T=GMT[type],t={id:GM.seq++,type,rA:gmRand(-GM_CONE.a+3,GM_CONE.a-3),rE:type==="gnd"?gmRand(GM_CONE.gLo+2,GM_CONE.gHi-2):type==="msh"?gmRand(6,11):gmRand(GM_CONE.eLo+2,GM_CONE.eHi-2),
+    vA:0,vE:0,d:gmRand(T.d[0],T.d[1]),hp:T.hp,hp0:T.hp,born:Date.now(),life:type==="gnd"?240000:type==="msh"?150000:gmRand(70000,100000),dead:0,hd:0,bank:0,jk:0,troops:type==="gnd"?(o&&o.troops)||6:0,bases:type==="gnd"?(o&&o.bases)||1:0};
+  const a=Math.random()*Math.PI*2;t.vA=Math.cos(a)*T.spd;t.vE=Math.sin(a)*T.spd*0.4;if(o)Object.assign(t,o);GM.tg.push(t);return t}
+function gmWave(kind){if(GM.c==null||!GM.tg.some(t=>!t.dead))GM.c=gmAnchor();
+  if(!kind){const r=Math.random();kind=DRV.on?(r<0.55?"gnd":r<0.95?"air":"msh"):(r<0.25?"gnd":r<0.85||PH.p!=="cruise"?"air":"msh")}
+  const out=[];if(kind==="air"){const n=2+Math.floor(Math.random()*2);for(let i=0;i<n;i++)out.push(gmAdd(i===0&&Math.random()<0.4?"rdr":"ftr"))}
+  else if(kind==="msh"){out.push(gmAdd("msh"));out.push(gmAdd("ftr"));out.push(gmAdd("ftr"))}
+  else if(kind==="gnd"){out.push(gmAdd("gnd",{bases:1+Math.floor(Math.random()*2),troops:4+Math.floor(Math.random()*4)}))}
+  else out.push(gmAdd(kind));
+  GM.st.waves++;gmSave();
+  const g=kind==="gnd";gmNote(g?"ALIEN GROUND FORCES · open GUNSHIP view to engage":"ALIEN CONTACT · "+out.length+" bogey"+(out.length>1?"s":"")+(arOn?" in your window":" · open the AR window view"),g?"ground-hot":"contact");
+  try{hap([40,30,40])}catch(e){}return out}
+function gmTick(){if(!S.gameOn||document.hidden)return;const now=Date.now();
+  for(const t of GM.tg)if(!t.dead&&now-t.born>t.life){t.dead=now;t.gone=1;if(GM.lock===t.id)GM.lock=null}
+  GM.tg=GM.tg.filter(t=>!t.dead||now-t.dead<1500);
+  if(now-GM.rl.msl>20000&&GM.ammo.msl<4){GM.ammo.msl++;GM.rl.msl=now}if(GM.ammo.gun<=0&&now-GM.rl.gun>15000){GM.ammo.gun=300}
+  if(!gmLive()&&!GM.force)return;if(!GM.next)GM.next=now+gmRand(20000,40000);
+  if(now>=GM.next&&GM.tg.filter(t=>!t.dead).length<6){gmWave();GM.next=now+gmRand(45000,195000)}}
+setInterval(()=>{try{gmTick();gmUI()}catch(e){}},1000);
+function gmUI(){const on=!!S.gameOn,b=$("gmTgl");if(b){b.textContent=on?"Alien game: ON":"Alien game: off";b.classList.toggle("pri",on);b.setAttribute("aria-pressed",on?"true":"false")}
+  document.body.classList.toggle("gmOn",on);const live=GM.tg.filter(t=>!t.dead);
+  if($("gmSc"))$("gmSc").textContent=GM.st.score.toLocaleString()+" PTS"+(live.length?" · "+live.length+" ALIEN"+(live.length>1?"S":""):"");
+  if($("gmMsl"))$("gmMsl").textContent="MSL "+GM.ammo.msl;if($("gmGun"))$("gmGun").textContent=GM.ammo.gun>0?"GUN "+GM.ammo.gun:"GUN · RELOAD";
+  if($("gmGs"))$("gmGs").style.display=live.some(t=>t.type==="gnd")?"":"none";if($("gmId"))$("gmId").classList.toggle("lk",!!GM.lock)}
+function gmToggle(){if(!S.gameOn){if(!confirm("Alien game: passengers only (not the pilot, crew or the driver). Imaginary targets for fun, never real aircraft. Turn it on?"))return false;
+    S.gameOn=true;S.gameEver=1;saveS();GM.next=0;GM.c=null;gmPrep();try{voxPlay("game-on")}catch(e){}}
+  else{S.gameOn=false;saveS();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmStopGun();try{GM.ar&&GM.ar.clear()}catch(e){}try{voxPlay("game-off")}catch(e){}}
+  gmUI();try{statsRender()}catch(e){}hap(20);return S.gameOn}
+function gmPrep(){if(GM.ar||!S.gameOn)return;gmMod().then(m=>{if(GM.ar)return;try{GM.ar=m.createAR($("gmCv"))}catch(e){GM.modErr="webgl";GM.ar=null}}).catch(()=>{})}
+/* ---------- per-frame: move targets, rounds, missiles; draw (after the real AR symbology) ---------- */
+function gmView(){const pj=AR.pj;if(!pj)return null;const sensor=AR.ot&&Date.now()-AR.ot<5000;if(sensor){GM.pan.a=0;GM.pan.e=0}
+  const az=(pj.az!=null?pj.az:(GM.c!=null?GM.c:0))+GM.pan.a,el=(pj.pitch||0)+GM.pan.e;return {az,el,pj}}
+function gmPos(t,v){const T=GMT[t.type],tAz=(GM.c||0)+t.rA,dA=w180(tAz-v.az),dE=t.rE-v.el,pj=v.pj,dx=dA*pj.ppd,dy=dE*pj.ppd;
+  const x=pj.cx+dx*pj.cr+dy*pj.sr,y=pj.cy+dx*pj.sr-dy*pj.cr,ang=deg(Math.atan(T.m/(t.d*1000)))*(t.type==="gnd"?1.6:1),s=Math.max(18,ang*pj.ppd);
+  return {x,y,s,h:Math.max(16,s*0.62+8)}}
+function gmStep(dt){const now=Date.now(),v=gmView();if(!v)return;const so=AR.so;
+  if(so&&so.win!=null&&GM.c!=null)GM.c=(GM.c+(1-Math.exp(-dt/12))*w180(so.win-GM.c)+360)%360;
+  for(const t of GM.tg){if(t.dead)continue;const T=GMT[t.type];
+    if(t.type==="ftr"){t.jk-=dt;if(t.jk<=0){t.jk=gmRand(1.2,3.5);const a=Math.random()*Math.PI*2;t.vA=Math.cos(a)*T.spd;t.vE=Math.sin(a)*T.spd*0.45}}
+    t.rA+=t.vA*dt;t.rE+=t.vE*dt;const lo=t.type==="gnd"?GM_CONE.gLo:GM_CONE.eLo,hi=t.type==="gnd"?GM_CONE.gHi:GM_CONE.eHi;
+    if(t.rA>GM_CONE.a){t.rA=GM_CONE.a;t.vA=-Math.abs(t.vA)}if(t.rA<-GM_CONE.a){t.rA=-GM_CONE.a;t.vA=Math.abs(t.vA)}if(t.rE>hi){t.rE=hi;t.vE=-Math.abs(t.vE)}if(t.rE<lo){t.rE=lo;t.vE=Math.abs(t.vE)}
+    const hd=Math.atan2(-t.vE,t.vA);t.hd=t.type==="msh"||t.type==="gnd"?0:hd;t.bank=t.type==="ftr"?Math.max(-0.6,Math.min(0.6,t.vE*0.2)):0;
+    /* never sit on a real box (aircraft, towns, landmarks): push away from it */
+    const p=gmPos(t,v);for(const b of AR.hits||[]){if(p.x+p.h>b.x0&&p.x-p.h<b.x1&&p.y+p.h>b.y0&&p.y-p.h<b.y1){const bx=(b.x0+b.x1)/2,by=(b.y0+b.y1)/2;t.rA+=(p.x>=bx?1:-1)*20*dt;t.rE+=(p.y<=by?1:-1)*10*dt;t.cl=(t.cl||0)+1}}}
+  /* smart rounds: home on the target only while the crosshair is inside that target's box */
+  const cx=v.pj.cx,cy=v.pj.cy,under=gmUnder(v);
+  for(const r of GM.rd){r.t+=dt;const tg=under&&(!GM.lock||under.id===GM.lock)?under:null;r.home=!!tg;
+    if(tg){const ta=(GM.c||0)+tg.rA,te=tg.rE,da=w180(ta-r.a),de=te-r.e,dd=Math.hypot(da,de),k=Math.min(1,dt*28/Math.max(0.01,dd));r.a+=da*k;r.e+=de*k;r.tg=tg.id}
+    if(r.t>=r.tof&&!r.done){r.done=1;const hit=GM.tg.find(t=>!t.dead&&t.type!=="gnd"&&Math.hypot(w180((GM.c||0)+t.rA-r.a),t.rE-r.e)*v.pj.ppd<=gmPos(t,v).h);if(hit){GM.st.hits++;gmDmg(hit,1,v)}}}
+  GM.rd=GM.rd.filter(r=>!r.done||r.t<r.tof+0.05);
+  /* missiles: fire-and-forget pursuit */
+  for(const m of GM.ms){m.t+=dt;const tg=GM.tg.find(t=>t.id===m.tg&&!t.dead);if(!tg){m.done=1;GM.fx.push({a:m.a,e:m.e,t:0,big:0,dud:1});continue}
+    const ta=(GM.c||0)+tg.rA,te=tg.rE,da=w180(ta-m.a),de=te-m.e,rem=Math.max(0.05,m.tof-m.t),k=Math.min(1,dt/rem);m.a+=da*k;m.e+=de*k;m.tr.push([m.a,m.e]);if(m.tr.length>14)m.tr.shift();
+    if(m.t>=m.tof){m.done=1;GM.st.hits++;if(Math.random()<(tg.type==="ftr"?0.82:0.95)||m.sure)gmDmg(tg,tg.type==="msh"?8:99,v);else gmNote("MISSILE DEFEATED · alien flares","")}}
+  GM.ms=GM.ms.filter(m=>!m.done);
+  for(const f of GM.fx)f.t+=dt;GM.fx=GM.fx.filter(f=>f.t<(f.big?1.6:0.8));
+  if(GM.lock){const t=GM.tg.find(q=>q.id===GM.lock&&!q.dead);if(!t)GM.lock=null;else{const p=gmPos(t,v);if(p.x<-40||p.x>v.pj.W+40||p.y<-40||p.y>v.pj.H+40){t.off=(t.off||0)+dt;if(t.off>3){GM.lock=null;gmNote("LOCK LOST","")}}else t.off=0}}}
+function gmUnder(v){let best=null,bd=1e9;for(const t of GM.tg){if(t.dead||t.type==="gnd")continue;const p=gmPos(t,v);if(Math.abs(p.x-v.pj.cx)<=p.h&&Math.abs(p.y-v.pj.cy)<=p.h){const d=Math.hypot(p.x-v.pj.cx,p.y-v.pj.cy);if(d<bd){bd=d;best=t}}}return best}
+function gmDmg(t,n,v){t.hp-=n;GM.fx.push({a:(GM.c||0)+t.rA,e:t.rE,t:0,big:t.hp<=0?(t.type==="msh"?2:1):0});if(t.hp>0)return;
+  t.dead=Date.now();if(GM.lock===t.id)GM.lock=null;const T=GMT[t.type];GM.st.score+=T.pts;GM.st.kills++;GM.st.air++;if(t.type==="msh")GM.st.mom++;GM.st.best=Math.max(GM.st.best,GM.st.score);gmSave();
+  gmNote("SPLASH · "+T.n+" +"+T.pts,t.type==="msh"?"mothership":"splash");gmBadgeCheck();try{hap([30,30,60])}catch(e){}
+  if(!GM.tg.some(q=>!q.dead))setTimeout(()=>{if(S.gameOn&&!GM.tg.some(q=>!q.dead))gmNote("MISSION COMPLETE · "+GM.st.score.toLocaleString()+" pts","mission")},1600)}
+/* ---------- weapons ---------- */
+function gmIdent(){const v=gmView();if(!v)return null;let best=null,bd=1e9;for(const t of GM.tg){if(t.dead||t.type==="gnd")continue;const p=gmPos(t,v),d=Math.hypot(p.x-v.pj.cx,p.y-v.pj.cy);if(d<Math.max(130,p.h*2)&&d<bd){bd=d;best=t}}
+  if(!best){const g=GM.tg.find(t=>!t.dead&&t.type==="gnd");gmNote(g?"NO AIR TARGET NEAR THE CROSSHAIR · ground forces: use GUNSHIP":"NO ALIEN NEAR THE CROSSHAIR",null);return null}
+  GM.lock=best.id;gmNote("LOCKED · ALIEN "+GMT[best.type].n,"target-locked");hap(15);return best.id}
+function gmMsl(){if(!GM.lock){gmNote("IDENT FIRST · lock a target, then MSL",null);return false}if(GM.ammo.msl<=0){gmNote("NO MISSILES · rearming","winchester");return false}
+  const v=gmView();if(!v)return false;GM.ammo.msl--;GM.rl.msl=Date.now();GM.st.shots++;GM.ms.push({a:v.az,e:v.el-6,tg:GM.lock,t:0,tof:1.8,tr:[]});gmNote("FOX THREE",GM.ms.length===1?"fox":null);gmUI();return true}
+function gmGunShot(){const v=gmView();if(!v||GM.ammo.gun<=0){gmStopGun();if(GM.ammo.gun<=0){GM.rl.gun=Date.now();gmNote("WINCHESTER · gun reloading","winchester")}return}
+  GM.ammo.gun--;GM.st.shots++;GM.rd.push({a:v.az,e:v.el,t:0,tof:0.7,home:false});if(GM.rd.length>60)GM.rd.shift()}
+function gmStartGun(){if(GM.firing)return;gmGunShot();GM.firing=setInterval(gmGunShot,90);if(!GM.gunSaid||Date.now()-GM.gunSaid>8000){GM.gunSaid=Date.now();try{voxPlay("guns")}catch(e){}}}
+function gmStopGun(){if(GM.firing){clearInterval(GM.firing);GM.firing=0}gmUI()}
+/* ---------- drawing: red ALIEN boxes + models + tracers, on the overlay canvases above the real symbology ---------- */
+function gmDraw(dt){const ov=$("gmOv"),pj=AR.pj;if(!ov||!pj)return;const W=pj.W,H=pj.H,dpr=window.devicePixelRatio||1;
+  if(ov.width!==Math.round(W*dpr)||ov.height!==Math.round(H*dpr)){ov.width=Math.round(W*dpr);ov.height=Math.round(H*dpr)}const x=ov.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
+  if(!S.gameOn||GM.gsOn){if(GM.ar&&GM.info.calls)try{GM.ar.clear();GM.info={calls:0,tris:0}}catch(e){}return}
+  gmStep(dt);const v=gmView();if(!v)return;const t0=performance.now()/1000,RED="#ff3b3b",F=s=>"700 "+s+"px \"B612 Mono\",monospace";
+  const T=(s,X,Y,size,al,c)=>{x.font=F(size);x.textAlign=al||"left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";x.strokeText(s,X,Y);x.fillStyle=c||RED;x.fillText(s,X,Y)};
+  const list=[],boxes=[];
+  for(const t of GM.tg){const p=gmPos(t,v);if(p.x<-p.h||p.x>W+p.h||p.y<-p.h||p.y>H+p.h)continue;const fade=t.dead?Math.max(0,1-(Date.now()-t.dead)/700):1;
+    if(t.type!=="gnd"&&list.length<10&&fade>0)list.push({id:t.id,type:t.type,x:p.x,y:p.y,s:p.s,hd:t.hd,bank:t.bank,fade});
+    if(t.type==="gnd"&&fade>0){for(let i=0;i<Math.min(3,t.bases);i++)list.length<10&&list.push({id:t.id*10+i,type:"base",x:p.x+(i-((t.bases-1)/2))*p.s*0.9,y:p.y,s:p.s*0.7,hd:0.6,fade})}
+    if(!t.dead)boxes.push([t,p])}
+  try{if(GM.ar){const cv=$("gmCv");GM.ar.size(W,H,dpr);GM.info=GM.ar.render(list,t0)}else gmFallback(x,list)}catch(e){GM.ar=null;GM.modErr="render";gmFallback(x,list)}
+  /* red ALIEN boxes: dashed corners + tag; locked = solid box + diamond */
+  x.lineJoin="miter";
+  for(const [t,p] of boxes){const lk=GM.lock===t.id,h=p.h,X0=p.x-h,Y0=p.y-h,cl=h*0.45;x.strokeStyle="rgba(0,0,0,.85)";x.lineWidth=4.2;
+    const path=()=>{x.beginPath();if(lk){x.rect(X0,Y0,2*h,2*h)}else for(const [sx,sy] of [[0,0],[1,0],[1,1],[0,1]]){const X=X0+sx*2*h,Y=Y0+sy*2*h;x.moveTo(X+(sx?-cl:cl),Y);x.lineTo(X,Y);x.lineTo(X,Y+(sy?-cl:cl))}};
+    path();x.stroke();x.strokeStyle=RED;x.lineWidth=2;path();x.stroke();
+    if(lk){x.beginPath();x.moveTo(p.x,Y0-9);x.lineTo(p.x+7,Y0-2);x.lineTo(p.x,Y0+5);x.lineTo(p.x-7,Y0-2);x.closePath();x.fillStyle=RED;x.fill()}
+    const tg=GMT[t.type].tag;T("ALIEN "+tg+(lk?" · LOCK":""),X0,Y0-6-(lk?8:0),10,"left");if(t.type==="gnd")T("TAP · GUNSHIP",X0,p.y+h+12,9,"left");
+    if(t.hp0>1&&t.type!=="gnd"){const w=2*h*Math.max(0,t.hp/t.hp0);x.fillStyle="rgba(0,0,0,.7)";x.fillRect(X0,p.y+h+4,2*h,4);x.fillStyle=RED;x.fillRect(X0,p.y+h+4,w,4)}}
+  /* off-screen arrows so you can find them in the window */
+  for(const t of GM.tg){if(t.dead)continue;const p=gmPos(t,v);if(p.x>=0&&p.x<=W&&p.y>=0&&p.y<=H)continue;const a=Math.atan2(p.y-v.pj.cy,p.x-v.pj.cx),R=Math.min(W,H)*0.42,ax=v.pj.cx+Math.cos(a)*R,ay=v.pj.cy+Math.sin(a)*R;
+    x.save();x.translate(ax,ay);x.rotate(a);x.beginPath();x.moveTo(12,0);x.lineTo(-6,-7);x.lineTo(-6,7);x.closePath();x.fillStyle=RED;x.strokeStyle="#000";x.lineWidth=2;x.stroke();x.fill();x.restore()}
+  /* tracers: from the muzzle (bottom centre) to the round's aim point; homing rounds glow amber */
+  const P=(a,e)=>{const dA=w180(a-v.az),dE=e-v.el,dx=dA*v.pj.ppd,dy=dE*v.pj.ppd;return [v.pj.cx+dx*v.pj.cr+dy*v.pj.sr,v.pj.cy+dx*v.pj.sr-dy*v.pj.cr]};
+  for(const r of GM.rd){const f=Math.min(1,r.t/r.tof),[ax,ay]=P(r.a,r.e),mx=W/2,my=H+10,px=mx+(ax-mx)*Math.pow(f,0.6),py=my+(ay-my)*Math.pow(f,0.6);
+    x.fillStyle=r.home?"#ffbf00":"#ffe9b0";x.beginPath();x.arc(px,py,Math.max(1.4,3.2*(1-f)),0,7);x.fill()}
+  for(const m of GM.ms){x.strokeStyle="rgba(235,235,235,.55)";x.lineWidth=2;x.beginPath();m.tr.forEach((q,i)=>{const [a,b]=P(q[0],q[1]);i?x.lineTo(a,b):x.moveTo(a,b)});x.stroke();const [a,b]=P(m.a,m.e);x.fillStyle="#fff";x.beginPath();x.arc(a,b,3,0,7);x.fill()}
+  for(const f of GM.fx){const [a,b]=P(f.a,f.e),k=f.t/(f.big?1.6:0.8),r=(f.big===2?90:f.big?34:12)*(0.3+k);x.globalAlpha=Math.max(0,1-k);
+    x.fillStyle=f.dud?"#aaa":"#fff4c2";x.beginPath();x.arc(a,b,r*0.55,0,7);x.fill();x.strokeStyle=f.dud?"#888":"#ff8a2a";x.lineWidth=3;x.beginPath();x.arc(a,b,r,0,7);x.stroke();
+    if(f.big)for(let i=0;i<10;i++){const g=i*0.628+f.a;x.fillStyle="#ffbf00";x.fillRect(a+Math.cos(g)*r*1.2,b+Math.sin(g)*r*1.2,3,3)}x.globalAlpha=1}
+  /* homing cue: the crosshair pip turns amber while it sits inside a target box */
+  const u=gmUnder(v);if(u){x.strokeStyle="#ffbf00";x.lineWidth=2;x.beginPath();x.arc(v.pj.cx,v.pj.cy,9,0,7);x.stroke();T("HOMING",v.pj.cx+14,v.pj.cy-12,9,"left","#ffbf00")}
+  GM.lastT=t0}
+function gmFallback(x,list){/* 2D silhouettes when WebGL is not available */
+  for(const q of list){x.save();x.translate(q.x,q.y);x.rotate(q.hd||0);const s=q.s/2;x.fillStyle=`rgba(150,165,175,${q.fade})`;x.beginPath();
+    if(q.type==="msh"){x.ellipse(0,0,s,s*0.22,0,0,7)}else if(q.type==="base"){x.ellipse(0,0,s,s*0.4,0,0,7)}else{x.moveTo(s,0);x.lineTo(-s*0.6,s*0.8);x.lineTo(-s*0.3,0);x.lineTo(-s*0.6,-s*0.8)}
+    x.closePath();x.fill();x.restore()}}
+{const _ad=arDraw;arDraw=function(dt){const r=_ad.apply(this,arguments);try{AR.so=arSolve(0)}catch(e){}try{gmDraw(dt||0)}catch(e){console.warn(e)}return r}}
+/* tap a red box: lock an air target, or open the gunship view on a ground target (before the real-target tap handler) */
+$("arCv").addEventListener("click",e=>{if(!S.gameOn)return;const v=gmView();if(!v)return;const r=$("arCv").getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;
+  for(const t of GM.tg){if(t.dead)continue;const p=gmPos(t,v);if(Math.abs(px-p.x)<=p.h&&Math.abs(py-p.y)<=p.h){e.stopImmediatePropagation();if(t.type==="gnd")gsOpen(t);else{GM.lock=GM.lock===t.id?null:t.id;if(GM.lock)gmNote("LOCKED · ALIEN "+GMT[t.type].n,"target-locked");hap(10)}return}}},true);
+/* no compass (e.g. a desktop): drag to look around the window */
+{let dr=null;const cv=$("arCv");cv.addEventListener("pointerdown",e=>{if(S.gameOn&&!(AR.ot&&Date.now()-AR.ot<5000))dr={x:e.clientX,y:e.clientY,a:GM.pan.a,e:GM.pan.e}});
+  cv.addEventListener("pointermove",e=>{if(!dr||!AR.pj)return;GM.pan.a=dr.a-(e.clientX-dr.x)/AR.pj.ppd;GM.pan.e=dr.e+(e.clientY-dr.y)/AR.pj.ppd});
+  ["pointerup","pointercancel","pointerleave"].forEach(k=>cv.addEventListener(k,()=>{dr=null}))}
+$("gmTgl").onclick=gmToggle;$("gmId").onclick=gmIdent;$("gmMsl").onclick=gmMsl;
+{const g=$("gmGun");g.addEventListener("pointerdown",e=>{e.preventDefault();gmStartGun()});["pointerup","pointercancel","pointerleave"].forEach(k=>g.addEventListener(k,gmStopGun));
+  g.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();gmStartGun()}});g.addEventListener("keyup",gmStopGun)}
+$("gmGs").onclick=()=>{const t=GM.tg.find(q=>!q.dead&&q.type==="gnd");if(t)gsOpen(t)};
+$("gmMsg").onclick=()=>{$("gmMsg").style.display="none"};
+document.addEventListener("visibilitychange",()=>{if(document.hidden)gmStopGun()});
+/* ---------- gunship view (ground targets) ---------- */
+async function gsOpen(t){if(GM.gsOn)return;GM.gsOn=true;GM.gsWave=t;GM.arWas=arOn;if(arOn)arClose();document.body.classList.add("gs");$("gsMsg").style.display="none";
+  try{voxPlay("gunship")}catch(e){}
+  try{const m=await gmMod();if(!GM.gs)GM.gs=m.createGunship($("gsCv"),{kill:gsKill,clear:gsClear,hud:gsHud,fire:(k,n)=>{if(n===0)gsNote(k+" WINCHESTER","winchester")}});
+    if(!GM.gsOn)return;GM.gs.fps(BAT&&BAT.on?30:60);GM.gs.open({bases:t.bases,troops:t.troops});gsNote("WHITE-HOT · drag to slew, 105 / 25 MM to fire. Imaginary targets.")}
+  catch(e){gsNote("Gunship view needs WebGL, which this browser has switched off.")}}
+function gsClose(){if(!GM.gsOn)return;GM.gsOn=false;try{GM.gs&&GM.gs.close()}catch(e){}document.body.classList.remove("gs");if(GM.arWas){GM.arWas=false;arOpen()}}
+function gsKill(type){const pts=type==="base"?400:50;GM.st.score+=pts;GM.st.kills++;GM.st.ground++;GM.st.best=Math.max(GM.st.best,GM.st.score);GM.st.hits++;gmSave();gmBadgeCheck();
+  if(GM.gsWave){if(type==="base")GM.gsWave.bases=Math.max(0,GM.gsWave.bases-1);else GM.gsWave.troops=Math.max(0,GM.gsWave.troops-1)}gsNote((type==="base"?"BASE DESTROYED +400":"DRONE DOWN +50"),type==="base"?"splash":null)}
+function gsClear(){if(GM.gsWave){GM.gsWave.dead=Date.now();GM.gsWave=null}gsNote("AREA CLEAR · MISSION COMPLETE","mission")}
+function gsNote(t,clip){const el=$("gsMsg");el.textContent=t;el.style.display="block";clearTimeout(GM.gsT);GM.gsT=setTimeout(()=>{el.style.display="none"},5000);if(clip)try{voxPlay(clip)}catch(e){}}
+function gsHud(v){const cv=$("gsHud"),W=v.w,H=v.h;if(!W||!H)return;const dpr=window.devicePixelRatio||1;if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);const SYM=v.pol==="wht"?"#ffffff":"#111111",RED="#ff3b3b",F=s=>"700 "+s+"px \"B612 Mono\",monospace";
+  const T=(s,X,Y,size,al,c)=>{x.font=F(size);x.textAlign=al||"left";x.lineWidth=3;x.strokeStyle=v.pol==="wht"?"rgba(0,0,0,.85)":"rgba(255,255,255,.85)";x.strokeText(s,X,Y);x.fillStyle=c||SYM;x.fillText(s,X,Y)};
+  /* sensor grain (cheap) */x.fillStyle=v.pol==="wht"?"rgba(255,255,255,.05)":"rgba(0,0,0,.05)";for(let i=0;i<160;i++)x.fillRect(Math.random()*W,Math.random()*H,1.5,1.5);
+  const cx=W/2,cy=H/2;x.strokeStyle=SYM;x.lineWidth=1.6;x.beginPath();for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){x.moveTo(cx+sx*40,cy+sy*24);x.lineTo(cx+sx*40,cy+sy*40);x.lineTo(cx+sx*24,cy+sy*40)}
+  x.moveTo(cx-90,cy);x.lineTo(cx-14,cy);x.moveTo(cx+14,cy);x.lineTo(cx+90,cy);x.moveTo(cx,cy-70);x.lineTo(cx,cy-14);x.moveTo(cx,cy+14);x.lineTo(cx,cy+70);x.stroke();
+  for(const e of v.ents){const h=Math.max(10,e.s*0.6);x.strokeStyle="rgba(0,0,0,.8)";x.lineWidth=4;x.strokeRect(e.x-h,e.y-h,2*h,2*h);x.strokeStyle=RED;x.lineWidth=2;x.strokeRect(e.x-h,e.y-h,2*h,2*h);T("ALIEN "+(e.type==="base"?"BASE":"DRN"),e.x-h,e.y-h-5,9,"left",RED)}
+  const top=Math.max(56,(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sat"))||0)+56);
+  T((v.pol==="wht"?"WHT":"BHT")+"  "+(v.zoom?"NFOV":"WFOV"),12,top,12);T("TGTS "+v.left,W-12,top,12,"right");
+  T("105 "+v.ammo[105]+(v.rdy105?" RDY":" ···"),12,top+18,12);T("25 "+v.ammo[25],12,top+36,12);T(GM.st.score.toLocaleString()+" PTS",W-12,top+18,12,"right");
+  T("GAME · IMAGINARY TARGETS",cx,H-130,10,"center")}
+$("gsExit").onclick=gsClose;$("gs105").onclick=()=>{GM.gs&&GM.gs.fire("105")};$("gsZm").onclick=()=>{if(GM.gs){const z=GM.gs.zoom();$("gsZm").textContent=z?"WIDE":"ZOOM"}};
+$("gsPol").onclick=()=>{if(GM.gs){const p=GM.gs.pol();$("gsPol").textContent=p==="wht"?"WHT":"BHT";document.body.classList.toggle("gsBht",p!=="wht")}};
+{const g=$("gs25");let iv=0;const st=()=>{if(iv)return;GM.gs&&GM.gs.fire("25");iv=setInterval(()=>{GM.gs&&GM.gs.fire("25")},120)},sp=()=>{clearInterval(iv);iv=0};
+  g.addEventListener("pointerdown",e=>{e.preventDefault();st()});["pointerup","pointercancel","pointerleave"].forEach(k=>g.addEventListener(k,sp))}
+{let dr=null;const cv=$("gsHud");cv.addEventListener("pointerdown",e=>{dr={x:e.clientX,y:e.clientY}});cv.addEventListener("pointermove",e=>{if(!dr||!GM.gs)return;GM.gs.slew(e.clientX-dr.x,e.clientY-dr.y);dr={x:e.clientX,y:e.clientY}});
+  ["pointerup","pointercancel","pointerleave"].forEach(k=>cv.addEventListener(k,()=>{dr=null}))}
+$("gsMsg").onclick=()=>{$("gsMsg").style.display="none"};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&GM.gsOn)gsClose()});
+/* ---------- game patches (same embroidered style). Shown once the game has been switched on. ---------- */
+const GBADGES=[["gfirst","First Contact","Shoot down your first alien in the AR game",r=>[Math.min(1,GM.st.kills),1]],["gace","Ace of Aces","Shoot down 25 alien aircraft",r=>[GM.st.air,25]],
+  ["gmom","Mothership Down","Bring down an alien mothership",r=>[Math.min(1,GM.st.mom),1]],["gground","Ground Pounder","Destroy 20 alien ground targets from the gunship view",r=>[GM.st.ground,20]]];
+function gmBadges(){return GBADGES.map(([k,n,d,f])=>{let [v,g]=[0,1];try{[v,g]=f()}catch(e){}return {k,n,d,v:Math.min(v,g),g,got:v>=g,game:1}})}
+function gmBadgeCheck(){const got=gmBadges().filter(b=>b.got).map(b=>b.k),had=GM.st.got||[];const nw=got.filter(k=>!had.includes(k));if(nw.length){GM.st.got=got;gmSave();const b=gmBadges().find(q=>q.k===nw[0]);
+  setTimeout(()=>gmNote("NEW PATCH · "+b.n.toUpperCase(),"badge"),1200);try{statsRender()}catch(e){}}}
+{const _sc=statsCalc;statsCalc=function(){const r=_sc.apply(this,arguments);if(S.gameEver)r.badges=r.badges.concat(gmBadges());return r}}
+{const _dc=drvStatsCalc;drvStatsCalc=function(){const r=_dc.apply(this,arguments);if(S.gameEver)r.badges=r.badges.concat(gmBadges());return r}}
+$("bdgOut").addEventListener("click",e=>{const t=e.target.closest(".bdg");if(!t||!PT.bdg)return;const b=PT.bdg[+t.dataset.b];if(!b||!b.game)return;e.stopImmediatePropagation();
+  const i=GBADGES.findIndex(x=>x[0]===b.k);ptOpen({key:b.k,img:"patches/"+b.k+".svg",got:b.got,n:b.n,k:"GAME BADGE · "+(i+1)+" / "+GBADGES.length,d:b.d+". Alien game, just for fun.",s:b.got?"EARNED":(b.g>1?"PROGRESS "+bdgProg(b):"LOCKED · NOT YET EARNED")})},true);
+/* tap to close: AR and 3D view messages */
+$("arMsg").addEventListener("click",()=>{$("arMsg").style.display="none"});$("svMsg").addEventListener("click",()=>{$("svMsg").style.display="none"});
+{const _ao=arOpen;arOpen=function(){const r=_ao.apply(this,arguments);if(S.gameOn){gmPrep();if(GM.c==null)GM.c=gmAnchor()}gmUI();return r}}
+$("arBtn").onclick=arOpen;
+gmUI();if(S.gameOn)gmPrep();
+window.cpGame={state:()=>({on:S.gameOn,ever:!!S.gameEver,live:GM.tg.filter(t=>!t.dead).map(t=>({id:t.id,type:t.type,rA:+t.rA.toFixed(2),rE:+t.rE.toFixed(2),hp:t.hp,d:+t.d.toFixed(1),cl:t.cl||0})),lock:GM.lock,ammo:Object.assign({},GM.ammo),
+    rounds:GM.rd.length,homing:GM.rd.filter(r=>r.home).length,msl:GM.ms.length,st:Object.assign({},GM.st),c:GM.c,gl:!!GM.ar,err:GM.modErr,info:GM.info,gs:GM.gs?GM.gs.state():null,gsOn:GM.gsOn,pan:Object.assign({},GM.pan),next:GM.next,cone:GM_CONE}),
+  wave:k=>gmWave(k).map(t=>t.id),force:v=>{GM.force=!!v},tick:gmTick,ident:gmIdent,msl:gmMsl,gun:on=>on?gmStartGun():gmStopGun(),
+  place:(id,rA,rE,still)=>{const t=GM.tg.find(q=>q.id===id);if(!t)return false;t.rA=rA;t.rE=rE;if(still){t.vA=t.vE=0;t.jk=1e9}return true},
+  pan:(a,e)=>{GM.pan.a=a;GM.pan.e=e},aim:id=>{const t=GM.tg.find(q=>q.id===id);const pj=AR.pj;if(!t||!pj)return false;const base=pj.az!=null?pj.az:(GM.c||0);GM.pan.a=w180((GM.c||0)+t.rA-base);GM.pan.e=t.rE-(pj.pitch||0);return true},
+  pos:id=>{const v=gmView(),t=GM.tg.find(q=>q.id===id);return v&&t?gmPos(t,v):null},gs:{open:()=>{const t=GM.tg.find(q=>!q.dead&&q.type==="gnd");return t?(gsOpen(t),true):false},close:gsClose,fire:k=>GM.gs&&GM.gs.fire(k),aimAt:i=>GM.gs&&GM.gs.aimAt(i),view:()=>GM.gs&&GM.gs.view()},
+  badges:gmBadges,reset:()=>{GM.st={score:0,best:0,kills:0,air:0,ground:0,mom:0,shots:0,hits:0,waves:0};gmSave()},toggle:gmToggle,
+  tris:async()=>(await gmMod()).stats()};
