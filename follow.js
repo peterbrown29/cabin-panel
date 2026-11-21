@@ -24,9 +24,9 @@ async function poll(){if(!st.id||st.busy)return;st.busy=true;const id=st.id,seq=
   st.busy=false;draw();clearTimeout(st.t);if(!(st.d&&st.d.st))st.t=setTimeout(poll,document.hidden?POLL*2:POLL)}
 function txt(id,v){const e=$(id);if(e.textContent!==v)e.textContent=v}
 function draw(){const d=st.d;
-  if(d){const who="Shared flight",rt=(d.fr||"?")+" → "+(d.to||"?");txt("title",who);txt("sub",rt+" · Cabin Panel");document.title=who+" "+rt;
-    const p=d.pts||[],l=p[p.length-1];const isL=landed(d);$("landed").hidden=!isL;if(isL)txt("landed","✈ Landed"+(d.to?" at "+d.to:"")+" · "+hhmm(l[0]));
-    txt("eta",isL?"Landed":d.eta?hhmm(d.eta):"--:--");txt("alt",l&&l[3]!=null?Math.round(l[3]*FT/100)*100+" ft":"---");txt("spd",l&&l[4]!=null?Math.round(l[4]*1.94384)+" kt":"---");
+  if(d){const dv=d.fr==="DRV",who=dv?"Shared drive":"Shared flight",rt=dv?"Drive":(d.fr||"?")+" → "+(d.to||"?");txt("title",who);txt("sub",rt+" · Cabin Panel");document.title=who+" "+rt;$("mode").hidden=!dv;document.body.classList.toggle("drive",dv);txt("altL",dv?"Altitude":"Height");txt("spdL",dv?"Speed":"Speed");
+    const p=d.pts||[],l=p[p.length-1];const isL=!dv&&landed(d);$("landed").hidden=!isL;if(isL)txt("landed","✈ Landed"+(d.to?" at "+d.to:"")+" · "+hhmm(l[0]));
+    txt("eta",isL?"Landed":d.eta?hhmm(d.eta)+(dv?" est.":""):"--:--");txt("alt",l&&l[3]!=null?(dv?Math.round(l[3]/10)*10+" m":Math.round(l[3]*FT/100)*100+" ft"):"---");txt("spd",l&&l[4]!=null?(dv?Math.round(l[4]*3.6)+" km/h":Math.round(l[4]*1.94384)+" kt"):"---");
     txt("dtg",l&&st.dest?Math.round(dist({lat:l[1],lon:l[2]},st.dest)/1000)+" km":"---");
     txt("st",(d.st?"Sharing has ended. ":"")+(l?"Last position "+ago(l[0])+(Date.now()-l[0]>10*60000&&!isL&&!d.st?" (the phone may be offline; it catches up when it reconnects)":""):d.st?"Position history has been removed.":"Waiting for the first position…")+(st.err?" · "+st.err:""))}
   else txt("st",st.err||"Loading…");
@@ -50,6 +50,7 @@ function map(){const cv=$("map"),dpr=Math.min(2,window.devicePixelRatio||1),W=cv
   for(const [a,lab] of [[st.orig,d&&d.fr],[st.dest,d&&d.to]])if(a){const q=xy(a);g.fillStyle="#fff";g.beginPath();g.arc(q[0],q[1],4,0,7);g.fill();g.font="bold 13px system-ui";g.fillStyle="#fff";g.strokeStyle="#000";g.lineWidth=3;g.strokeText(lab||"",q[0]+7,q[1]-6);g.fillText(lab||"",q[0]+7,q[1]-6)}
   if(P.length){const l=P[P.length-1],q=xy(l),tr=l.trk!=null?l.trk:(P.length>1?(deg(Math.atan2(P[P.length-1].lon-P[P.length-2].lon,P[P.length-1].lat-P[P.length-2].lat))+360)%360:0);
     g.save();g.translate(q[0],q[1]);g.rotate(rad(tr));g.fillStyle="#ffd400";g.strokeStyle="#000";g.lineWidth=1.5;g.beginPath();
+    if(d&&d.fr==="DRV"){/* car, seen from above */g.moveTo(-6,-12);g.lineTo(6,-12);g.quadraticCurveTo(8,-12,8,-9);g.lineTo(8,10);g.quadraticCurveTo(8,12,6,12);g.lineTo(-6,12);g.quadraticCurveTo(-8,12,-8,10);g.lineTo(-8,-9);g.quadraticCurveTo(-8,-12,-6,-12);g.closePath();g.fill();g.stroke();g.fillStyle="#000";g.fillRect(-6,-7,12,4);g.fillRect(-6,5,12,3);g.restore();return}
     g.moveTo(0,-13);g.lineTo(3,-4);g.lineTo(12,2);g.lineTo(12,5);g.lineTo(3,2);g.lineTo(2,9);g.lineTo(5,12);g.lineTo(-5,12);g.lineTo(-2,9);g.lineTo(-3,2);g.lineTo(-12,5);g.lineTo(-12,2);g.lineTo(-3,-4);g.closePath();g.fill();g.stroke();g.restore()}}
 function start(){st.seq++;st.id=idFrom(location.hash)||idFrom(location.search);st.dest=null;st.orig=null;st.err="";$("ask").hidden=!!st.id;if(st.id)poll();else{txt("st","Open the link you were sent, or paste it below.");map()}}
 $("go").addEventListener("click",()=>{const id=idFrom($("code").value);if(!id){txt("st","That doesn't look like a follow link.");return}location.hash="id="+id});

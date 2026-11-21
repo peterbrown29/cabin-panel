@@ -12,3 +12,7 @@ form label{display:block;font-size:13px;margin-bottom:4px}.row{display:flex;gap:
 button{font-size:16px;padding:8px 14px;border-radius:8px;border:0;background:#2f7de1;color:#fff}
 footer{font-size:11px;color:#7f9bbd;padding:10px 14px}
 @media (orientation:landscape) and (max-height:500px){main{flex-direction:row;flex-wrap:wrap}#map{flex:2 1 60%;min-height:200px}#info{flex:1 1 30%;grid-template-columns:1fr 1fr;align-content:start}}
+
+/* v25: drive shares */
+#mode{display:inline-block;margin-left:8px;padding:1px 7px;border:1px solid #ffd400;color:#ffd400;font:700 11px/1.5 ui-monospace,Menlo,monospace;letter-spacing:.12em;vertical-align:middle}#mode[hidden]{display:none}
+h1#title{display:inline}

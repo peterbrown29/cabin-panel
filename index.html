@@ -399,6 +399,51 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
 #fhToast:not(.gone){pointer-events:auto}#fhToast.gone{opacity:0!important;pointer-events:none}body.fhr #fhToast{max-height:70px}
 #tbBan.tapClose::after{color:#fff}
 @media(prefers-contrast:more){:root{--txt:#e3e8eb;--div:#4a545c}}
+/* ===== v25 Drive mode ===== */
+.drvOnly{display:none}
+body.drive .drvOnly{display:block}
+body.drive #phase::before{content:"DRIVE \00B7  ";color:var(--warn)}
+body.drive .drvOff,body.drive .fltOnly{display:none!important}
+.drvOffNote{color:var(--warn)!important;font:700 11px/1.45 var(--mono)!important;letter-spacing:.04em;text-transform:uppercase;border:1px dashed var(--warn);padding:6px 8px;margin:6px 6px 12px!important}
+#drvTile{margin:4px 6px 18px}
+.drvRow{display:flex;align-items:center;gap:16px}
+.msw{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;width:96px}
+.mswLeg{position:relative;z-index:3;font:700 10px var(--mono);letter-spacing:.14em;color:var(--txt);text-shadow:0 0 3px #000,0 0 3px #000}
+.msw[data-st="armed"] .mswLeg.up{color:var(--warn)}.msw[data-st="safe"] .mswLeg.dn,.msw[data-st="guard"] .mswLeg.dn{color:var(--ok)}
+.mswPlate{position:relative;width:88px;height:118px;border-radius:6px;background:linear-gradient(#2b3237,#171b1e);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -2px 4px rgba(0,0,0,.7),0 0 0 1px #000,0 3px 0 #000;perspective:260px}
+.mswScrew{position:absolute;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#9aa3a9,#3b4247 70%);box-shadow:0 0 0 1px #000}
+.mswScrew::after{content:"";position:absolute;left:1px;right:1px;top:4px;height:1px;background:#1a1e21;transform:rotate(35deg)}
+.mswScrew.s1{left:6px;top:6px}.mswScrew.s2{right:6px;top:6px}.mswScrew.s3{left:6px;bottom:6px}.mswScrew.s4{right:6px;bottom:6px}
+button.mswLever{position:absolute;left:24px;top:19px;width:40px;height:80px;min-height:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;transform-style:preserve-3d;z-index:1}
+.mswNut{position:absolute;left:5px;top:25px;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c9d0d4,#59626a 55%,#23292d);box-shadow:0 0 0 2px #0b0d0f,0 0 0 4px #3a4247}
+.mswBat{position:absolute;left:13px;top:-8px;width:14px;height:48px;border-radius:7px 7px 4px 4px;background:linear-gradient(90deg,#6c757b,#eef2f4 45%,#8d969c 70%,#4c5459);box-shadow:0 0 0 1px #000;transform-origin:50% 47px;transform:rotateX(180deg);transition:transform .28s cubic-bezier(.5,1.8,.6,1)}
+.msw[data-st="armed"] .mswBat{transform:rotateX(0deg)}
+button.mswGuard{position:absolute;left:12px;top:10px;width:64px;height:98px;min-height:0;padding:0;border-radius:6px 6px 10px 10px;border:2px solid #000;background:linear-gradient(#e0262a,#a3080d 60%,#7c0508);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -6px 10px rgba(0,0,0,.35),0 3px 6px rgba(0,0,0,.6);
+  transform-origin:50% 0;transform:rotateX(0deg);transition:transform .32s cubic-bezier(.3,1.4,.5,1),opacity .32s;z-index:2;overflow:hidden;color:#fff;display:flex;align-items:flex-end;justify-content:center}
+button.mswGuard b{font:700 11px var(--mono);letter-spacing:.16em;margin-bottom:9px;text-shadow:0 1px 0 #000}
+.mswHatch{position:absolute;left:0;right:0;top:0;height:16px;background:repeating-linear-gradient(-45deg,#ffd400 0 6px,#111 6px 12px);border-bottom:2px solid #000}
+.msw[data-st="guard"] .mswGuard,.msw[data-st="armed"] .mswGuard{transform:rotateX(-118deg);opacity:.92}
+.drvDisp{flex:1;display:flex;flex-direction:column;gap:4px;border:1px solid var(--div);background:var(--box);padding:8px 10px;min-height:96px;justify-content:center}
+.drvDisp b{font:700 17px var(--mono);color:var(--ok);letter-spacing:.04em}
+body.drvArmed .drvDisp b{color:var(--warn)}
+.drvDisp small{font:400 12px/1.4 var(--sans);color:var(--txt)}.drvDisp small.warn{color:var(--bad);font-weight:700}
+.drvLamp{align-self:flex-start;font:700 10px var(--mono);letter-spacing:.14em;padding:2px 7px;border:1px solid var(--ok);color:var(--ok);background:#000}
+body.drvArmed .drvLamp{border-color:var(--warn);color:#000;background:var(--warn);box-shadow:0 0 10px rgba(255,191,0,.55)}
+.msw[data-st="guard"] .drvLamp{color:var(--warn)}
+.drvDestRow{gap:8px;margin-top:6px}.drvDestRow input{flex:1 1 140px}
+.drvPriv{border-bottom:1px solid var(--div);padding-bottom:8px;margin-bottom:8px}.drvPriv .row{gap:8px;flex-wrap:wrap}.drvPriv button{min-height:40px;font-size:12px}
+#drvRest{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);z-index:8100;background:var(--box);color:var(--lbl);border:2px solid var(--warn);padding:9px 12px;font:13px/1.4 var(--sans);display:flex;flex-direction:column;gap:3px}
+#drvRest b{font:700 14px var(--mono);color:var(--warn);letter-spacing:.06em}
+#drvPax{position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px)}
+.drvPaxBox{width:min(92vw,420px);background:var(--frame);border:2px solid var(--frameIn);padding:8px 14px 14px}
+.drvPaxBox .mfdT{display:flex;justify-content:space-between;gap:10px;font:700 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--lbl);border-bottom:1px solid var(--div);padding-bottom:5px;margin-bottom:10px}
+.drvPaxBox .mfdT b{color:var(--warn)}
+.drvPaxBox h3{margin:4px 0 8px;font:700 20px var(--mono);color:var(--warn);letter-spacing:.06em}
+.drvPaxBox p{margin:0 0 12px;color:var(--lbl);font:400 15px/1.45 var(--sans)}
+.drvPaxBox .row{gap:10px;flex-wrap:wrap}.drvPaxBox .row button{flex:1 1 140px}
+.drvPaxBox small{display:block;margin-top:10px;color:var(--txt);font:400 12px var(--sans)}
+body.m-nvg button.mswGuard{background:linear-gradient(#3a4a10,#1c2408)}body.m-nvg .mswHatch{background:repeating-linear-gradient(-45deg,#1b8c3c 0 6px,#000 6px 12px)}
+@media (prefers-reduced-motion:reduce){.mswBat,button.mswGuard{transition:none}}
 </style>
 </head>
 <body>
@@ -409,6 +454,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
   <button id="mcBtn" class="mc" style="display:none">MASTER CAUTION</button>
   <div id="tbBan" class="tapClose" title="Tap to close" style="display:none" role="alert"><span id="tbTxt">TURBULENCE MASTER WARNING</span><span id="tbSub"></span><div class="row"><button id="tbAck" class="pri">Acknowledge</button><button id="tbDis">Dismiss</button></div></div>
   <div id="spBan" class="tapClose" title="Tap to close" style="display:none" role="status"></div>
+  <div id="drvRest" class="tapClose" title="Tap to close" style="display:none" role="alert"></div>
   <div id="cueBar" class="tapClose" title="Tap to close" style="display:none" role="status" aria-live="polite"></div>
   <button id="updBtn" class="upd tapReload" style="display:none">New version installed</button>
   <div id="resumeNote" style="display:none"></div>
@@ -418,6 +464,18 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
 </div></header>
 <main id="pages">
 <section class="page fill" id="pg-hud" data-t="HUD" data-c="HUD"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>HUD</b><span>Head-up display</span><i class="mfdS"></i></div>
+  <div class="tile wide" id="drvTile"><div class="lab"><span>Mode select</span><span id="drvLbl">FLIGHT</span></div>
+    <div class="drvRow"><div class="msw" id="drvSw" data-st="safe"><span class="mswLeg up">DRIVE</span>
+      <div class="mswPlate"><i class="mswScrew s1"></i><i class="mswScrew s2"></i><i class="mswScrew s3"></i><i class="mswScrew s4"></i>
+        <button type="button" id="drvLever" class="mswLever" aria-label="Drive mode switch" aria-pressed="false"><i class="mswNut"></i><i class="mswBat"></i></button>
+        <button type="button" id="drvGuard" class="mswGuard" aria-label="Lift the switch guard" aria-expanded="false"><i class="mswHatch"></i><b>DRIVE</b></button></div>
+      <span class="mswLeg dn">FLIGHT</span></div>
+    <div class="drvDisp" id="drvDisp" role="status" aria-live="polite"><span class="drvLamp" id="drvLamp">SAFE</span><b id="drvMode">FLIGHT MODE</b><small id="drvHint">Lift the red guard, then flip the switch up for Drive mode (passengers only).</small></div></div>
+  </div>
+  <div class="note drvOnly drvOffNote"></div>
+  <div class="tile wide drvOnly" id="drvTrip"><div class="lab"><span>Trip</span><span id="drvTripH">No destination</span></div>
+    <div class="row drvDestRow"><input type="text" id="drvDest" list="drvTowns" placeholder="Town, airport code or lat, lon" autocomplete="off" maxlength="60" aria-label="Destination"><button id="drvDestGo">Set</button><button id="drvDestX" style="display:none">Clear</button></div>
+    <datalist id="drvTowns"></datalist><div class="kv3" id="drvKv"></div><div class="note" id="drvTripNote" style="margin:8px 0 0"></div></div>
   <div class="row" id="startRow" style="margin-bottom:10px">
     <button class="pri" id="hfBtn" aria-describedby="hfHelp">Hands-free</button>
     <button id="gpsBtn">Start GPS</button>
@@ -467,7 +525,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
   <div class="note" id="progTxt">Pick your departure and destination airports.</div>
   <div class="note" id="wxNote"></div>
 </div></section>
-<section class="page fill" id="pg-nav" data-t="Nav" data-c="NAV"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>NAV</b><span>Navigation</span><i class="mfdS"></i></div>
+<section class="page fill" id="pg-nav" data-t="Nav" data-c="NAV"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>NAV</b><span>Navigation</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <div class="grid">
     <div class="tile wide" id="twNow" style="display:none"><div class="lab"><span>Tailwind boost</span><span>Estimate</span></div><div class="bigv" id="twBig">---</div><div class="sub" id="twSub" style="white-space:normal"></div></div>
     <div class="tile wide" id="todTile" style="display:none"><div class="lab"><span>Top of descent</span><span>3:1 rule</span></div><div class="bigv" id="todBig">---</div><div class="sub" id="todSub" style="white-space:normal"></div></div>
@@ -508,7 +566,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
   <div class="note" id="turbTxt"></div>
   <div class="tile" id="bmpTile"><div class="lab"><span>Bumps felt</span><button id="bmpBtn">Log bumps felt</button></div><div class="note" id="bmpTxt" style="margin:4px 0">Uses the phone's motion sensor after you allow it, to log the bumps you actually feel, with time, height and position.</div><ul class="lm" id="bmpOut"></ul></div>
 </div></section>
-<section class="page" id="pg-win" data-t="Window" data-c="EXT"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>EXT</b><span>Window view</span><i class="mfdS"></i></div>
+<section class="page" id="pg-win" data-t="Window" data-c="EXT"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>EXT</b><span>Window view</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>Out the window</h2>
   <div class="tile" id="svTile">
     <button id="svBtn" class="pri arBig" aria-label="Open 3D window view"><svg viewBox="0 0 200 90" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M4 70 L44 34 L64 50 L98 16 L132 52 L150 40 L196 70"/><path d="M4 82 H196" stroke-width="1.6"/><path d="M78 82 L94 62 H106 L122 82" stroke-width="1.6"/><path d="M100 64 V82" stroke-dasharray="3 3" stroke-width="1.4"/><circle cx="160" cy="16" r="7"/></g></svg><span>Open 3D window view</span></button>
@@ -543,7 +601,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
     <ul class="lm" id="spOut"></ul>
   </div>
 </div></section>
-<section class="page" id="pg-route" data-t="Route" data-c="FPLN"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>FPLN</b><span>Route and tracking</span><i class="mfdS"></i></div>
+<section class="page" id="pg-route" data-t="Route" data-c="FPLN"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>FPLN</b><span>Route and tracking</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>Route</h2>
   <div class="row" style="margin-bottom:6px"><input type="text" id="fltIn" placeholder="Flight number, e.g. QF812" autocapitalize="characters" autocomplete="off" maxlength="9" aria-label="Flight number"><button id="fltBtn" data-net class="pri">Look up</button><button id="fltClr" aria-label="Clear flight number">✕</button></div>
   <div class="note" id="fltTxt">Look up your flight before boarding (needs internet). The route is saved on the phone for offline use.</div>
@@ -603,7 +661,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
   <div class="tile"><div class="row"><button id="rtSave">Save this route</button></div><ul class="lm" id="rtList"></ul></div>
   <div class="note">Saved routes keep their pack on this phone, so the weather, turbulence guide and extra places are there offline. Tap Update before each flight for fresh weather.</div>
   <h2 id="tkH">Inbound aircraft</h2>
-  <div class="tile" id="tkTile">
+  <div class="tile" id="tkTile"><div class="note drvOnly" id="drvTkNote" style="margin:0 0 8px"></div>
     <div class="lab"><span>Track your aircraft by tail number</span><span>Ground mode</span></div>
     <p class="note" style="margin:6px 0 4px">Waiting at the airport? Follow the aircraft that will fly your flight before it changes flight numbers: where it is, when it should get here, a rough delay estimate and the weather it has flown through.</p>
     <div class="row" style="margin-top:6px"><input type="text" id="tkReg" placeholder="Tail number, e.g. VH-YIA" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Aircraft registration (tail number)"><input type="text" id="tkFlt" placeholder="Its flight (optional)" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="9" aria-label="The aircraft's current flight number (optional)"></div>
@@ -628,9 +686,10 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
     <div class="note" id="aiTxt" style="margin:4px 0 0">Needs internet the first time; saved on this phone afterwards so it works offline. Sources: adsbdb.com, hexdb.io.</div>
   </div>
   <h2>Share live flight</h2>
-  <div class="tile" id="shTile">
+  <div class="tile" id="shTile"><div class="drvOnly drvPriv"><div class="note" id="drvPrivTxt" style="margin:0 0 6px"></div><div class="row"><button id="drvPrivBtn">Keep this spot private</button><button id="drvPrivClr">Clear private spots</button></div></div>
     <div class="lab"><span>Let family follow along</span><span>Opt-in</span></div>
-    <p class="note" style="margin:6px 0 4px">Sends a link. Anyone who opens it sees your plane on a map with the route and ETA, updated about every 45 seconds while your phone has internet (aircraft Wi-Fi). Shared: position, height, speed and route, nothing else. No name. Your phone's position is only sent at an airport or once you're moving fast, never from home. While you track an aircraft, sharing follows that aircraft. Stops by itself after 24 hours, or tap Stop sharing.</p>
+    <p class="note drvOnly" style="margin:6px 0 4px">Drive mode: sends a link. Anyone who opens it sees your car on a map with an ETA to your destination, updated about every 45 seconds while your phone has internet. Shared: position, height, speed and ETA, nothing else. No name. Never from near home (see Drive privacy above). Stops by itself after 24 hours, or tap Stop sharing.</p>
+    <p class="note fltOnly" style="margin:6px 0 4px">Sends a link. Anyone who opens it sees your plane on a map with the route and ETA, updated about every 45 seconds while your phone has internet (aircraft Wi-Fi). Shared: position, height, speed and route, nothing else. No name. Your phone's position is only sent at an airport or once you're moving fast, never from home. While you track an aircraft, sharing follows that aircraft. Stops by itself after 24 hours, or tap Stop sharing.</p>
     <div class="row"><button id="shStart" class="pri" data-net>Start sharing</button><button id="shStop" style="display:none">Stop sharing</button></div>
     <div class="row" id="shLinkRow" style="display:none"><input type="text" id="shLink" readonly aria-label="Follow link"><button id="shShare" data-net>Send link</button><button id="shNew" data-net aria-label="Make a new follow link; the old one stops working">New link</button></div>
     <div class="note" id="shSt" style="margin:4px 0 0"></div>
@@ -641,7 +700,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
     <div class="note" id="fwTxt" style="margin:4px 0 0">Opening a follow link in Safari or Cabin Panel shows the shared flight. Needs internet.</div>
   </div>
 </div></section>
-<section class="page" id="pg-log" data-t="Log" data-c="PERF"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>PERF</b><span>G, log, landing</span><i class="mfdS"></i></div>
+<section class="page" id="pg-log" data-t="Log" data-c="PERF"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>PERF</b><span>G, log, landing</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>G-meter</h2>
   <div class="tile row" style="justify-content:space-between">
     <div><div class="val" id="g" style="font-size:44px">-.--<small>G</small></div><div class="sub" id="gmm">Min — · Max —</div></div>
@@ -662,6 +721,8 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
     <ul class="lm" id="markList"></ul>
   </div>
 
+  <h2 class="drvOnly">Ride smoothness</h2>
+  <div class="tile drvOnly" id="rsTile"><div class="lab"><span id="rsHead">This drive</span><span>For fun</span></div><div class="bigv" id="rsBig">—</div><ul class="lm" id="rsOut"></ul></div>
   <h2>Landing score</h2>
   <div class="tile" id="lsTile"><div class="lab"><span>Last landing</span><span>For fun</span></div><div class="bigv" id="lsBig">—</div><ul class="lm" id="lsOut"></ul>
     <div class="note" style="margin:4px 0 0">Scored from GPS and phone sensors: sink rate and G at touchdown (G needs the G-meter on), glide path and speed in the last 2 nm / 60 s, wings level and float. Just for fun, not a report on the crew.</div></div>
@@ -670,17 +731,17 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
     <textarea id="dyIn" maxlength="1000" placeholder="What's happening? (stamped with time, position and height)" aria-label="Diary note"></textarea>
     <div class="row"><button id="dyAdd" class="pri">Add note</button></div><ul class="lm" id="dyList"></ul></div>
 </div></section>
-<section class="page fill" id="pg-book" data-t="Logbook" data-c="LOG"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>LOG</b><span>Logbook</span><i class="mfdS"></i></div>
+<section class="page fill" id="pg-book" data-t="Logbook" data-c="LOG"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>LOG</b><span>Logbook</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>Logbook</h2>
   <div class="tile"><div class="row" style="margin-bottom:10px"><button id="expBtn">Export logbook</button><button id="impBtn">Import</button><input type="file" id="impFile" aria-label="Choose a logbook backup file" accept=".json,application/json" style="display:none"></div>
     <div class="note" id="bookTxt" style="margin:0 0 10px">Back up your flights to Files or iCloud Drive. The logbook lives only on this phone.</div>
     <div class="kv3" id="statKv"></div><div class="lab" style="margin-top:14px"><span>Flights</span></div><ul class="lm" id="bookList"></ul></div>
-  <div class="tile" id="bdgTile"><div class="lab"><span>Trip stats and records</span></div><div class="kv3" id="totKv"></div><div class="lab" style="margin-top:12px"><span id="bdgHead">Badges</span></div><div class="bdgs" id="bdgOut"></div></div>
+  <div class="tile" id="bdgTile"><div class="lab"><span>Trip stats and records</span></div><div class="kv3" id="totKv"></div><div class="lab" style="margin-top:12px"><span id="bdgHead">Badges</span></div><div class="note drvOnly" style="margin:0 0 8px">Drive mode: drive patches are shown. Flight badges (FL400, Night landing, Butter landing and the rest) are hidden until you flip back to flight mode.</div><div class="bdgs" id="bdgOut"></div></div>
   <div class="tile" id="recTile"><div class="lab"><span>Personal bests</span><span>Your flights</span></div><ul class="lm" id="recOut"></ul><div class="note" style="margin:4px 0 0">From your logbook and live GPS (demo flights don't count). Tailwind boost = groundspeed minus estimated true airspeed, using the pre-flight pack's winds.</div></div>
   <div class="tile" id="exTile"><div class="lab"><span>Export</span><span>All flights</span></div><div class="row" style="flex-wrap:wrap"><button id="ex_csv">Logbook CSV</button><button id="ex_trk">Tracks CSV</button><button id="ex_gpx">GPX</button><button id="ex_kml">KML</button></div><div class="note" id="exTxt" style="margin:4px 0 0">Opens in Excel/Numbers, Google Earth and mapping apps. Made on the phone; nothing is uploaded.</div></div>
 
 </div></section>
-<section class="page" id="pg-set" data-t="Settings" data-c="SYS"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>SYS</b><span>Settings</span><i class="mfdS"></i></div>
+<section class="page" id="pg-set" data-t="Settings" data-c="SYS"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>SYS</b><span>Settings</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>Settings</h2>
   <div class="tile" style="display:grid;gap:10px">
     <div class="row">Speed <span class="seg" data-k="spd"><button data-v="kt">kt</button><button data-v="kmh">km/h</button><button data-v="mph">mph</button></span></div>
@@ -713,6 +774,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
   <div class="tile"><div class="note" style="margin:0">Cabin Panel v23. Entertainment only, not for navigation or safety use.<br>
   Taxiways and aprons: © OpenStreetMap contributors, Open Database Licence (ODbL 1.0), openstreetmap.org/copyright. Simplified extract, November 2026.<br>
   Runways and airport positions: OurAirports (public domain).<br>
+  Drive mode towns: GeoNames (geonames.org, CC BY 4.0), positions approximate. Drive mode is for passengers only.<br>
   Pre-flight weather: Weather data by Open-Meteo.com (CC BY 4.0), downloaded on request.<br>
   Inbound aircraft: ADS-B data: adsb.lol (Open Database Licence, ODbL 1.0), live on request through Cabin Panel&rsquo;s private proxy (public cors.dev relay only as a fallback); registration lookups by adsbdb.com and hexdb.io.<br>
   Extra places: Wikipedia (CC BY-SA 4.0), downloaded on request. Built-in landmark notes were written for Cabin Panel. Positions are approximate and this is not official aeronautical data.<br>
@@ -785,6 +847,9 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
 <div id="fwOv" role="dialog" aria-label="Follow a shared flight"><div id="fwTop"><span id="fwHead">Follow a flight</span><button id="fwExit">✕ Close</button></div><canvas id="fwCv" aria-label="Map of the shared flight"></canvas><div id="fwInfo" role="status"></div></div>
 <div id="dyOv" role="dialog" aria-label="Flight diary"><div class="tile"><div class="lab"><span id="dyOvT">Diary</span><button id="dyOvX">✕ Close</button></div><ul class="lm" id="dyOvList"></ul><textarea id="dyOvIn" maxlength="1000" placeholder="Add a note to this flight" aria-label="Diary note"></textarea><div class="row"><button id="dyOvAdd" class="pri">Add note</button><button id="dyOvExp">Export text</button></div><div class="note" id="dyOvTxt"></div></div></div>
 
+<div id="drvPax" role="dialog" aria-modal="true" aria-labelledby="drvPaxT" style="display:none"><div class="drvPaxBox"><div class="mfdT"><b>CHECK</b><span>Passenger only</span><i class="mfdS"></i></div>
+<h3 id="drvPaxT">PASSENGER CHECK</h3><p id="drvPaxP">Drive mode is for passengers only.</p><div class="row"><button id="drvPaxOk" class="pri">I'm the passenger</button><button id="drvPaxNo">Cancel</button></div>
+<small>You'll be asked again after every 4 hours in Drive mode.</small></div></div>
 <script src="app.js"></script>
 </body>
 </html>

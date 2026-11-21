@@ -12,14 +12,14 @@
 <link rel="stylesheet" href="follow.css">
 </head>
 <body>
-<header><img src="icon-180.png" alt="" width="28" height="28"><div><h1 id="title">Follow a flight</h1><div id="sub">Cabin Panel · shared flight</div></div></header>
+<header><img src="icon-180.png" alt="" width="28" height="28"><div><h1 id="title">Follow a flight</h1><span id="mode" hidden>DRIVE</span><div id="sub">Cabin Panel · shared flight</div></div></header>
 <div id="landed" role="status" hidden>✈ Landed</div>
 <main>
   <canvas id="map" aria-label="Map of the shared flight"></canvas>
   <section id="info" aria-live="polite">
     <div class="kv"><span>ETA</span><b id="eta">--:--</b></div>
-    <div class="kv"><span>Height</span><b id="alt">---</b></div>
-    <div class="kv"><span>Speed</span><b id="spd">---</b></div>
+    <div class="kv"><span id="altL">Height</span><b id="alt">---</b></div>
+    <div class="kv"><span id="spdL">Speed</span><b id="spd">---</b></div>
     <div class="kv"><span>To go</span><b id="dtg">---</b></div>
   </section>
   <p id="st">Loading…</p>

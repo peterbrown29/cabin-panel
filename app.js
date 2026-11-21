@@ -41,6 +41,16 @@ let last=null,hist=[],trail=[],watchId=null,demo=null,lastFixAt=0,wake=null,want
 let prof=[],trkH=[],att={p:0,r:0,rate:null},sen={on:false,p:0,r:0,gp:null,gr:null,p0:0,r0:0,lt:0};
 let gOn=false,gS=null,gMin=null,gMax=null;
 const saveS=()=>store.set("settings",S);
+/* v25: Drive mode state (declared early: render, phaseStep and sharing read it during boot). Stored on this phone only. */
+function drvClean(v){const o=v&&typeof v==="object"&&!Array.isArray(v)?v:{},fin=x=>typeof x==="number"&&Number.isFinite(x),pt=p=>p&&typeof p==="object"&&fin(p.lat)&&fin(p.lon)&&Math.abs(p.lat)<=90&&Math.abs(p.lon)<=180?{lat:p.lat,lon:p.lon,t:fin(p.t)?p.t:0}:null;
+  const u=x=>x&&typeof x==="object"&&["kt","kmh","mph"].includes(x.spd)&&["ft","m"].includes(x.alt)&&["nm","km"].includes(x.dst)?{spd:x.spd,alt:x.alt,dst:x.dst}:null;
+  const tr=o.trip&&typeof o.trip==="object"&&fin(o.trip.t0)?Object.assign({mv:0,sinceRest:0,nextRest:2*3600e3,stopAt:0,pt:o.trip.t0},o.trip):null;
+  if(tr&&!(tr.rs&&typeof tr.rs==="object"))tr.rs=null;if(tr&&tr.rs&&!(tr.rs.le&&typeof tr.rs.le==="object"))tr.rs.le={};
+  const d=o.dest&&pt(o.dest)?Object.assign(pt(o.dest),{n:String(o.dest.n||"Destination").slice(0,60),src:String(o.dest.src||"")}):null;
+  return {on:o.on===true,pax:fin(o.pax)?o.pax:0,paxEver:fin(o.paxEver)?o.paxEver:0,since:fin(o.since)?o.since:0,start:pt(o.start),starts:(Array.isArray(o.starts)?o.starts:[]).map(pt).filter(Boolean).slice(0,3),
+    priv:(Array.isArray(o.priv)?o.priv:[]).map(pt).filter(Boolean).slice(0,5),dest:d,outAt:fin(o.outAt)?o.outAt:0,trip:tr,fU:u(o.fU),dU:u(o.dU),cl:[]}}
+let DRV=drvClean(store.get("drive",{}));
+const drvSave=()=>store.set("drive",{on:DRV.on,pax:DRV.pax,paxEver:DRV.paxEver,since:DRV.since,start:DRV.start,starts:DRV.starts,priv:DRV.priv,dest:DRV.dest,outAt:DRV.outAt,trip:DRV.trip,fU:DRV.fU,dU:DRV.dU});
 const apBy=c=>AP.find(a=>a.c===c);
 
 /* ---------- formatting ---------- */
@@ -161,7 +171,7 @@ function gfMoveOut(p,f,ph){
   /* heading held below 3 m/s */
   if(sp>=3){const vh=Math.hypot(GF.v[0],GF.v[1])>1?(Math.atan2(GF.v[0],GF.v[1])*180/Math.PI+360)%360:null;const h=(ph!=null&&f.ps!=null&&f.ps>=3)?ph:vh;if(h!=null)GF.hd=h}
   let hd=GF.hd;
-  if(sp<15&&S.twySnap!==false){try{const s=gfSnap(pos,hd);if(s){pos=s.pos;if(sp>=3)hd=s.brg;GF.snap={d:s.d,t:f.t}}else GF.snap=null}catch(e){}}
+  if(sp<15&&S.twySnap!==false&&!DRV.on){try{const s=gfSnap(pos,hd);if(s){pos=s.pos;if(sp>=3)hd=s.brg;GF.snap={d:s.d,t:f.t}}else GF.snap=null}catch(e){}}
   return gfOut(p,pos,sp,hd)}
 window.cpGF=()=>GF?{m:GF.m,sp:GF.sp,snap:GF.snap||null}:null;
 function onPos(p){
@@ -183,7 +193,7 @@ function onPos(p){
   if(!lt||dist(lt,here)>80){trail.push(here);if(trail.length>6000)trail.splice(0,1000)}
   {const fr=apBy(S.from),to=apBy(S.to);if(fr&&to&&fr.c!==to.c&&c.altitude!=null){const tot=dist(fr,to),f=Math.max(0,Math.min(1,1-dist(here,to)/tot)),lp=prof[prof.length-1];if(!lp||Math.abs(f-lp.f)>0.002||Math.abs(c.altitude-lp.a)>40){prof.push({f,a:c.altitude});if(prof.length>4000)prof.splice(0,500)}}}
   if(LOG.on&&!REPLAY){LOG.pts.push([+here.lat.toFixed(6),+here.lon.toFixed(6),c.altitude==null?null:Math.round(c.altitude),t,spd==null?null:+spd.toFixed(1)]);if(LOG.pts.length>20000){const n=LOG.pts.length;LOG.pts=LOG.pts.filter((q,i)=>i%2===0||i>n-3000)}logDirty=true;if(LOG.pts.length%5===0)storeFlush()}
-  if(!S.from&&!demo&&!REPLAY&&(spd==null||spd<20)){let best=null,bd=1e12;for(const a of AP){const d=dist(a,here);if(d<bd){bd=d;best=a}}if(best&&bd<15000){S.from=best.c;$("from").value=best.c;saveS()}}
+  if(!S.from&&!demo&&!REPLAY&&!DRV.on&&(spd==null||spd<20)){let best=null,bd=1e12;for(const a of AP){const d=dist(a,here);if(d<bd){bd=d;best=a}}if(best&&bd<15000){S.from=best.c;$("from").value=best.c;saveS()}}
   windowInfo();try{skyInfo()}catch(e){}if(!REPLAY){try{phaseStep(last)}catch(e){}}
   render();drawMap();profAll();
 }
@@ -191,7 +201,7 @@ function onErr(e){if(e.code!==1&&((lastFixAt&&(Date.now()-lastFixAt)<45000)||res
 
 /* ---------- render ---------- */
 function vsClear(){setVal("vs","---","fpm");$("vs2").innerHTML="&nbsp;"}
-function navT(L,to){if(!L||!to||L.spd==null||L.spd<=25)return null;const d=dist(L,to),sec=d/L.spd;let eta="";try{eta=new Date(Date.now()+sec*1000).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:to.tz})}catch(e){eta=new Date(Date.now()+sec*1000).toTimeString().slice(0,5)}return {d,sec,eta}}
+function navT(L,to){if(to&&to.drv){const e=drvEta(L);return e&&e.sec!=null?e:null}if(!L||!to||L.spd==null||L.spd<=25)return null;const d=dist(L,to),sec=d/L.spd;let eta="";try{eta=new Date(Date.now()+sec*1000).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:to.tz})}catch(e){eta=new Date(Date.now()+sec*1000).toTimeString().slice(0,5)}return {d,sec,eta}}
 const remS=s=>{if(!isFinite(s)||s<0)return "--";const m=Math.round(s/60),h=Math.floor(m/60);return h+"H"+String(m%60).padStart(2,"0")+"M"};
 function render(){
   const L=viewL();
@@ -207,7 +217,7 @@ function render(){
     if(v!=null){const r=Math.round(v/50)*50;setVal("vs",(r>0?"+":"")+r,"fpm");$("vs2").textContent=Math.abs(r)<200?"Level":r>0?"Climbing ▲":"Descending ▼"}else vsClear();
     if(L.trk!=null){roseRot=unwrap(roseRot,-L.trk);$("rose").setAttribute("transform",`rotate(${roseRot} 150 150)`)}
   }
-  const tkd=tkOn(),to=tkd?tkTo():apBy(S.to),fr=tkd?null:apBy(S.from);
+  const tkd=tkOn(),to=tkd?tkTo():DRV.on?drvTo():apBy(S.to),fr=tkd||DRV.on?null:apBy(S.from);
   if(tkd&&!to){for(const id of ["dtg","brg","ete","eta"])$(id).textContent="---";$("etaTz").textContent="(heading away from "+tkAp().c+")"}
   $("toCode").textContent=to?to.c:"—";
   if(to&&L){
@@ -474,7 +484,7 @@ const fl=a=>"flight level "+String(Math.round(a*FT/1000)*10).split("").join(" ")
    with no takeoff and the same route, it's still taxi-in on the same flight: same times, same log, same logbook entry. */
 function resumeTaxiIn(t){const e=PH.ev||{};if(!e.td||!e.on||PH.ended||PH.demo||t-e.on>25*60000||PH.rt!==(S.from||"")+">"+(S.to||""))return false;
   delete PH.ev.on;setPhase("landed",t);if(!LOG.on){LOG.on=true;store.set("log",LOG)}say("Taxiing to the gate.",true);return true}
-function phaseStep(L){
+function phaseStep(L){if(DRV.on){try{driveStep(L)}catch(e){console.warn(e)}return}
   const t=L.t,sp=L.spd||0,v=vsFpm()||0,alt=L.alt||0,to=apBy(S.to),fr=apBy(S.from);
   spdH.push({t,s:sp});while(spdH.length>2&&t-spdH[0].t>20000)spdH.shift();
   switch(PH.p){
@@ -672,12 +682,12 @@ function staleCheck(){if(PH.p!=="landed"||PH.demo||demo||REPLAY)return;const pts
 window.cpState=n=>({p:PH.p,ev:PH.ev,bookId:PH.bookId,ended:PH.ended,logOn:LOG.on,npts:(LOG.pts||[]).length,tail:n?(LOG.pts||[]).slice(-n):undefined});
 $("endBtn").onclick=()=>endFlight(false);$("endNoteBtn").onclick=()=>endFlight(true);$("endNoteX").onclick=()=>{$("endNote").style.display="none"};
 function bookRender(){
-  const real=BOOK.filter(b=>!b.demo);let km=0,secs=0,hi=0,firm=null,longest=null;const sts=new Set();
+  const real=BOOK.filter(b=>!b.demo&&!b.drv);let km=0,secs=0,hi=0,firm=null,longest=null;const sts=new Set();
   for(const b of real){km+=b.d;if(b.ev.up&&b.ev.td){const s=(b.ev.td-b.ev.up)/1000;secs+=s;if(!longest||s>longest.s)longest={s,b}}hi=Math.max(hi,b.ma);if(b.ev.tdG&&(!firm||b.ev.tdG>firm.g))firm={g:b.ev.tdG,b};(b.st||[]).forEach(x=>sts.add(x))}
   const kv=[["Flights",real.length],["Distance",Math.round(fDst(km)).toLocaleString()+" "+S.dst],["Flight time",hm(secs)],["Highest",hi?Math.round(fAlt(hi)).toLocaleString()+" "+S.alt:"—"],["Longest",longest?hm(longest.s)+" "+longest.b.from+"–"+longest.b.to:"—"],["Firmest landing",firm?firm.g.toFixed(2)+" G "+firm.b.to:"—"],["States crossed",sts.size?[...sts].join(" "):"—"]];
   $("statKv").innerHTML=kv.map(r=>`<div>${esc(r[0])}<b>${esc(r[1])}</b></div>`).join("");
-  $("bookList").innerHTML=BOOK.length?BOOK.map((b,i)=>{const ft=b.ev.up&&b.ev.td?hm((b.ev.td-b.ev.up)/1000):"—";const dt=new Date(b.date).toLocaleDateString("en-AU",{day:"numeric",month:"short"});
-    return `<li class="bk"><div><b>${b.flt?esc(b.flt)+" ":""}${esc(b.from)} → ${esc(b.to)}${b.demo?" (demo)":""}</b><span>${dt} · ${ft} · ${Math.round(fDst(b.d))} ${S.dst}${b.ac?" · "+esc(b.ac):""}${b.ls?" · landing "+b.ls.score+"/100":""}${b.dy&&b.dy.length?" · "+b.dy.length+" notes":""}</span></div><div class="row"><button data-a="rp" data-i="${i}">Replay</button><button data-a="cd" data-i="${i}">Card</button><button data-a="dy" data-i="${i}">Diary</button><button data-a="rp3" data-i="${i}">3D</button><button data-a="ty" data-i="${i}" aria-label="Aircraft type">Type</button><button data-a="gpx" data-i="${i}">GPX</button><button data-a="del" data-i="${i}">✕</button></div></li>`}).join(""):'<li><span>Flights save here automatically when you park.</span></li>';
+  $("bookList").innerHTML=BOOK.length?BOOK.map((b,i)=>{const ft=b.drv&&b.ev.off&&b.ev.on?hm((b.ev.on-b.ev.off)/1000):b.ev.up&&b.ev.td?hm((b.ev.td-b.ev.up)/1000):"—";const dt=new Date(b.date).toLocaleDateString("en-AU",{day:"numeric",month:"short"});
+    return `<li class="bk"><div><b>${b.drv?"DRIVE · ":""}${b.flt?esc(b.flt)+" ":""}${esc(b.from)} → ${esc(b.to)}${b.demo?" (demo)":""}</b><span>${dt} · ${ft} · ${Math.round(fDst(b.d))} ${S.dst}${b.ac?" · "+esc(b.ac):""}${b.ls?" · landing "+b.ls.score+"/100":""}${b.rs&&typeof b.rs.score==="number"?" · smooth "+b.rs.score+"/100":""}${b.dy&&b.dy.length?" · "+b.dy.length+" notes":""}</span></div><div class="row"><button data-a="rp" data-i="${i}">Replay</button><button data-a="cd" data-i="${i}">Card</button><button data-a="dy" data-i="${i}">Diary</button><button data-a="rp3" data-i="${i}">3D</button><button data-a="ty" data-i="${i}" aria-label="Aircraft type">Type</button><button data-a="gpx" data-i="${i}">GPX</button><button data-a="del" data-i="${i}">✕</button></div></li>`}).join(""):'<li><span>Flights save here automatically when you park.</span></li>';
 }
 $("bookList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const i=+b.dataset.i,en=BOOK[i];if(!en)return;
   if(b.dataset.a==="gpx"){const nm=(en.flt?en.flt+"-":"")+en.from+"-"+en.to+"-"+new Date(en.date).toISOString().slice(0,10);shareOrDownload(nm+".gpx","application/gpx+xml",gpxOf(en.pts,en.marks,nm),$("bookTxt"));return}
@@ -991,7 +1001,7 @@ function drawMapCore(){
   if(cv.width!==W*dpr||cv.height!==H*dpr){cv.width=W*dpr;cv.height=H*dpr}
   const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
   const css=getComputedStyle(document.body),col=k=>css.getPropertyValue(k).trim(),nvg=S.disp==="nvg",glow=false;/* v24c: flat MFD look, no canvas glow */
-  const fr=apBy(S.from),to=apBy(S.to);const pts=[];
+  const fr=DRV.on?null:apBy(S.from),to=DRV.on?null:apBy(S.to);const pts=[];
   if(fr)pts.push(fr);if(to)pts.push(to);for(const p of trail)pts.push(p);if(last)pts.push(last);
   if(!pts.length){for(const a of AP)pts.push(a)}
   let la0=Math.min(...pts.map(p=>p.lat)),la1=Math.max(...pts.map(p=>p.lat)),lo0=Math.min(...pts.map(p=>p.lon)),lo1=Math.max(...pts.map(p=>p.lon));
@@ -1528,7 +1538,8 @@ function arTargets(){const L=last;if(!L)return [];const h=Math.max(0,L.alt||0),h
   const add=(n,lat,lon,kind,note,rk,always)=>{const p={lat,lon},d=dist(L,p);if(!always&&d>maxD)return;if(d<400&&kind!=="mk")return;let he=0;try{he=Math.max(0,elevAt(lat,lon)||0)}catch(e){}
     const drop=d*d/(2*R)*0.87,el=deg(Math.atan2(he-h-drop,d));out.push({n,kind,note:note||"",d,b:brg(L,p),el,r:(rk||1)*1000,hid:d>hz+(rk||1)*1000+5000})};
   for(const l of lmAll())add(l.n,l.lat,l.lon,l.kind||"lm",l.note||"",l.r||2);
-  const fr=apBy(S.from),to=apBy(S.to);
+  const fr=DRV.on?null:apBy(S.from),to=DRV.on?null:apBy(S.to);
+  if(DRV.on)try{drvArTargets(L,add)}catch(e){}
   for(const a of AP){if((fr&&a.c===fr.c)||(to&&a.c===to.c))continue;add(a.n+" airport",a.lat,a.lon,"ap",a.c+" · airport",2)}
   if(to)add("DEST "+to.c,to.lat,to.lon,"dest",to.n+" · destination"+(L.spd>25?" · "+hm(dist(L,to)/Math.max(60,L.spd))+" to go":""),3,true);
   if(fr&&dist(L,fr)>3000)add("ORIG "+fr.c,fr.lat,fr.lon,"orig",fr.n+" · where you departed",3,true);
@@ -1953,7 +1964,7 @@ function tkNormReg(s){s=String(s||"").toUpperCase().replace(/[^A-Z0-9-]/g,"");if
   if(s.includes("-"))return s;let m=s.match(/^(VH|ZK|9V|9M|PK|RP|A6|A7|HS|VT|PH|EI|OE|HB|OO|SE|LN|OY|OH|EC|CS|SP|OK|TC|P2|DQ|YJ|H4|F-?O)([A-Z0-9]{3})$/);if(m)return m[1]+"-"+m[2];
   m=s.match(/^(G|F|D|C|I)([A-Z]{4})$/);if(m)return m[1]+"-"+m[2];return s}
 function tkSave(){if(!TKS)return;const c=Object.assign({},TKS);if(c.trail&&c.trail.length>1500)c.trail=c.trail.slice(-1500);store.set("tk",c)}
-function tkOwnGround(){return !last||GROUND.includes(PH.p)||(Date.now()-last.t)>180000}
+function tkOwnGround(){if(DRV.on)return !last||(Date.now()-lastFixAt)>180000||(last.spd||0)<5/3.6;return !last||GROUND.includes(PH.p)||(Date.now()-last.t)>180000}
 function tkOn(){return !!(TKS&&TKS.on&&TKS.L&&S.tkShow!=="off"&&!demo&&!REPLAY&&tkOwnGround()&&Date.now()-TKS.L.t<6*3600000)}
 function tkVs(){const L=TKS&&TKS.L;if(!L||tkStale())return null;return L.vsS!=null?L.vsS:L.vs!=null?L.vs:null}
 /* v24: a tracked fix older than 3 min (or flagged old: not seen / offline) is stale: no extrapolation, no attitude */
@@ -2661,7 +2672,7 @@ const BADGES=[
  ["states","State hopper","Cross 4 states in one flight",r=>[Math.max(0,...r.B.map(b=>(b.st||[]).length)),4]],["intl","Going overseas","Fly to or from an overseas airport",r=>[r.B.some(b=>INTL.includes(b.from)||INTL.includes(b.to))?1:0,1]],
  ["butter","Butter landing","Landing score of 90 or more",r=>[r.B.some(b=>b.ls&&b.ls.score>=90)?1:0,1]],["types","Type collector","Fly 3 aircraft types",r=>[r.types.size,3]],
  ["spot","Spotter","Spot another aircraft in AR",r=>[Math.min(1,SPC.caught.length),1]],["diary","Diarist","Write 5 diary notes",r=>[r.B.reduce((s,b)=>s+(b.dy||[]).length,0),5]]];
-function statsCalc(){const B=BOOK.filter(b=>b&&!b.demo);const aps=new Set(),types=new Set();let km=0,secs=0,lg=null,ld=null,hi=null,fa=null;
+function statsCalc(){const B=BOOK.filter(b=>b&&!b.demo&&!b.drv);const aps=new Set(),types=new Set();let km=0,secs=0,lg=null,ld=null,hi=null,fa=null;
   for(const b of B){aps.add(b.from);aps.add(b.to);if(b.ac)types.add(String(b.ac).toUpperCase());km+=b.d||0;if(b.ev&&b.ev.up&&b.ev.td){const s=(b.ev.td-b.ev.up)/1000;secs+=s;if(!lg||s>lg.v)lg={v:s,b}}if(!ld||b.d>ld.v)ld={v:b.d,b};if(!hi||b.ma>hi.v)hi={v:b.ma,b};if(!fa||b.ms>fa.v)fa={v:b.ms,b}}
   const r={B,n:B.length,aps,types,km,secs,lg,ld,hi,fa};r.badges=BADGES.map(([k,n,d,f])=>{let [v,g]=[0,1];try{[v,g]=f(r)}catch(e){}return {k,n,d,v:Math.min(v,g),g,got:v>=g}});return r}
 function statsRender(){const el=$("bdgOut"),kv=$("totKv");if(!el||!FEAT.stats)return;const r=statsCalc(),rt=x=>x?" "+x.b.from+"–"+x.b.to:"";
@@ -2676,7 +2687,7 @@ function ptOpen(o){$("ptImg").src=o.img;$("ptImg").className=o.got?"":"lock";$("
 function ptClose(){$("ptOv").style.display="none";$("ptOv").dataset.k=""}
 $("ptOv").addEventListener("click",ptClose);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("ptOv").style.display!=="none")ptClose()});
 $("bdgOut").addEventListener("click",e=>{const t=e.target.closest(".bdg");if(!t||!PT.bdg)return;const b=PT.bdg[+t.dataset.b];if(!b)return;
-  ptOpen({key:b.k,img:"patches/"+b.k+".svg",got:b.got,n:b.n,k:"BADGE · "+(BADGES.findIndex(x=>x[0]===b.k)+1)+" / "+BADGES.length,d:b.d,s:b.got?"EARNED":(b.g>1?"PROGRESS "+bdgProg(b):"LOCKED · NOT YET EARNED")})});
+  ptOpen({key:b.k,img:"patches/"+b.k+".svg",got:b.got,n:b.n,k:(DRV.on?"DRIVE BADGE · ":"BADGE · ")+((PT.list||BADGES).findIndex(x=>x[0]===b.k)+1)+" / "+(PT.list||BADGES).length,d:b.d,s:b.got?"EARNED":(b.g>1?"PROGRESS "+bdgProg(b):"LOCKED · NOT YET EARNED")})});
 /* spotter ranks: made-up titles, not real ranks */
 const SPR=[[0,"Cadet spotter"],[100,"Apron watcher"],[300,"Line spotter"],[750,"Flight spotter"],[1500,"Senior spotter"],[3000,"Chief spotter"],[6000,"Spotter ace"]];
 function spRank(pts){pts=+pts||0;let i=0;for(let j=0;j<SPR.length;j++)if(pts>=SPR[j][0])i=j;const nx=SPR[i+1];return {i,n:SPR[i][1],pts,next:nx?nx[0]:null,nextN:nx?nx[1]:null,f:nx?(pts-SPR[i][0])/(nx[0]-SPR[i][0]):1}}
@@ -2728,11 +2739,11 @@ shSave();
 const shLink=id=>shLink2(id);
 function shUI(){const on=SH.on&&SH.exp>Date.now();const t=$("shTag");if(t)t.style.display=on?"":"none";if(!$("shTile"))return;
   $("shStart").style.display=on?"none":"";$("shStop").style.display=on?"":"none";$("shLinkRow").style.display=on?"":"none";
-  if(on){$("shLink").value=shLink(SH.id);setTx($("shSt"),"Sharing on · "+(SH.sent?"last update sent "+hhmm(SH.sent):"waiting for the first update")+" · stops by itself at "+hhmm(SH.exp)+(SH.held&&Date.now()-SH.held<60000?" · position held back: you are not at an airport or moving (privacy)":"")+(cfOk()?"":" · offline: updates resume when you're connected")+(SH.err?" · "+SH.err:""))}
+  if(on){$("shLink").value=shLink(SH.id);setTx($("shSt"),"Sharing on · "+(SH.sent?"last update sent "+hhmm(SH.sent):"waiting for the first update")+" · stops by itself at "+hhmm(SH.exp)+(SH.held&&Date.now()-SH.held<60000?" · "+shHeldWhy():"")+(cfOk()?"":" · offline: updates resume when you're connected")+(SH.err?" · "+SH.err:""))}
   else setTx($("shSt"),"Off. Nothing is shared until you tap Start sharing.")}
 async function shStart(){if(!cfOk()){say(cfWhy()+".");return false}const n="";
   $("shStart").disabled=true;$("shStart").dataset.busy="1";
-  try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n:"",fr:S.from||"",to:S.to||""})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
+  try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n:"",fr:shFr(),to:shTo()})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
     const j=await r.json();Object.assign(SH,{on:true,id:j.id,token:j.token,exp:j.exp,sent:0,err:"",buf:[]});shSave();shUI();shSample(true);shSend(true);hap(20);return true}
   catch(e){setTx($("shSt"),"Couldn't start sharing: "+((e&&e.message)||e)+".");return false}finally{delete $("shStart").dataset.busy;$("shStart").disabled=false;cfApply()}}
 async function shStop(){const id=SH.id,tok=SH.token;
@@ -2743,13 +2754,13 @@ async function shStop(){const id=SH.id,tok=SH.token;
 /* v24 privacy: your own phone's position is only shared at an airport (within 4 km) or once moving faster than 50 kt,
    so a share started at home or the office never shows where you are. While tracking an aircraft from the ground,
    sharing follows that aircraft (what your gauges show), never a stale phone position. */
-function shPrivOk(L){if(!L)return false;if(L.tk)return !tkStale();if(L.spd!=null&&L.spd>25.7)return true;const n=nearestAp(L);return !!(n&&n.d<4000)}
-function shSample(force){if(!SH.on)return;const L=tkOn()?TKS.L:last;if(!L||L.lat==null)return;if(!shPrivOk(L)){SH.held=Date.now();return}SH.held=0;const p=SH.buf[SH.buf.length-1];if(!force&&p&&p[0]===L.t)return;
+function shPrivOk(L){if(!L)return false;if(DRV.on)return drvPrivOk(L);if(L.tk)return !tkStale();if(L.spd!=null&&L.spd>25.7)return true;const n=nearestAp(L);return !!(n&&n.d<4000)}
+function shSample(force){if(!SH.on)return;const L=tkOn()&&!DRV.on?TKS.L:last;if(!L||L.lat==null)return;if(!shPrivOk(L)){SH.held=Date.now();return}SH.held=0;const p=SH.buf[SH.buf.length-1];if(!force&&p&&p[0]===L.t)return;
   SH.buf.push([L.t||Date.now(),+L.lat.toFixed(5),+L.lon.toFixed(5),L.alt!=null?Math.round(L.alt):null,L.spd!=null?+L.spd.toFixed(1):null,L.trk!=null?Math.round(L.trk):null]);if(SH.buf.length>40)SH.buf=thin(SH.buf,20)}
 async function shSend(force){if(!SH.on||SH.busy)return;if(SH.exp<=Date.now()){Object.assign(SH,{on:false});shSave();shUI();return}
   if(!cfOk()||!SH.buf.length||(!force&&Date.now()-SH.lastT<SVC.shareSendMs))return;SH.busy=true;SH.lastT=Date.now();
   const pts=SH.buf.length>12?thin(SH.buf,12):SH.buf.slice(),to=apBy(S.to),n=tkOn()?null:navT(viewL()||last,to);
-  try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,n:"",fr:S.from||"",to:S.to||"",eta:n?Math.round(Date.now()+n.sec*1000):null})},12000);
+  try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,n:"",fr:shFr(),to:shTo(),eta:DRV.on?drvEtaMs():n&&n.sec!=null?Math.round(Date.now()+n.sec*1000):null})},12000);
     if(r.status===404||r.status===410||r.status===403){Object.assign(SH,{on:false,err:"share ended"});shSave()}
     else if(r.ok){SH.buf=SH.buf.filter(q=>q[0]>pts[pts.length-1][0]);SH.sent=Date.now();SH.err="";shSave()}else SH.err="update failed ("+r.status+")"}
   catch(e){SH.err="no connection"}finally{SH.busy=false;shUI()}}
@@ -2758,7 +2769,7 @@ if($("shStart")){$("shStart").onclick=shStart;$("shStop").onclick=()=>{if(confir
   /* v24: New link: end the old share (its link stops showing your flight) and start a fresh one with a new random id */
   $("shNew").onclick=async()=>{if(!cfOk()){say(cfWhy()+".");return}if(!confirm("Make a new follow link? The old link stops working straight away; send the new one to your family."))return;
     $("shNew").disabled=true;try{if(await shStop())await shStart()}finally{$("shNew").disabled=false;shUI()}};
-  $("shShare").onclick=async()=>{const u=shLink(SH.id);try{if(navigator.share){await navigator.share({title:"Follow my flight",text:"Follow my flight"+(S.from&&S.to?" "+S.from+" → "+S.to:"")+" on Cabin Panel",url:u});return}}catch(e){if(e&&e.name==="AbortError")return}
+  $("shShare").onclick=async()=>{const u=shLink(SH.id);try{if(navigator.share){await navigator.share({title:DRV.on?"Follow my drive":"Follow my flight",text:(DRV.on?"Follow my drive":"Follow my flight"+(S.from&&S.to?" "+S.from+" → "+S.to:""))+" on Cabin Panel",url:u});return}}catch(e){if(e&&e.name==="AbortError")return}
     try{await navigator.clipboard.writeText(u);setTx($("shSt"),"Link copied.")}catch(e){$("shLink").select()}};}
 window.cpShare={state:()=>({on:SH.on,id:SH.id?SH.id.slice(0,4)+"…":"",hasToken:!!SH.token,exp:SH.exp,sent:SH.sent,buf:SH.buf.length,err:SH.err,link:SH.id?shLink(SH.id):""}),send:()=>shSend(true),sample:()=>shSample(true),stop:()=>shStop(),start:()=>shStart(),rawId:()=>SH.id};
 
@@ -2782,8 +2793,8 @@ function fwDraw(){const cv=$("fwCv");if(!cv||!FW.id)return;const W=cv.clientWidt
   if(fr&&to){x.setLineDash([7,6]);x.strokeStyle="#ff4fd8";x.lineWidth=2;x.beginPath();for(let i=0;i<=60;i++){const q=gcPoint(fr,to,i/60),[X,Y]=P(q.lat,q.lon);i?x.lineTo(X,Y):x.moveTo(X,Y)}x.stroke();x.setLineDash([])}
   x.strokeStyle="#3dff6e";x.lineWidth=3;x.beginPath();pts.forEach((p,i)=>{const [X,Y]=P(p.lat,p.lon);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke();
   x.font='700 13px "B612 Mono",monospace';for(const a of [fr,to]){if(!a)continue;const [X,Y]=P(a.lat,a.lon);x.fillStyle="#3dff6e";x.beginPath();x.arc(X,Y,5,0,7);x.fill();x.fillText(a.c,X+8,Y-6)}
-  if(lp){const [X,Y]=P(lp.lat,lp.lon);x.save();x.translate(X,Y);x.rotate(rad(lp.trk||0));x.fillStyle="#ffd400";x.strokeStyle="#000";x.lineWidth=1.5;x.beginPath();x.moveTo(0,-13);x.lineTo(9,10);x.lineTo(0,5);x.lineTo(-9,10);x.closePath();x.fill();x.stroke();x.restore()}
-  setTx($("fwHead"),"Shared flight"+(d.fr&&d.to?" · "+d.fr+" → "+d.to:""));
+  if(lp){const [X,Y]=P(lp.lat,lp.lon);x.save();x.translate(X,Y);x.rotate(rad(lp.trk||0));x.fillStyle="#ffd400";x.strokeStyle="#000";x.lineWidth=1.5;x.beginPath();if(d.fr==="DRV"){x.moveTo(-6,-12);x.lineTo(6,-12);x.quadraticCurveTo(8,-12,8,-9);x.lineTo(8,10);x.quadraticCurveTo(8,12,6,12);x.lineTo(-6,12);x.quadraticCurveTo(-8,12,-8,10);x.lineTo(-8,-9);x.quadraticCurveTo(-8,-12,-6,-12);x.closePath();x.fill();x.stroke();x.fillStyle="#000";x.fillRect(-6,-7,12,4);x.fillRect(-6,5,12,3)}else{x.moveTo(0,-13);x.lineTo(9,10);x.lineTo(0,5);x.lineTo(-9,10);x.closePath();x.fill();x.stroke()}x.restore()}
+  const dv=d.fr==="DRV";setTx($("fwHead"),dv?"Shared drive · DRIVE":"Shared flight"+(d.fr&&d.to?" · "+d.fr+" → "+d.to:""));
   const age=lp?Math.round((Date.now()-lp.t)/60000):null,tz=to?to.tz:undefined;
   setTx(info,d.st?"Sharing has ended."+(lp?" Last position "+hhmm(lp.t)+".":""):(lp?[lp.alt!=null?Math.round(fAlt(lp.alt)/100)*100+" "+S.alt:"",lp.spd!=null?Math.round(fSpd(lp.spd))+" "+S.spd:"",d.eta?"ETA "+hhmm(d.eta,tz)+(to?" "+to.c+" time":""):"","updated "+(age<1?"just now":age+" min ago")].filter(Boolean).join(" · "):"Waiting for the first position.")+(FW.err==="offline"?" · You're offline: showing the last update.":FW.err?" · "+FW.err:"")+" · Positions arrive only while the sharer has internet. Entertainment only.")}
 if($("fwExit")){$("fwExit").onclick=fwClose;$("fwGo").onclick=()=>{const id=fwParse($("fwIn").value);if(!id){setTx($("fwTxt"),"Paste the link you were sent (it contains #follow=…).");return}fwOpen(id)};window.addEventListener("resize",()=>{if(FW.id)fwDraw()})}
@@ -2836,7 +2847,7 @@ const CUT={taxiOut:"Taxiing out: seatbelt on, tray table stowed and window blind
 function cueShow(id,txt){CU.said[id]=Date.now();CU.log.unshift({id,t:Date.now(),txt});CU.log.length=Math.min(CU.log.length,10);
   const b=$("cueBar");b.textContent=txt;b.style.display="";clearTimeout(CU.hide);CU.hide=setTimeout(()=>{b.style.display="none"},20000);try{hap(30)}catch(e){}
   if(S.cues==="voice")say(txt,true)}
-function cueCheck(){if(S.cues==="off"||REPLAY)return null;const k=PH.bookId||PH.ev.off||PH.ev.up||(PH.demo?"demo":"x");if(k!==CU.k){CU.k=k;CU.said={};CU.slowAt=0}
+function cueCheck(){if(S.cues==="off"||REPLAY||DRV.on)return null;const k=PH.bookId||PH.ev.off||PH.ev.up||(PH.demo?"demo":"x");if(k!==CU.k){CU.k=k;CU.said={};CU.slowAt=0}
   const p=PH.p,L=last,ev=PH.ev||{},sp=L&&L.spd!=null?L.spd:null;let id=null;
   if(p==="taxi"&&!ev.td&&!ev.up&&!ev.roll)id="taxiOut";
   else if(p==="cruise"&&CU.p==="climb")id="level";
@@ -2908,7 +2919,7 @@ function boostNow(){const L=viewL()||last,fr=apBy(S.from),to=apBy(S.to);if(!L||!
   const gs=L.spd*3600/NMm,r=rad(L.trk),gu=gs*Math.sin(r),gv=gs*Math.cos(r),tas=Math.hypot(gu-w.u,gv-w.v);return {gs,tas,boost:gs-tas,wind:w}}
 const REC=Object.assign({},store.get("rec",{}));
 function recPut(k,v,ctx){if(v==null||!isFinite(v))return false;const o=REC[k];if(o&&o.v>=v)return false;REC[k]={v:+v.toFixed(1),t:Date.now(),r:ctx||((S.from||"?")+"–"+(S.to||"?"))};REC.dirty=1;return true}
-function recScan(){const B=BOOK.filter(b=>b&&!b.demo);for(const b of B){const r=b.from+"–"+b.to;if(b.ms)recPut("gs",b.ms*3600/NMm,r);if(b.ma)recPut("alt",b.ma*FT,r);if(b.d)recPut("far",b.d/NMm,r);
+function recScan(){const B=BOOK.filter(b=>b&&!b.demo&&!b.drv);for(const b of B){const r=b.from+"–"+b.to;if(b.ms)recPut("gs",b.ms*3600/NMm,r);if(b.ma)recPut("alt",b.ma*FT,r);if(b.d)recPut("far",b.d/NMm,r);
   const ev=b.ev||{},a0=ev.up||ev.off,a1=ev.td||ev.on;if(a0&&a1&&a1>a0)recPut("long",(a1-a0)/60000,r)}}
 let recLive={};
 function recTick(){if(demo||PH.demo||REPLAY||tkOn())return;const L=last;if(!L||PH.p==="parked")return;let nb=[];
@@ -3151,4 +3162,227 @@ function skyHit(v){const sk=skyCache();if(!sk||!v)return null;let best=null;for(
 document.addEventListener("click",e=>{if(e.target.closest('.seg[data-k="arFlt"]')||e.target.closest('.seg[data-k="arSky"]'))setTimeout(()=>{try{arUI()}catch(x){}SKY.at=0},0)});
 setInterval(()=>{if(arOn&&skyActive()&&cfOk()&&(!TLE||Date.now()-TLE.got>12*3600e3))tleGet()},60000);
 window.cpSky={now:(ms,lat,lon,alt)=>skyNow(ms,lat!=null?{lat,lon,alt:alt||0}:null),active:skyActive,tle:()=>TLE,fetchTle:()=>tleGet(true),iss:(ms,lat,lon,alt)=>issTopo(ms||Date.now(),lat,lon,alt||0),hit:skyHit,stars:SKST.length};
+/* ===================== v25: Drive mode (built 21 Nov 2026) =====================
+   A guarded "missile switch" on the HUD page flips the app between flight mode and Drive mode. Drive mode is for a
+   PASSENGER in a car: it asks "I'm the passenger" when arming (first time, or if the last check was over 4 hours ago)
+   and again after every 4 hours in Drive mode. It keeps the HUD, gauges, retro panels, glance view, GPS logging, replay,
+   diary, export, live sharing, AR, sun times, battery saver and voice, and switches off the flight-only features listed
+   in DRV_OFF (each page says what is off). Flight mode behaviour is unchanged.
+   Drive privacy hold (replaces the airport/50 kt rule while in Drive mode): your position is never shared within 5 km of
+   where this drive started (first good GPS fix after arming), the start points of your previous 3 drives, or any spot you
+   saved as private; after leaving those zones nothing is sent for a further 3 minutes. Held fixes are never sent later.
+   Zones and start points are stored on this phone only. */
+PHN.drive="Driving";
+const DRV_PAX_MS=4*3600e3,DRV_REST_MS=2*3600e3,DRV_REST_BREAK=15*60000,DRV_ZONE_M=5000,DRV_DELAY_MS=180000,DRV_MOVE=5/3.6,DRV_PARK_S=300;
+const DRV_FEAT=["tod","turb","seat","arrival","landing"],DRV_FEAT0={};for(const k of DRV_FEAT)DRV_FEAT0[k]=FEAT[k];
+/* what is switched off, per page (shown as a note on that page while Drive mode is on) */
+const DRV_OFF=[["lsTile","pg-log","landing score"],["todTile","pg-nav","top of descent"],["arrTile","pg-nav","arrival helper"],["tbBan",null,"turbulence warning"],["cueBar",null,"seatbelt and phase cues"],
+  ["wsTile","pg-route","window seat guide"],["poiTile","pg-win","window seat \u201ccoming up\u201d list"],["bpTile","pg-route","boarding pass scan"],["cnTile","pg-route","connection countdown"],["packTile","pg-route","pre-flight weather pack"],["svpTile","pg-route","3D route pack"]];
+const DRV_OFF_H2=["Landing score","Window seat guide","Connection","Pre-flight pack","3D route pack"];
+let TOWNS=[];
+fetch("towns.json").then(r=>r.ok?r.json():null).then(j=>{if(j&&Array.isArray(j.t))TOWNS=j.t.filter(x=>Array.isArray(x)&&typeof x[0]==="string"&&isFinite(x[1])&&isFinite(x[2]));drvTownList()}).catch(()=>{});
+const drvFresh=()=>!!(last&&Date.now()-lastFixAt<60000);
+function drvMoving(){return drvFresh()&&(last.spd||0)>=DRV_MOVE}
+function townNear(p,km){let b=null,bd=(km||30)*1000;for(const t of TOWNS){const d=dist(p,{lat:t[1],lon:t[2]});if(d<bd){bd=d;b=t}}return b?b[0]:""}
+function drvTo(){const d=DRV.dest;if(!d)return null;let st="NSW";try{st=stateAt(d.lat,d.lon)}catch(e){}return {drv:1,c:String(d.n).toUpperCase().replace(/[^A-Z0-9 ]/g,"").slice(0,10)||"DEST",n:d.n,lat:d.lat,lon:d.lon,tz:"Australia/"+(STZ[st]||"Sydney")}}
+/* ---- destination: typed town, airport code, landmark or "lat, lon" (all offline) ---- */
+function drvFind(q){q=String(q||"").trim();if(!q)return null;
+  const m=q.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)$/);if(m){const lat=+m[1],lon=+m[2];if(Math.abs(lat)<=90&&Math.abs(lon)<=180)return {n:lat.toFixed(3)+", "+lon.toFixed(3),lat,lon,src:"coords"}}
+  const u=q.toUpperCase();if(/^[A-Z]{3}$/.test(u)){const a=apBy(u);if(a)return {n:a.n+" airport",lat:a.lat,lon:a.lon,src:"airport"};const b=AP2.find(x=>x[0]===u);if(b)return {n:b[1],lat:b[2],lon:b[3],src:"airport"}}
+  const lo=q.toLowerCase().replace(/\s+/g," "),[nm,stq]=lo.split(/\s*,\s*/),stU=stq?stq.toUpperCase():"";
+  const ok=t=>!stU||t[3]===stU,pick=f=>{let b=null;for(const t of TOWNS)if(ok(t)&&f(t[0].toLowerCase())&&(!b||t[4]>b[4]))b=t;return b};
+  const t=pick(n=>n===nm)||pick(n=>n.startsWith(nm))||(nm.length>=4?pick(n=>n.includes(nm)):null);
+  if(t)return {n:t[0]+(t[3]?", "+t[3]:""),lat:t[1],lon:t[2],src:"town"};
+  try{const l=lmAll().find(x=>String(x.n).toLowerCase().startsWith(nm));if(l)return {n:l.n,lat:l.lat,lon:l.lon,src:"landmark"}}catch(e){}
+  return null}
+function drvTownList(){const dl=$("drvTowns");if(!dl||dl.childElementCount)return;const f=document.createDocumentFragment();for(const t of TOWNS.slice(0,700)){const o=document.createElement("option");o.value=t[0]+(t[3]?", "+t[3]:"");f.appendChild(o)}dl.appendChild(f)}
+/* ---- ETA: from how fast you are actually closing on the destination over the last ~10 min (so a winding road is
+   allowed for); before that, current speed with a rough road allowance (straight line x 1.25). Never road routing. ---- */
+function drvEta(L){const to=drvTo();if(!L||!to)return null;const d=dist(L,to),h=DRV.cl||[],now=L.t||Date.now();let cs=null,src="";
+  const old=h.find(q=>now-q.t>=300000&&now-q.t<=900000)||h.find(q=>now-q.t>=90000);if(old){const c=(old.d-d)/((now-old.t)/1000);if(c>=2.8){cs=c;src="closing"}}
+  let sec=null;if(cs)sec=d/cs;else if(L.spd!=null&&L.spd>=2.8){sec=d*1.25/L.spd;src="speed"}
+  if(sec==null)return {d,sec:null,eta:"--:--",src:"",road:d*1.25};
+  let eta="";try{eta=new Date(Date.now()+sec*1000).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:to.tz})}catch(e){eta=new Date(Date.now()+sec*1000).toTimeString().slice(0,5)}
+  return {d,sec,eta,src,road:d*1.25}}
+function drvEtaMs(){const e=drvEta(last);return e&&e.sec!=null?Math.round(Date.now()+e.sec*1000):null}
+/* ---- privacy hold for live sharing in Drive mode ---- */
+function drvZones(){return [DRV.start,...(DRV.starts||[]),...(DRV.priv||[])].filter(z=>z&&isFinite(z.lat)&&isFinite(z.lon))}
+function drvPrivOk(L){if(!L||L.lat==null)return false;const now=Date.now();
+  if(L.acc!=null&&L.acc>100){DRV.why="weak";return false}
+  if(!DRV.start){DRV.why="start";return false}
+  if(drvZones().some(z=>dist(z,L)<DRV_ZONE_M+Math.min(100,L.acc||0))){if(DRV.outAt){DRV.outAt=0;drvSave()}DRV.why="zone";return false}
+  if(!DRV.outAt){DRV.outAt=now;drvSave()}
+  if(now-DRV.outAt<DRV_DELAY_MS){DRV.why="delay";return false}
+  DRV.why="";return true}
+function shHeldWhy(){if(!DRV.on)return "position held back: you are not at an airport or moving (privacy)";
+  if(DRV.why==="delay")return "position held back: you just left a private zone, sharing starts in about "+Math.max(1,Math.ceil((DRV_DELAY_MS-(Date.now()-DRV.outAt))/60000))+" min (privacy)";
+  if(DRV.why==="start")return "position held back: waiting for a GPS fix to set this drive's private start zone";
+  if(DRV.why==="weak")return "position held back: GPS too weak to share safely";
+  return "position held back: within 5 km of where this drive started or a private spot (privacy)"}
+const shFr=()=>DRV.on?"DRV":(S.from||""),shTo=()=>DRV.on?"":(S.to||"");
+/* ---- ride smoothness (replaces the landing score in Drive mode). For fun: GPS and phone sensors, not a driving assessment. ---- */
+const rsNew=()=>({dur:0,sq:0,brake:0,accel:0,corner:0,bump:0,le:{}});
+function rsStep(L){const T=DRV.trip;if(!T)return;const rs=T.rs||(T.rs=rsNew()),p=DRV.pf;DRV.pf={t:L.t,spd:L.spd,trk:L.trk};if(!p||L.spd==null||p.spd==null)return;
+  const dt=(L.t-p.t)/1000;if(!(dt>=0.5&&dt<=5))return;const aL=(L.spd-p.spd)/dt;let aY=0;if(L.trk!=null&&p.trk!=null&&L.spd>5)aY=L.spd*rad(Math.abs(w180b(L.trk-p.trk)))/dt;
+  rs.dur+=dt;rs.sq+=aL*aL*dt;const ev=(k,c)=>{if(c&&L.t-(rs.le[k]||0)>4000){rs[k]++;rs.le[k]=L.t}};ev("brake",aL<-3);ev("accel",aL>2.5);ev("corner",aY>3.5&&aY<12)}
+function rsScore(rs){if(!rs||rs.dur<60)return null;const h=Math.max(0.25,rs.dur/3600),rate=(rs.brake*3+rs.accel*2+rs.corner*2+rs.bump)/h,rms=Math.sqrt(rs.sq/rs.dur);
+  const score=Math.round(clampN(100-rate*2-Math.max(0,rms-0.35)*25,0,100));
+  return {score,parts:[["Hard braking",rs.brake],["Hard acceleration",rs.accel],["Sharp cornering",rs.corner],["Bumps (motion sensor)",rs.bump]],mins:Math.round(rs.dur/60),rms:+rms.toFixed(2)}}
+setInterval(()=>{if(!DRV.on||!gOn||gS==null||PH.p!=="drive"||!DRV.trip)return;const rs=DRV.trip.rs||(DRV.trip.rs=rsNew()),n=Date.now();if(Math.abs(gS-1)>0.35&&n-(rs.le.bump||0)>2000){rs.bump++;rs.le.bump=n}},250);
+function rsRender(){const el=$("rsOut");if(!el)return;let r=null,live=false;if(DRV.trip&&PH.p==="drive"){r=rsScore(DRV.trip.rs);live=true}
+  if(!r){const b=BOOK.find(x=>x&&x.drv&&x.rs);if(b)r=b.rs}
+  setTx($("rsBig"),r?r.score+"/100":"\u2014");setTx($("rsHead"),live?"This drive":"Last drive");
+  el.innerHTML=r?r.parts.map(p=>`<li><b>${esc(p[0])}</b><span>${p[1]}</span></li>`).join("")+`<li><span>${r.mins} min scored${gOn?"":" · enable the G-meter to count bumps"}. For fun only: GPS and phone sensors, not a driving assessment.</span></li>`
+    :'<li><span>Scores itself while you drive (after a minute or so of driving).</span></li>'}
+/* ---- drive "phases": parked and driving. Logs a drive to the logbook when you park (5 min stopped). ---- */
+function driveStep(L){const t=L.t,sp=L.spd||0,good=L.acc==null||L.acc<=100;
+  if(!DRV.start&&good){DRV.start={lat:+L.lat.toFixed(5),lon:+L.lon.toFixed(5),t};drvSave()}
+  const to=drvTo();if(to){const h=DRV.cl||(DRV.cl=[]),lp=h[h.length-1];if(!lp||t-lp.t>=10000){h.push({t,d:dist(L,to)});while(h.length&&t-h[0].t>900000)h.shift()}}
+  if(PH.p!=="drive"){const mv=sp>3&&(L.acc==null||L.acc<=50);if(mv&&!goP)goP={lat:L.lat,lon:L.lon};if(!mv)goP=null;
+    if(hold("dgo",mv,t,5)&&goP&&dist(goP,L)>=30){goP=null;drvBegin(t,L);say("Drive started"+(to?" to "+to.n:"")+". Passenger mode.")}return}
+  const T=DRV.trip||(DRV.trip={t0:t,mv:0,sinceRest:0,nextRest:DRV_REST_MS,stopAt:0,pt:t,rs:rsNew()}),dt=Math.max(0,Math.min(30000,t-(T.pt||t)));T.pt=t;
+  if(sp>=DRV_MOVE){T.mv+=dt;T.sinceRest+=dt;T.stopAt=0}else{if(!T.stopAt)T.stopAt=t;if(t-T.stopAt>=DRV_REST_BREAK&&T.sinceRest>0){T.sinceRest=0;T.nextRest=DRV_REST_MS;drvRestHide()}}
+  if(T.sinceRest>=T.nextRest){T.nextRest+=DRV_REST_MS;drvRestShow(T.sinceRest)}
+  rsStep(L);
+  if(to&&!T.arr&&dist(L,to)<2000){T.arr=1;say("Arriving at "+to.n+".")}
+  const st=stateAt(L.lat,L.lon);if(st!==PH.st){PH.stC++;if(PH.stC>=3){const old=PH.st;PH.st=st;PH.stC=0;PH.sts=PH.sts||[];if(!PH.sts.includes(st))PH.sts.push(st);
+    if(old){let msg="Crossing into "+STN[st]+".";const a=tzOff(STZ[old]),b=tzOff(STZ[st]);if(a!=null&&b!=null&&a!==b){const d=b-a,hh=Math.abs(d);msg+=" Clocks go "+(d>0?"forward ":"back ")+(hh===30?"half an hour":hh===60?"one hour":hh===90?"an hour and a half":hh/60+" hours")+"."}say(msg)}savePH()}}else PH.stC=0;
+  if(hold("dpark",sp<0.8,t,DRV_PARK_S)){const on=PH.holds.dpark||t;drvEnd(on,true)}}
+function drvBegin(t,L){PH.ev={off:t};PH.bookId=null;PH.ended=false;PH.rt=null;PH.sts=[stateAt(L.lat,L.lon)];PH.st=PH.sts[0];PH.said={};PH.lm=[];PH.alt0=L.alt||0;
+  DRV.trip={t0:t,mv:0,sinceRest:0,nextRest:DRV_REST_MS,stopAt:0,pt:t,rs:rsNew()};DRV.pf=null;setPhase("drive",t);LOG={on:true,pts:[]};store.set("log",LOG);drvSave()}
+function drvEntry(){const pts=(LOG&&LOG.pts)||[];if(pts.length<5)return null;const f=pts[0],l=pts[pts.length-1],to=drvTo();
+  const nr=q=>{const p={lat:q[0],lon:q[1]},a=townNear(p,30);if(a)return a;const b=townNear(p,150);return b?"near "+b:""},toN=to&&dist({lat:l[0],lon:l[1]},to)<5000?DRV.dest.n:nr(l);
+  return {id:Date.now(),drv:1,flt:"",demo:!!(demo||PH.demo),from:nr(f)||"Start",to:toN||"End",date:f[3],ev:{off:PH.ev.off,on:PH.ev.on},st:(PH.sts||[]).slice(),...flightStats(pts),
+    marks:MARKS.slice(),pts:thin(pts,600),ac:"",dy:dyFor(f[3]),rs:DRV.trip?rsScore(DRV.trip.rs)||undefined:undefined,mv:DRV.trip?Math.round(DRV.trip.mv/1000):0}}
+function drvEnd(on,spoken){if(PH.p!=="drive")return;PH.ev.on=on||Date.now();let e=null;try{e=drvEntry()}catch(x){console.warn(x)}
+  if(e){BOOK.unshift(e);if(BOOK.length>40)BOOK.length=40;store.set("book",BOOK);PH.bookId=e.id;try{bookRender()}catch(x){}}
+  PH.rt=null;setPhase("parked",PH.ev.on);if(LOG.on){LOG.on=false;store.set("log",LOG)}
+  if(spoken){const mn=Math.round((PH.ev.on-PH.ev.off)/60000);say("Parked. Drive time "+(mn>=60?Math.floor(mn/60)+" hours "+mn%60+" minutes":mn+" minutes")+(e?", "+Math.round(fDst(e.d))+" "+(S.dst==="km"?"kilometres":"nautical miles"):"")+"."+(e&&e.rs?" Ride smoothness "+e.rs.score+" out of 100.":""))}
+  DRV.trip=null;DRV.cl=[];drvSave();drvRestHide();rsRender()}
+/* ---- rest-stop reminders: every 2 h of driving; a 15 min stop counts as a break ---- */
+function drvRestShow(ms){const b=$("drvRest");if(!b)return;const h=Math.round(ms/3600e3*10)/10;
+  b.innerHTML=`<b>REST STOP \u00b7 ${h} H DRIVING</b><span>Time for the driver to take a break: stop, revive, survive. A 15 minute stop resets this.</span>`;b.style.display="";hap([60,40,60]);say("Rest stop reminder. About "+(Math.round(h)===1?"one hour":Math.round(h)+" hours")+" of driving. Time for the driver to take a break.")}
+function drvRestHide(){const b=$("drvRest");if(b)b.style.display="none"}
+/* ---- passenger check ---- */
+let DPX={cb:null};
+function paxNeeded(){return !DRV.pax||Date.now()-DRV.pax>=DRV_PAX_MS}
+function paxAsk(re,cb){DPX.cb=cb;const o=$("drvPax");setTx($("drvPaxT"),re?"PASSENGER CHECK \u00b7 4 H":"PASSENGER CHECK");
+  setTx($("drvPaxP"),re?"You've been in Drive mode for 4 hours. Are you still the passenger? If you're driving, put the phone away now.":"Drive mode is for passengers only. Never use the phone while you're driving: it's dangerous and illegal.");
+  setTx($("drvPaxNo"),re?"Switch to flight mode":"Cancel");o.style.display="flex";o.dataset.re=re?"1":"";try{$("drvPaxOk").focus()}catch(e){}if(re)say("Passenger check. Are you still the passenger?")}
+function paxDone(yes){const o=$("drvPax"),re=o.dataset.re==="1",cb=DPX.cb;o.style.display="none";DPX.cb=null;
+  if(yes){DRV.pax=Date.now();DRV.paxEver=DRV.paxEver||DRV.pax;drvSave()}
+  if(cb)cb(yes);else if(re&&!yes)drvSet(false)}
+$("drvPaxOk").onclick=()=>paxDone(true);$("drvPaxNo").onclick=()=>paxDone(false);
+setInterval(()=>{if(DRV.on&&paxNeeded()&&$("drvPax").style.display==="none")paxAsk(true,null)},30000);
+/* ---- apply / switch ---- */
+const DRV_UNITS={spd:"kmh",alt:"m",dst:"km"};
+function drvApply(){const on=!!DRV.on;document.body.classList.toggle("drive",on);
+  for(const k of DRV_FEAT)FEAT[k]=on?0:DRV_FEAT0[k];
+  for(const [id] of DRV_OFF){const e=$(id);if(e)e.classList.toggle("drvOff",on)}
+  document.querySelectorAll("h2").forEach(h=>{if(DRV_OFF_H2.includes(h.textContent.trim()))h.classList.toggle("drvOff",on)});
+  for(const k of ["tbLead","cues"]){const s=document.querySelector('.seg[data-k="'+k+'"]');const r=s&&s.closest(".row");if(r){r.classList.toggle("drvOff",on);const n=r.nextElementSibling;if(n&&n.classList.contains("note"))n.classList.toggle("drvOff",on)}}
+  document.querySelectorAll(".drvOffNote").forEach(n=>{const pg=n.closest(".page"),ids=pg?pg.id:"";const off=DRV_OFF.filter(x=>x[1]===ids).map(x=>x[2]);
+    if(ids==="pg-set")off.push("turbulence warning","seatbelt and phase cues");if(ids==="pg-book")off.push("flight-only badges (FL400, Night landing, Butter landing and the other flight badges)");
+    if(ids==="pg-hud")off.push("turbulence warning","seatbelt and phase cues","aircraft tracking while the car is moving");
+    n.textContent=off.length?"DRIVE MODE \u00b7 switched off: "+off.join(", ")+". Flip the DRIVE switch down for flight mode.":""});
+  {const g=$("gs");const l=g&&g.closest(".tile").querySelector(".lab span");if(l)l.textContent=on?"Speed":"Groundspeed"}
+  document.querySelectorAll("h2").forEach(h=>{const t=h.textContent.trim();if(t==="Share live flight"||t==="Share live drive")h.textContent=on?"Share live drive":"Share live flight"});
+  {const g=$("trk");const l=g&&g.closest(".tile").querySelector(".lab span");if(l)l.textContent=on?"Heading":"Track"}
+  {const g=$("alt");const l=g&&g.closest(".tile").querySelector(".lab span");if(l)l.textContent=on?"Altitude (GPS)":"GPS altitude"}
+  if(on){$("tbBan").style.display="none";$("cueBar").style.display="none"}
+  drvSwUI();try{statsRender()}catch(e){}try{rsRender()}catch(e){}try{drvTripRender()}catch(e){}try{shUI()}catch(e){}try{todRender()}catch(e){}try{applySeg();render();drawMap()}catch(e){}}
+function drvUnits(on){if(on){DRV.fU={spd:S.spd,alt:S.alt,dst:S.dst};Object.assign(S,DRV.dU||DRV_UNITS)}else{DRV.dU={spd:S.spd,alt:S.alt,dst:S.dst};Object.assign(S,DRV.fU||{spd:"kt",alt:"ft",dst:"nm"})}saveS()}
+function drvSet(on,why){on=!!on;if(on===!!DRV.on){drvSwUI();return true}
+  if(on){if(demo||REPLAY){drvMsg("Stop the demo or replay first.");return false}
+    if(PH.p!=="parked"&&!PH.ended){drvMsg("A flight is in progress ("+PHN[PH.p]+"). End it first (End flight on the HUD page).");return false}
+    if(DRV.start){DRV.starts=[DRV.start,...(DRV.starts||[])].slice(0,3)}DRV.start=null;DRV.outAt=0;DRV.cl=[];DRV.trip=null;
+    DRV.on=true;DRV.since=Date.now();drvUnits(true);if(last&&drvFresh()&&(last.acc==null||last.acc<=100))DRV.start={lat:+last.lat.toFixed(5),lon:+last.lon.toFixed(5),t:Date.now()};
+    drvSave();drvApply();hap([40,30,80]);say("Drive mode on. Passenger only.")}
+  else{if(PH.p==="drive")drvEnd(Date.now(),false);DRV.on=false;drvUnits(false);DRV.trip=null;drvSave();drvApply();hap(30);say("Flight mode.")}
+  return true}
+function drvMsg(t){setTx($("drvHint"),t);$("drvHint").classList.add("warn");clearTimeout(DSW.mT);DSW.mT=setTimeout(()=>{$("drvHint").classList.remove("warn");drvSwUI()},6000)}
+/* the switch: guard closed (SAFE) -> guard up -> lever up (DRIVE). Guard drops by itself after 8 s if the lever isn't flipped. */
+const DSW={guard:false,gT:0,mT:0};
+function drvSwUI(){const sw=$("drvSw");if(!sw)return;const on=!!DRV.on,st=on?"armed":DSW.guard?"guard":"safe";sw.dataset.st=st;
+  $("drvLever").setAttribute("aria-pressed",on?"true":"false");$("drvGuard").setAttribute("aria-expanded",DSW.guard||on?"true":"false");
+  $("drvGuard").setAttribute("aria-label",DSW.guard||on?"Close the switch guard":"Lift the switch guard");
+  setTx($("drvMode"),on?"DRIVE MODE \u00b7 PASSENGER":"FLIGHT MODE");setTx($("drvLamp"),on?"DRIVE":DSW.guard?"GUARD UP":"SAFE");setTx($("drvLbl"),on?"DRIVE":"FLIGHT");
+  if(!$("drvHint").classList.contains("warn"))setTx($("drvHint"),on?"Flip the switch down to return to flight mode.":DSW.guard?"Guard up. Flip the switch up for Drive mode (passengers only).":"Lift the red guard, then flip the switch up for Drive mode (passengers only).");
+  document.body.classList.toggle("drvArmed",on)}
+$("drvGuard").onclick=e=>{e.stopPropagation();if(DRV.on){drvMsg("Flip the switch down first.");return}DSW.guard=!DSW.guard;clearTimeout(DSW.gT);if(DSW.guard)DSW.gT=setTimeout(()=>{if(!DRV.on){DSW.guard=false;drvSwUI()}},8000);hap(15);drvSwUI()};
+$("drvLever").onclick=e=>{e.stopPropagation();
+  if(DRV.on){DSW.guard=true;drvSet(false);setTimeout(()=>{DSW.guard=false;drvSwUI()},700);return}
+  if(!DSW.guard){drvMsg("Lift the guard first.");hap([20,40,20]);return}
+  clearTimeout(DSW.gT);const go=()=>{if(drvSet(true)){DSW.guard=false}else{DSW.guard=false;setTimeout(drvSwUI,0)}drvSwUI()};
+  if(paxNeeded())paxAsk(false,y=>{if(y)go();else{DSW.guard=false;drvSwUI()}});else go()};
+/* ---- trip tile: destination, distance, ETA, rest stop ---- */
+function drvTripRender(){const kv=$("drvKv");if(!kv||!DRV.on)return;const to=drvTo(),L=last,T=DRV.trip,dr=PH.p==="drive";
+  setTx($("drvTripH"),to?to.n:"No destination");$("drvDestX").style.display=to?"":"none";
+  const e=to&&L?drvEta(L):null,rows=[];
+  if(to)rows.push(["Straight line",L?Math.round(fDst(e?e.d:dist(L,to))).toLocaleString()+" "+S.dst:"waiting for GPS"],["Road (rough)",e?"~"+Math.round(fDst(e.road)).toLocaleString()+" "+S.dst:"—"],["ETA",e&&e.sec!=null?e.eta+(to.tz!==Intl.DateTimeFormat().resolvedOptions().timeZone?" local":""):"--:--"],["Time to go",e&&e.sec!=null?hm(e.sec):"—"]);
+  rows.push(["Driving",T&&dr?hm(T.mv/1000):"parked"],["Next rest reminder",T&&dr?hm(Math.max(0,T.nextRest-T.sinceRest)/1000):"—"]);
+  kv.innerHTML=rows.map(r=>`<div>${esc(r[0])}<b>${esc(r[1])}</b></div>`).join("");
+  setTx($("drvTripNote"),(e&&e.src==="closing"?"ETA from how fast you're actually closing on "+to.n+" over the last few minutes. ":e&&e.src==="speed"?"ETA from your current speed and a rough road allowance (straight line + 25%); it improves after a few minutes of driving. ":"")+"Distances are straight-line from built-in town data (works offline). Cabin Panel has no road routing, so road distance and timing are estimates. Passengers only.")}
+$("drvDestGo").onclick=()=>{const r=drvFind($("drvDest").value);if(!r){setTx($("drvTripNote"),"Couldn't find \u201c"+$("drvDest").value+"\u201d. Try a town name (e.g. Goulburn), \u201cTown, VIC\u201d, an airport code (CBR) or \u201clat, lon\u201d.");return}
+  DRV.dest={n:r.n,lat:+r.lat.toFixed(5),lon:+r.lon.toFixed(5),src:r.src};DRV.cl=[];if(DRV.trip)DRV.trip.arr=0;drvSave();$("drvDest").value="";drvTripRender();render();say("Destination "+r.n+".")};
+$("drvDest").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("drvDestGo").click()}});
+$("drvDestX").onclick=()=>{DRV.dest=null;DRV.cl=[];drvSave();drvTripRender();render()};
+/* private spots (share privacy): up to 5, on this phone only */
+function drvPrivUI(){const t=$("drvPrivTxt");if(!t)return;const n=(DRV.priv||[]).length;
+  setTx(t,"Drive privacy: your live share never shows a position within 5 km of where this drive started, your last 3 drive starts"+(n?" or your "+n+" private spot"+(n>1?"s":""):"")+", and waits 3 min after you leave those zones. Save home as a private spot for full protection.")}
+$("drvPrivBtn").onclick=()=>{if(!last||!drvFresh()){setTx($("drvPrivTxt"),"Needs a current GPS fix: start GPS first.");return}DRV.priv=[{lat:+last.lat.toFixed(5),lon:+last.lon.toFixed(5),t:Date.now()},...(DRV.priv||[])].slice(0,5);DRV.outAt=0;drvSave();drvPrivUI();hap(20);setTx($("shSt"),"Spot saved as private (5 km).")};
+$("drvPrivClr").onclick=()=>{if(!confirm("Clear your saved private spots? The start points of this and your last 3 drives stay private."))return;DRV.priv=[];drvSave();drvPrivUI()};
+/* ---- AR: towns and the drive destination ---- */
+function drvArTargets(L,add){const c=[];for(const t of TOWNS){const d=dist(L,{lat:t[1],lon:t[2]});if(d<90000&&d>600)c.push([t,d,Math.log10(Math.max(1000,t[4]))*1e5/(d+5000)])}
+  c.sort((a,b)=>b[2]-a[2]);for(const [t,d] of c.slice(0,14))add(t[0],t[1],t[2],"town",(t[3]?t[3]+" · ":"")+"town"+(t[4]>=1000?" · about "+(Math.round(t[4]/(t[4]>=1e5?1e4:t[4]>=1e4?1e3:100))*(t[4]>=1e5?1e4:t[4]>=1e4?1e3:100)).toLocaleString()+" people":""),2);
+  const to=drvTo();if(to){const e=drvEta(L);add("DEST",to.lat,to.lon,"dest",to.n+" · destination"+(e&&e.sec!=null?" · "+hm(e.sec)+" to go":""),3,true)}}
+/* ---- drive badges (same embroidered unit-patch style). Flight badges are hidden in Drive mode. ---- */
+function drvDays(b){const p=b.pts||[];if(p.length<2)return {};let raw=0;for(let i=1;i<p.length;i++)raw+=dist({lat:p[i-1][0],lon:p[i-1][1]},{lat:p[i][0],lon:p[i][1]});const k=raw>0?(b.d||raw)/raw:1,o={};
+  for(let i=1;i<p.length;i++){const dk=new Date(p[i][3]).toDateString();o[dk]=(o[dk]||0)+k*dist({lat:p[i-1][0],lon:p[i-1][1]},{lat:p[i][0],lon:p[i][1]})}return o}
+function drvNight(b){const p=b.pts||[];let ms=0;for(let i=1;i<p.length;i++){const dt=p[i][3]-p[i-1][3];if(dt<=0||dt>600000)continue;const v=dist({lat:p[i-1][0],lon:p[i-1][1]},{lat:p[i][0],lon:p[i][1]})/(dt/1000);if(v<DRV_MOVE)continue;if(sunElAt(p[i][3],p[i][0],p[i][1])<-6)ms+=dt}return ms}
+const nbW=b=>(b.pts||[]).some(q=>q[1]<124.3&&q[1]>121&&q[0]<-30.5&&q[0]>-33.5),nbE=b=>(b.pts||[]).some(q=>q[1]>133.4&&q[1]<136&&q[0]<-30.5&&q[0]>-33.5);
+const DBADGES=[["dstates","State lines","Cross a state or territory border on a drive",r=>[r.D.some(b=>(b.st||[]).length>=2)?1:0,1]],
+ ["d1000","1,000 km day","Drive 1,000 km in one day",r=>[Math.round(r.bestDay/1000),1000]],
+ ["nullarbor","Nullarbor crossing","Drive across the Nullarbor on the Eyre Highway (Norseman to Ceduna, or back) within a week",r=>[r.nb?1:0,1]],
+ ["dnight","Night drive","Drive for an hour after dark",r=>[Math.min(60,Math.round(r.bestNight/60000)),60]],
+ ["spot","Spotter","Spot an aircraft in AR",r=>[Math.min(1,SPC.caught.length),1]],["diary","Diarist","Write 5 diary notes on drives",r=>[r.D.reduce((s,b)=>s+(b.dy||[]).length,0),5]]];
+function drvStatsCalc(){const D=BOOK.filter(b=>b&&b.drv&&!b.demo);let km=0,secs=0,bestDay=0,bestNight=0,smooth=null;const days={},sts=new Set();
+  for(const b of D){km+=b.d||0;if(b.ev&&b.ev.off&&b.ev.on)secs+=(b.ev.on-b.ev.off)/1000;for(const [k,v] of Object.entries(drvDays(b)))days[k]=(days[k]||0)+v;bestNight=Math.max(bestNight,drvNight(b));(b.st||[]).forEach(x=>sts.add(x));if(b.rs&&(!smooth||b.rs.score>smooth.rs.score))smooth=b}
+  for(const v of Object.values(days))bestDay=Math.max(bestDay,v);
+  const nb=D.some(w=>nbW(w)&&D.some(e=>nbE(e)&&Math.abs(e.date-w.date)<7*86400e3));
+  const r={D,n:D.length,km,secs,bestDay,bestNight,nb,sts,smooth};r.badges=DBADGES.map(([k,n,d,f])=>{let [v,g]=[0,1];try{[v,g]=f(r)}catch(e){}return {k,n,d,v:Math.min(v,g),g,got:v>=g}});return r}
+function drvStatsRender(){const el=$("bdgOut"),kv=$("totKv");if(!el)return;const r=drvStatsCalc();
+  kv.innerHTML=[["Drives",r.n],["Distance",Math.round(fDst(r.km)).toLocaleString()+" "+S.dst],["Drive time",hm(r.secs)],["Best day",Math.round(fDst(r.bestDay)).toLocaleString()+" "+S.dst],["States",r.sts.size?[...r.sts].join(" "):"—"],["Smoothest ride",r.smooth?r.smooth.rs.score+"/100 "+r.smooth.from+"–"+r.smooth.to:"—"]].map(x=>`<div>${esc(x[0])}<b>${esc(x[1])}</b></div>`).join("");
+  const got=r.badges.filter(b=>b.got).length;$("bdgHead").textContent="Drive badges "+got+" of "+r.badges.length;
+  el.innerHTML=r.badges.map((b,i)=>`<button type="button" class="bdg ptc${b.got?" got":""}" data-b="${i}" aria-label="${esc(b.n)}: ${esc(b.d)}${b.got?" (earned)":" (locked)"}"><img src="patches/${esc(b.k)}.svg" alt="" width="60" height="70" draggable="false"><b>${esc(b.n)}</b><small>${b.got?"EARNED":bdgProg(b)}</small><i class="pbar"><i style="width:${Math.round(100*Math.min(1,b.v/b.g))}%"></i></i></button>`).join("");PT.bdg=r.badges;PT.list=DBADGES}
+{const _sr=statsRender;statsRender=function(){if(DRV.on)return drvStatsRender();PT.list=BADGES;return _sr.apply(this,arguments)}}
+/* ---- glance view in Drive mode: heading, altitude, speed, distance/ETA to the destination ---- */
+{const _gd=glData;glData=function(){const g=_gd.apply(this,arguments);if(!DRV.on)return g;const L=last,to=drvTo(),e=to&&L?drvEta(L):null;
+  return Object.assign(g,{eta:e&&e.sec!=null?e.eta:"--:--",rem:e&&e.sec!=null?remS(e.sec):"--",dtg:L&&to?Math.round(fDst(dist(L,to))):null,to:to?to.n:"",hdg:L&&L.trk!=null?String(Math.round(L.trk)%360).padStart(3,"0"):"---",card:L&&L.trk!=null?card(L.trk):"",ph:"DRIVE \u00b7 "+(PHN[PH.p]||"")})}}
+{const _gr=glRender;glRender=function(){_gr.apply(this,arguments);const c=document.querySelectorAll("#glOv .gll");if(c.length<4)return;
+  if(!DRV.on){["ETA","ALTITUDE","GROUNDSPEED","DISTANCE"].forEach((t,i)=>setTx(c[i],t));return}const g=glData();
+  setTx(c[0],"HEADING");setTx($("glEta"),g.hdg+"\u00b0");setTx($("glEtaS"),g.card||"");setTx(c[1],"ALTITUDE");setTx(c[2],"SPEED");setTx(c[3],g.to?"TO GO":"DISTANCE");
+  setTx($("glDtgU"),g.to?(S.dst==="nm"?"NM":"KM")+" \u00b7 ETA "+g.eta+" (est.)":"SET A DESTINATION ON THE HUD PAGE")}}
+/* ---- aircraft tracking from the ground: only while parked in Drive mode ---- */
+{const _ts=tkStart;tkStart=async function(){if(DRV.on&&drvMoving()){setTx($("tkSt"),"Aircraft tracking is off while the car is moving in Drive mode. It works when you're parked (under 5 km/h).");drvMsg("Aircraft tracking: park first.");return}return _ts.apply(this,arguments)};$("tkGo").onclick=tkStart}
+let drvTkWas=false;setInterval(()=>{if(!DRV.on){drvTkWas=false;return}const mv=drvMoving()&&TKS&&TKS.on;if(mv&&!drvTkWas)say("Aircraft tracking paused while the car is moving.");drvTkWas=!!mv;const n=$("drvTkNote");if(n)setTx(n,mv?"Aircraft tracking is paused while the car is moving (Drive mode). It comes back when you park.":"Drive mode: aircraft tracking works only while parked (under 5 km/h).")},3000);
+/* periodic */
+setInterval(()=>{if(!DRV.on||document.hidden)return;try{drvTripRender()}catch(e){}try{rsRender()}catch(e){}if(DRV.trip)drvSave()},5000);
+{const r=$("drvRest");if(r)r.addEventListener("click",()=>{r.style.display="none"})}
+{const _ui=shUI;shUI=function(){_ui.apply(this,arguments);try{drvPrivUI()}catch(e){}}}
+drvApply();drvPrivUI();
+window.cpDrive={state:()=>({on:!!DRV.on,pax:DRV.pax,paxNeeded:paxNeeded(),guard:DSW.guard,sw:$("drvSw").dataset.st,p:PH.p,start:!!DRV.start,starts:(DRV.starts||[]).length,priv:(DRV.priv||[]).length,outAt:DRV.outAt,why:DRV.why||"",dest:DRV.dest,trip:DRV.trip?{mv:DRV.trip.mv,sinceRest:DRV.trip.sinceRest,nextRest:DRV.trip.nextRest,rs:rsScore(DRV.trip.rs)}:null,units:{spd:S.spd,alt:S.alt,dst:S.dst},feat:DRV_FEAT.map(k=>FEAT[k])}),
+  set:(on)=>drvSet(on),find:drvFind,eta:()=>drvEta(last),privOk:()=>drvPrivOk(last),zones:()=>drvZones().length,stats:()=>{const r=drvStatsCalc();return {n:r.n,bestDay:Math.round(r.bestDay),bestNight:r.bestNight,nb:r.nb,got:r.badges.filter(b=>b.got).map(b=>b.k)}},
+  rs:rsScore,ar:()=>{const o=[];if(last)drvArTargets(last,(n,lat,lon,kind,note)=>o.push({n,kind,note}));return o},towns:()=>TOWNS.length,
+  setPax:ms=>{DRV.pax=ms;drvSave()},paxTick:()=>{if(DRV.on&&paxNeeded()&&$("drvPax").style.display==="none")paxAsk(true,null);return $("drvPax").style.display!=="none"},age:ms=>{if(DRV.outAt)DRV.outAt-=ms;return DRV.outAt},tick:()=>{try{drvTripRender();rsRender()}catch(e){}},rest:ms=>drvRestShow(ms),
+  fakeTrip:o=>{if(DRV.trip)Object.assign(DRV.trip,o);if(o&&o.check){const T=DRV.trip;if(T&&T.sinceRest>=T.nextRest){T.nextRest+=DRV_REST_MS;drvRestShow(T.sinceRest)}}}};
+/* End flight button acts as End drive in Drive mode; event times read as a drive */
+{const _ef=endFlight;endFlight=function(skip){if(DRV.on&&PH.p==="drive"){if(!skip&&!confirm("End this drive now?\n\nIt's saved to your logbook."))return false;drvEnd(Date.now(),true);return true}return _ef.apply(this,arguments)}}
+{const _eu=endBtnUpd;endBtnUpd=function(){_eu.apply(this,arguments);const b=$("endBtn");if(b)setTx(b,DRV.on?"End drive":"End flight")}}
+{const _er=evRender;evRender=function(){_er.apply(this,arguments);if(!DRV.on)return;const e=PH.ev||{},f=t=>t?new Date(t).toTimeString().slice(0,5):"\u2014",rows=[];
+  if(e.off)rows.push(["Drive start",f(e.off)]);if(e.on)rows.push(["Parked",f(e.on)]);if(e.off)rows.push(["Drive time",hm(((e.on||Date.now())-e.off)/1000)+(e.on?"":" so far")]);
+  $("evList").innerHTML=rows.length?rows.map(r=>`<li><b>${r[0]}</b><span>${r[1]}</span></li>`).join(""):'<li><span>Drive times fill in automatically when you set off.</span></li>'}}
+if(!DRV.on&&PH.p==="drive"){PH.p="parked";savePH()}
+/* the demo flight is a flight: not available in Drive mode (it would be logged as a drive) */
+{const _db=$("demoBtn").onclick;$("demoBtn").onclick=function(){if(DRV.on&&!demo){drvMsg("Demo flight works in flight mode. Flip the DRIVE switch down first.");try{$("drvTile").scrollIntoView({block:"start",behavior:"smooth"})}catch(e){}return}return _db.apply(this,arguments)}}
 }

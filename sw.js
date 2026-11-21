@@ -1,6 +1,6 @@
 // Cabin Panel service worker. Bump C on every release, or installed phones keep the old version.
 // v23: caches named cpsv-* hold the user's downloaded 3D route packs; never delete them on activate.
-const C='cabin-panel-v24c';
+const C='cabin-panel-v25';
 const F=['./','index.html','app.js','manifest.webmanifest','icon-180.png','icon-512.png','icon-512-maskable.png',
   'bg-day.webp','bg-ocean.webp','bg-sunset.webp','bg-night.webp','bg-appday.webp','bg-appnight.webp',
   'bg-apron.webp','bg-apronnight.webp','rwy.json','twy.json','lmk.json',
@@ -9,7 +9,8 @@ const F=['./','index.html','app.js','manifest.webmanifest','icon-180.png','icon-
   'svpack.js','sv3d.js','three.module.min.js','bcbp-zx.js',
   'plane.webp','bezel.webp','splash-1290x2796.jpg','splash-1179x2556.jpg','splash-1170x2532.jpg',
   'fonts/B612-Regular.woff2','fonts/B612-Bold.woff2','fonts/B612Mono-Regular.woff2','fonts/B612Mono-Bold.woff2','fonts/OFL.txt',
-  'patches/bass.svg','patches/bm.svg','patches/butter.svg','patches/c2c.svg','patches/caps.svg','patches/diary.svg','patches/f10.svg','patches/f25.svg','patches/f5.svg','patches/f50.svg','patches/first.svg','patches/fl400.svg','patches/intl.svg','patches/k10.svg','patches/long.svg','patches/night.svg','patches/r0.svg','patches/r1.svg','patches/r2.svg','patches/r3.svg','patches/r4.svg','patches/r5.svg','patches/r6.svg','patches/redeye.svg','patches/spot.svg','patches/states.svg','patches/sun.svg','patches/types.svg','patches/uluru.svg'];
+  'patches/bass.svg','patches/bm.svg','patches/butter.svg','patches/c2c.svg','patches/caps.svg','patches/diary.svg','patches/f10.svg','patches/f25.svg','patches/f5.svg','patches/f50.svg','patches/first.svg','patches/fl400.svg','patches/intl.svg','patches/k10.svg','patches/long.svg','patches/night.svg','patches/r0.svg','patches/r1.svg','patches/r2.svg','patches/r3.svg','patches/r4.svg','patches/r5.svg','patches/r6.svg','patches/redeye.svg','patches/spot.svg','patches/states.svg','patches/sun.svg','patches/types.svg','patches/uluru.svg',
+  'towns.json','patches/dstates.svg','patches/d1000.svg','patches/nullarbor.svg','patches/dnight.svg'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(f=>new Request(f,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C&&!x.startsWith('cpsv-')).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request).catch(()=>e.request.mode==='navigate'?caches.match('index.html'):Response.error())))});
