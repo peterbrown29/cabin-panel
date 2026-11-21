@@ -1758,14 +1758,15 @@ function retroDraw(V){const ac=S.cockpit,box=$("retro"),cv=$("retroCv"),dpr=wind
   const full=fhOn&&box.parentNode===$("fhSlot");let W=box.clientWidth,H;const land=full?box.clientWidth/Math.max(1,box.clientHeight)>1.25:false;
   let lay,cols,rows,cw,ch;
   /* v24c: size is locked per width/orientation. Scrolling the page or the iOS URL bar growing/shrinking must not
-     resize the canvas (that was the stretch/distortion while scrolling). Height is captured once
-     for this width, and resets only on a real width/orientation change. Position is measured scroll-invariant. */
+     resize the canvas (that was the stretch/distortion while scrolling). Tile height is captured once
+     for this width; the full panel only ever shrinks to the smallest height seen (so nothing is clipped when the
+     URL bar returns). Both reset only on a real width/orientation change. Position is measured scroll-invariant. */
   const lk=RET.lk||(RET.lk={}),key=Math.round(W)+"|"+(innerWidth>innerHeight?"l":"p")+"|"+(full?"f":"t")+"|"+ac+"|"+(RET.relay||0);
   if(lk.key!==key){lk.key=key;lk.ph=Infinity;lk.fh=Infinity;lk.av=null}
   let avail=0;if(!full){const pg=$("pg-hud"),nt=$("retroTile").querySelector(".note"),pr=pg.getBoundingClientRect(),off=box.getBoundingClientRect().top-pr.top+pg.scrollTop;
     if(lk.ph===Infinity)lk.ph=pg.clientHeight;const a=Math.floor(pr.top+lk.ph-(pr.top+off)-(nt?nt.offsetHeight+8:0)-34);
     if(lk.av==null)lk.av=a;avail=lk.av}
-  if(full||avail>W*1.25){if(full){if(lk.fh===Infinity)lk.fh=box.clientHeight;H=lk.fh}else H=avail;if(full&&cv.style.height!==H+"px")cv.style.height=H+"px";const ids=RO[ac],n=ids.length,top=full?Math.max(52,parseFloat(getComputedStyle($("fhOv")).paddingTop)||0):0,bot=full?RETRO_BOT:18,AH=Math.max(50,H-top-bot);if(!full&&cv.style.height!==H+"px")cv.style.height=H+"px";let best=null;
+  if(full||avail>W*1.25){if(full){lk.fh=Math.min(lk.fh,box.clientHeight);H=lk.fh}else H=avail;if(full&&cv.style.height!==H+"px")cv.style.height=H+"px";const ids=RO[ac],n=ids.length,top=full?Math.max(52,parseFloat(getComputedStyle($("fhOv")).paddingTop)||0):0,bot=full?RETRO_BOT:18,AH=Math.max(50,H-top-bot);if(!full&&cv.style.height!==H+"px")cv.style.height=H+"px";let best=null;
     for(let c=2;c<=6;c++){const r=Math.ceil(n/c),cell=Math.min(W/c,AH/r);if(r*c-n>2)continue;if(!best||cell>best.cell+0.5)best={c,r,cell}}
     cols=best.c;rows=best.r;lay=[];for(let r=0;r<rows;r++)lay.push(ids.slice(r*cols,r*cols+cols).concat(Array(cols).fill(null)).slice(0,cols));
     cw=W/cols;ch=AH/rows;RET.top=top;RET.fillMode=full?"full":"tile"}
