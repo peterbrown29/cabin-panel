@@ -1964,7 +1964,7 @@ function tkNormReg(s){s=String(s||"").toUpperCase().replace(/[^A-Z0-9-]/g,"");if
   if(s.includes("-"))return s;let m=s.match(/^(VH|ZK|9V|9M|PK|RP|A6|A7|HS|VT|PH|EI|OE|HB|OO|SE|LN|OY|OH|EC|CS|SP|OK|TC|P2|DQ|YJ|H4|F-?O)([A-Z0-9]{3})$/);if(m)return m[1]+"-"+m[2];
   m=s.match(/^(G|F|D|C|I)([A-Z]{4})$/);if(m)return m[1]+"-"+m[2];return s}
 function tkSave(){if(!TKS)return;const c=Object.assign({},TKS);if(c.trail&&c.trail.length>1500)c.trail=c.trail.slice(-1500);store.set("tk",c)}
-function tkOwnGround(){if(DRV.on)return !last||(Date.now()-lastFixAt)>180000||(last.spd||0)<5/3.6;return !last||GROUND.includes(PH.p)||(Date.now()-last.t)>180000}
+function tkOwnGround(){if(DRV.on)return true;return !last||GROUND.includes(PH.p)||(Date.now()-last.t)>180000}
 function tkOn(){return !!(TKS&&TKS.on&&TKS.L&&S.tkShow!=="off"&&!demo&&!REPLAY&&tkOwnGround()&&Date.now()-TKS.L.t<6*3600000)}
 function tkVs(){const L=TKS&&TKS.L;if(!L||tkStale())return null;return L.vsS!=null?L.vsS:L.vs!=null?L.vs:null}
 /* v24: a tracked fix older than 3 min (or flagged old: not seen / offline) is stale: no extrapolation, no attitude */
@@ -3283,7 +3283,7 @@ function drvApply(){const on=!!DRV.on;document.body.classList.toggle("drive",on)
   for(const k of ["tbLead","cues"]){const s=document.querySelector('.seg[data-k="'+k+'"]');const r=s&&s.closest(".row");if(r){r.classList.toggle("drvOff",on);const n=r.nextElementSibling;if(n&&n.classList.contains("note"))n.classList.toggle("drvOff",on)}}
   document.querySelectorAll(".drvOffNote").forEach(n=>{const pg=n.closest(".page"),ids=pg?pg.id:"";const off=DRV_OFF.filter(x=>x[1]===ids).map(x=>x[2]);
     if(ids==="pg-set")off.push("turbulence warning","seatbelt and phase cues");if(ids==="pg-book")off.push("flight-only badges (FL400, Night landing, Butter landing and the other flight badges)");
-    if(ids==="pg-hud")off.push("turbulence warning","seatbelt and phase cues","aircraft tracking while the car is moving");
+    if(ids==="pg-hud")off.push("turbulence warning","seatbelt and phase cues");
     n.textContent=off.length?"DRIVE MODE \u00b7 switched off: "+off.join(", ")+". Flip the DRIVE switch down for flight mode.":""});
   {const g=$("gs");const l=g&&g.closest(".tile").querySelector(".lab span");if(l)l.textContent=on?"Speed":"Groundspeed"}
   document.querySelectorAll("h2").forEach(h=>{const t=h.textContent.trim();if(t==="Share live flight"||t==="Share live drive")h.textContent=on?"Share live drive":"Share live flight"});
@@ -3363,9 +3363,8 @@ function drvStatsRender(){const el=$("bdgOut"),kv=$("totKv");if(!el)return;const
   if(!DRV.on){["ETA","ALTITUDE","GROUNDSPEED","DISTANCE"].forEach((t,i)=>setTx(c[i],t));return}const g=glData();
   setTx(c[0],"HEADING");setTx($("glEta"),g.hdg+"\u00b0");setTx($("glEtaS"),g.card||"");setTx(c[1],"ALTITUDE");setTx(c[2],"SPEED");setTx(c[3],g.to?"TO GO":"DISTANCE");
   setTx($("glDtgU"),g.to?(S.dst==="nm"?"NM":"KM")+" \u00b7 ETA "+g.eta+" (est.)":"SET A DESTINATION ON THE HUD PAGE")}}
-/* ---- aircraft tracking from the ground: only while parked in Drive mode ---- */
-{const _ts=tkStart;tkStart=async function(){if(DRV.on&&drvMoving()){setTx($("tkSt"),"Aircraft tracking is off while the car is moving in Drive mode. It works when you're parked (under 5 km/h).");drvMsg("Aircraft tracking: park first.");return}return _ts.apply(this,arguments)};$("tkGo").onclick=tkStart}
-let drvTkWas=false;setInterval(()=>{if(!DRV.on){drvTkWas=false;return}const mv=drvMoving()&&TKS&&TKS.on;if(mv&&!drvTkWas)say("Aircraft tracking paused while the car is moving.");drvTkWas=!!mv;const n=$("drvTkNote");if(n)setTx(n,mv?"Aircraft tracking is paused while the car is moving (Drive mode). It comes back when you park.":"Drive mode: aircraft tracking works only while parked (under 5 km/h).")},3000);
+/* ---- aircraft tracking from the ground works in Drive mode, parked or moving (passengers only) ---- */
+setInterval(()=>{if(!DRV.on)return;const n=$("drvTkNote");if(n)setTx(n,"Drive mode: aircraft tracking works parked or on the move. For passengers only.")},3000);
 /* periodic */
 setInterval(()=>{if(!DRV.on||document.hidden)return;try{drvTripRender()}catch(e){}try{rsRender()}catch(e){}if(DRV.trip)drvSave()},5000);
 {const r=$("drvRest");if(r)r.addEventListener("click",()=>{r.style.display="none"})}
