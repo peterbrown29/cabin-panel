@@ -186,9 +186,9 @@ body.arf-wht #arVid{filter:grayscale(1) contrast(1.35) brightness(1.05)}
 #ckRow{margin:6px 0 2px}#ckRow .sub{margin-right:4px}
 #retroTile .lab{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}#fpBtn{min-height:34px;font-size:12px}
 #retro{position:relative;width:100%;border-radius:10px;overflow:hidden;background:#0b0b0a}
-#retroCv{display:block;width:100%;height:240px}
+#retroCv{display:block;width:100%;height:240px;cursor:pointer;touch-action:pan-y}
 body.fhr #fhOv{justify-content:center}body.fhr #fhSlot{flex:1;align-items:stretch}
-body.fhr #fhSlot{position:relative;width:100%;min-height:0}body.fhr #fhSlot #retro{position:absolute;inset:0;width:auto;height:auto;border-radius:0}body.fhr #fhSlot #retroCv{height:100%!important}
+body.fhr #fhSlot{position:relative;width:100%;min-height:0}body.fhr #fhSlot #retro{position:absolute;inset:0;width:auto;height:auto;border-radius:0}body.fhr #fhSlot #retroCv{max-height:100%}
 body.fhr #fhPhase{display:none}
 /* v22c: no wasted space. "Fill" pages stretch their main element to the bottom of the screen */
 .page.fill>.wrap{min-height:100%;display:flex;flex-direction:column}
@@ -360,6 +360,23 @@ li.poi.yours b,#aiCard .aiReg,li.bch b{color:var(--mag)}
 body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
 #pg-set .tile>.row,#ckRow,.lab{text-transform:uppercase;letter-spacing:.06em}#pg-set .tile>.row{color:var(--lbl);font:700 13px var(--mono)}
 .lm li>span:only-child{flex:1;text-align:left;max-width:none;color:var(--txt);text-transform:none}
+/* v24c: cabin cue + spot banners in flat cockpit style */
+#cueBar{background:var(--box);border:1px solid var(--sel);border-radius:0;color:var(--lbl);box-shadow:none}
+#cueBar::before{content:"CABIN \25B8  ";color:var(--sel);font:700 11px var(--mono);letter-spacing:.08em}
+#spBan{background:var(--box);border:1px solid var(--sel);border-radius:0;box-shadow:none}
+/* v24c: gauge pop-out */
+#gzOv{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 12px)}
+#gzBox{background:var(--frame);border:2px solid var(--frameIn);padding:8px 10px 10px;display:flex;flex-direction:column;align-items:center}
+#gzBox .mfdT{width:100%;display:flex;justify-content:space-between;gap:10px;font:700 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--lbl);border-bottom:1px solid var(--div);padding-bottom:5px;margin-bottom:8px}
+#gzBox .mfdT b{color:var(--ok)}#gzCode{color:var(--sel)}
+#gzCv{display:block;aspect-ratio:1/1;background:#000}
+#gzOv.tapClose::after{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);text-align:center;font-size:11px}
+/* v24c: messages you can close by tapping say so (small cyan cockpit hint); messages that can't, don't */
+.tapClose::after,.tapReload::after{content:"Tap to close";display:block;margin-top:5px;font:700 10px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--sel);text-align:right}
+.tapReload::after{content:"Tap to reload";text-align:center}
+.tapClose{cursor:pointer}
+#fhToast:not(.gone){pointer-events:auto}#fhToast.gone{opacity:0!important;pointer-events:none}body.fhr #fhToast{max-height:70px}
+#tbBan.tapClose::after{color:#fff}
 @media(prefers-contrast:more){:root{--txt:#e3e8eb;--div:#4a545c}}
 </style>
 </head>
@@ -367,12 +384,12 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
 <header><div class="wrap" style="padding-bottom:0">
   <div class="bar"><span class="dot" id="dot"></span><span id="stat">GPS off</span><span id="phase" class="chip">Parked</span><span id="demoTag">DEMO</span><span id="netTag" style="display:none">OFFLINE</span><span id="shTag" style="display:none" role="status" title="Your flight is being shared">SHARING</span><span id="clock"></span></div>
   <div id="strip" style="display:none"><div class="sr"><b id="sFrom"></b><div class="st"><canvas id="sProf"></canvas></div><b id="sTo"></b></div><div class="sub" id="sTxt"></div></div>
-  <div id="toast" style="display:none"></div>
+  <div id="toast" class="tapClose" title="Tap to close" style="display:none"></div>
   <button id="mcBtn" class="mc" style="display:none">MASTER CAUTION</button>
-  <div id="tbBan" style="display:none" role="alert"><span id="tbTxt">TURBULENCE MASTER WARNING</span><span id="tbSub"></span><div class="row"><button id="tbAck" class="pri">Acknowledge</button><button id="tbDis">Dismiss</button></div></div>
-  <div id="spBan" style="display:none" role="status"></div>
-  <div id="cueBar" style="display:none" role="status" aria-live="polite"></div>
-  <button id="updBtn" class="upd" style="display:none">New version installed · tap to reload</button>
+  <div id="tbBan" class="tapClose" title="Tap to close" style="display:none" role="alert"><span id="tbTxt">TURBULENCE MASTER WARNING</span><span id="tbSub"></span><div class="row"><button id="tbAck" class="pri">Acknowledge</button><button id="tbDis">Dismiss</button></div></div>
+  <div id="spBan" class="tapClose" title="Tap to close" style="display:none" role="status"></div>
+  <div id="cueBar" class="tapClose" title="Tap to close" style="display:none" role="status" aria-live="polite"></div>
+  <button id="updBtn" class="upd tapReload" style="display:none">New version installed</button>
   <div id="resumeNote" style="display:none"></div>
   <div id="endNote" style="display:none"><span id="endNoteTxt"></span><div class="row"><button id="endNoteBtn" class="pri">End flight</button><button id="endNoteX">Not now</button></div></div>
   <div id="tkBan" style="display:none" role="status"></div>
@@ -714,7 +731,7 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
     <div class="row"><span class="seg" data-k="arSide"><button data-v="left">Left window</button><button data-v="right">Right window</button></span><span class="sub">Trim</span><input type="range" id="arTrim" min="-60" max="60" step="1" value="0" aria-label="Heading trim, degrees"><b id="arTrimV">0°</b></div>
   </div>
   <button id="arShow" aria-label="Show controls">⚙</button>
-  <button id="arIdBtn" aria-label="Identify what is under the crosshair">IDENTIFY</button><div id="arIdOut" role="status"></div><div id="spHud" role="status"></div>
+  <button id="arIdBtn" aria-label="Identify what is under the crosshair">IDENTIFY</button><div id="arIdOut" class="tapClose" title="Tap to close" role="status"></div><div id="spHud" role="status"></div>
   <div id="arDisc">Entertainment only · not for navigation · positions approximate</div>
 </div>
 <div id="svOv" role="dialog" aria-label="3D window view">
@@ -731,7 +748,8 @@ body.m-night.tex .page>.wrap,body.m-night.tex .tile{background-image:repeating-l
   <div id="svAttrMini">Imagery: Sentinel-2 cloudless 2016 by EOX (CC BY 4.0) · Terrain: Mapterhorn · Night: NASA · Not for navigation</div>
   <button id="svShow" aria-label="Show controls">⚙</button>
 </div>
-<div id="fhOv" aria-label="Full screen HUD"><button id="fhExit">✕ Exit</button><span id="fhPhase" class="chip"></span><div id="fhSlot"></div><div id="fhToast"></div></div>
+<div id="gzOv" class="tapClose" title="Tap to close" style="display:none" role="dialog" aria-modal="true" aria-label="Enlarged gauge"><div id="gzBox"><div class="mfdT"><b id="gzT">Gauge</b><span id="gzCode"></span></div><canvas id="gzCv" aria-label="Enlarged gauge, live"></canvas></div></div>
+<div id="fhOv" aria-label="Full screen HUD"><button id="fhExit">✕ Exit</button><span id="fhPhase" class="chip"></span><div id="fhSlot"></div><div id="fhToast" class="tapClose gone" title="Tap to close"></div></div>
 <div id="cardOv"><div class="cardBox"><img id="cardImg" alt="Flight summary card"><div class="row"><button id="cardShare" class="pri">Share</button><button id="cardClose">Close</button></div><label class="chk" id="cardSnapL" style="display:none"><input type="checkbox" id="cardSnap" checked> Include 3D snapshot</label><p class="note" id="cardHint">Long-press the image to save it to Photos.</p></div></div>
 
 <div id="rpBar" style="display:none" role="group" aria-label="Replay controls"><div class="row"><button id="rpbPlay" aria-label="Play or pause">❚❚</button><span class="seg" id="rpbSpeed"><button data-v="1">1×</button><button data-v="10">10×</button><button data-v="30">30×</button><button data-v="60">60×</button><button data-v="120">120×</button></span><button id="rpb3d">3D</button><button id="rpbMap">Map</button><button id="rpbExit">Exit</button></div><div class="row"><span id="rpbTitle"></span><span id="rpbTime"></span></div><input type="range" id="rpbSlider" min="0" max="1000" value="0" aria-label="Replay position"></div>

@@ -455,7 +455,7 @@ let voiceOn=false,auVoice=null,toastT=0;
 function pickVoice(){try{const v=speechSynthesis.getVoices();auVoice=(S.vox!=="system"&&voxFemale(v))||v.find(x=>/en-AU/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}catch(e){}}
 try{speechSynthesis.onvoiceschanged=pickVoice;pickVoice()}catch(e){}
 function say(text,low){
-  $("toast").textContent=text;$("toast").style.display="";{const ft=$("fhToast");if(ft){ft.textContent=text;ft.style.opacity="1";clearTimeout(window.__ftT);window.__ftT=setTimeout(()=>{ft.style.opacity="0"},7000)}}clearTimeout(toastT);toastT=setTimeout(()=>{$("toast").style.display="none"},9000);
+  $("toast").textContent=text;$("toast").style.display="";{const ft=$("fhToast");if(ft){ft.textContent=text;ft.classList.remove("gone");ft.style.opacity="1";clearTimeout(window.__ftT);window.__ftT=setTimeout(()=>{ft.style.opacity="0";ft.classList.add("gone")},7000)}}clearTimeout(toastT);toastT=setTimeout(()=>{$("toast").style.display="none"},9000);
   if(!voiceOn||S.vox==="off")return;if(voxSay(text,low))return;try{if(low&&(speechSynthesis.pending||speechSynthesis.speaking))return;const u=new SpeechSynthesisUtterance(text);if(auVoice)u.voice=auVoice;u.rate=1;speechSynthesis.speak(u)}catch(e){}
 }
 const spokenName=n=>n.replace(/\s*\(.*?\)/,"").replace(/–/g," ").replace(/kunanyi \/ /,"");
@@ -1713,10 +1713,10 @@ function retroLoad(ac){const out=[];for(const id of RG[ac].concat(["panel"])){co
 function retroApply(){const on=retroOn();document.querySelector(".tile.hud").style.display=on?"none":"";$("retroTile").style.display=on?"":"none";
   if(on){retroLoad(S.cockpit);$("retroName").textContent=S.cockpit==="p51"?"P-51 Mustang-style panel":"F-4 Phantom-style panel"}
   if(fhOn){const want=on?$("retro"):$("hudwrap");if(want.parentNode!==$("fhSlot")){fhExit();fhEnter(false)}}
-  retroKick()}
+  RET.relay=(RET.relay||0)+1;if(!on&&RET.pop)retroPopClose();retroKick()}
 document.querySelectorAll('.seg[data-k="cockpit"]').forEach(s=>s.addEventListener("click",()=>setTimeout(retroApply,0)));
 $("fpBtn").onclick=()=>fhEnter(false);
-function retroVisible(){if(!retroOn()||document.hidden)return false;if(fhOn)return true;const pg=PG.els[PG.i];return !!(pg&&pg.id==="pg-hud")}
+function retroVisible(){if(!retroOn()||document.hidden)return false;if(fhOn||RET.pop)return true;const pg=PG.els[PG.i];return !!(pg&&pg.id==="pg-hud")}
 function retroKick(){if(!RET.raf&&retroVisible())RET.raf=requestAnimationFrame(retroFrame)}
 setInterval(retroKick,1000);document.addEventListener("visibilitychange",retroKick);$("pages").addEventListener("scroll",()=>setTimeout(retroKick,120),{passive:true});
 /* live values (GPS ground speed stands in for airspeed) */
@@ -1736,13 +1736,36 @@ function retroData(dt){const tko=tkOn(),L=viewL()||last,now=Date.now(),V=RET.v,u
 function retroFrame(ts){RET.raf=0;if(!retroVisible())return;if(ts-RET.lt<45){RET.raf=requestAnimationFrame(retroFrame);return}const dt=RET.lt?Math.min(0.5,(ts-RET.lt)/1000):0;RET.lt=ts;
   try{retroDraw(retroData(dt))}catch(e){console.warn(e)}RET.raf=requestAnimationFrame(retroFrame)}
 window.cpRetro=()=>({on:retroOn(),ac:S.cockpit||"modern",vis:retroVisible(),loaded:Object.values(RET.img).filter(i=>i.complete&&i.naturalWidth).length,v:RET.v,lay:RET.lay});
+/* v24c: tap a gauge to pop it out enlarged (live). Tap anywhere on the pop-out to close. */
+const RGN={asi:"Airspeed",ai:"Attitude",adi:"Attitude (ADI)",alt:"Altimeter",tb:"Turn and bank",dg:"Directional gyro",vsi:"Vertical speed",vvi:"Vertical velocity",mp:"Manifold pressure",rpm:"Tachometer",fuel:"Fuel",cmp:"Compass",aoa:"Angle of attack",hsi:"HSI",g:"G-meter",clock:"Clock"};
+function retroPopSize(){const c=$("gzCv"),w=innerWidth,h=innerHeight,s=Math.max(160,Math.floor(Math.min(w-40,h-170,620))),dpr=window.devicePixelRatio||1;
+  RET.popK=w+"|"+(w>h?"l":"p");c.style.width=c.style.height=s+"px";c.width=c.height=Math.round(s*dpr);RET.popS=s}
+function retroPop(id){if(!id||!RG[S.cockpit]||!RG[S.cockpit].includes(id))return false;RET.pop=id;$("gzT").textContent=RGN[id]||id;$("gzCode").textContent=(S.cockpit==="p51"?"P-51":"F-4")+" · "+id.toUpperCase();
+  $("gzOv").style.display="";retroPopSize();RET.lt=0;retroDraw(retroData(0));retroKick();return true}
+function retroPopClose(){RET.pop=null;$("gzOv").style.display="none"}
+function retroPopDraw(V){const c=$("gzCv");if(!c||!RET.pop)return;if(RET.popK!==innerWidth+"|"+(innerWidth>innerHeight?"l":"p"))retroPopSize();
+  const s=RET.popS,dpr=window.devicePixelRatio||1,x=c.getContext("2d"),ac=S.cockpit;x.setTransform(dpr,0,0,dpr,0,0);
+  x.fillStyle=RET.pat||(ac==="p51"?"#0b0b0a":"#2a2c2e");x.fillRect(0,0,s,s);gauge(x,ac,RET.pop,s/2,s/2,s*0.97,V)}
+function retroHit(e){const cv=$("retroCv"),r=cv.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;
+  for(const c of RET.cells||[])if(Math.hypot(px-c.cx,py-c.cy)<=c.s/2)return c.id;return null}
+$("retroCv").addEventListener("click",e=>{const id=retroHit(e);if(id&&retroPop(id))e.stopPropagation()});
+$("gzOv").addEventListener("click",retroPopClose);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&RET.pop)retroPopClose()});
+window.cpRetroPop={open:retroPop,close:retroPopClose,state:()=>({id:RET.pop,size:RET.popS,cells:(RET.cells||[]).map(c=>({id:c.id,cx:Math.round(c.cx),cy:Math.round(c.cy),s:Math.round(c.s)}))})};
 const RETRO_BOT=78;/* full panel: bottom strip kept clear for the callout banner (2 lines) + disclaimer line */
 const RO={p51:["asi","ai","alt","tb","dg","vsi","mp","rpm","fuel","cmp"],f4:["aoa","asi","adi","alt","g","clock","hsi","vvi"]};
 function retroDraw(V){const ac=S.cockpit,box=$("retro"),cv=$("retroCv"),dpr=window.devicePixelRatio||1;
   const full=fhOn&&box.parentNode===$("fhSlot");let W=box.clientWidth,H;const land=full?box.clientWidth/Math.max(1,box.clientHeight)>1.25:false;
   let lay,cols,rows,cw,ch;
-  let avail=0;if(!full){const pg=$("pg-hud"),nt=$("retroTile").querySelector(".note");avail=Math.floor(pg.getBoundingClientRect().bottom-box.getBoundingClientRect().top-(nt?nt.offsetHeight+8:0)-34)}
-  if(full||avail>W*1.25){H=full?box.clientHeight:avail;const ids=RO[ac],n=ids.length,top=full?Math.max(52,parseFloat(getComputedStyle($("fhOv")).paddingTop)||0):0,bot=full?RETRO_BOT:18,AH=Math.max(50,H-top-bot);if(!full&&cv.style.height!==H+"px")cv.style.height=H+"px";let best=null;
+  /* v24c: size is locked per width/orientation. Scrolling the page or the iOS URL bar growing/shrinking must not
+     resize the canvas (that was the stretch/distortion while scrolling). Heights only ever shrink to the smallest
+     seen for this width, and reset on a real width/orientation change. Position is measured scroll-invariant. */
+  const lk=RET.lk||(RET.lk={}),key=Math.round(W)+"|"+(innerWidth>innerHeight?"l":"p")+"|"+(full?"f":"t")+"|"+ac+"|"+(RET.relay||0);
+  if(lk.key!==key){lk.key=key;lk.ph=Infinity;lk.fh=Infinity;lk.av=null}
+  let avail=0;if(!full){const pg=$("pg-hud"),nt=$("retroTile").querySelector(".note"),pr=pg.getBoundingClientRect(),off=box.getBoundingClientRect().top-pr.top+pg.scrollTop;
+    lk.ph=Math.min(lk.ph,pg.clientHeight);const a=Math.floor(pr.top+lk.ph-(pr.top+off)-(nt?nt.offsetHeight+8:0)-34);
+    if(lk.av==null||a<lk.av)lk.av=a;avail=lk.av}
+  if(full||avail>W*1.25){if(full){lk.fh=Math.min(lk.fh,box.clientHeight);H=lk.fh}else H=avail;if(full&&cv.style.height!==H+"px")cv.style.height=H+"px";const ids=RO[ac],n=ids.length,top=full?Math.max(52,parseFloat(getComputedStyle($("fhOv")).paddingTop)||0):0,bot=full?RETRO_BOT:18,AH=Math.max(50,H-top-bot);if(!full&&cv.style.height!==H+"px")cv.style.height=H+"px";let best=null;
     for(let c=2;c<=6;c++){const r=Math.ceil(n/c),cell=Math.min(W/c,AH/r);if(r*c-n>2)continue;if(!best||cell>best.cell+0.5)best={c,r,cell}}
     cols=best.c;rows=best.r;lay=[];for(let r=0;r<rows;r++)lay.push(ids.slice(r*cols,r*cols+cols).concat(Array(cols).fill(null)).slice(0,cols));
     cw=W/cols;ch=AH/rows;RET.top=top;RET.fillMode=full?"full":"tile"}
@@ -1751,7 +1774,8 @@ function retroDraw(V){const ac=S.cockpit,box=$("retro"),cv=$("retroCv"),dpr=wind
   const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);const cell=Math.min(cw,ch);RET.lay={land,cols,rows,cell:Math.round(cell),fill:+((cell*cols*cell*rows)/(W*H)).toFixed(2)};
   const pi=RET.img[ac+"_panel"];if(pi&&pi.complete&&pi.naturalWidth){if(!RET.pat||RET.patK!==ac){RET.pat=x.createPattern(pi,"repeat");RET.patK=ac}x.fillStyle=RET.pat}else x.fillStyle=ac==="p51"?"#0b0b0a":"#2a2c2e";x.fillRect(0,0,W,H);
   const oy=RET.top||(full?0:(H-ch*rows)/2);
-  lay.forEach((row,r)=>row.forEach((id,c)=>{const cx=cw*(c+.5),cy=oy+ch*(r+.5);if(id)gauge(x,ac,id,cx,cy,cell*0.97,V);else placard(x,ac,cx,cy,cell)}));
+  RET.cells=[];lay.forEach((row,r)=>row.forEach((id,c)=>{const cx=cw*(c+.5),cy=oy+ch*(r+.5);if(id){gauge(x,ac,id,cx,cy,cell*0.97,V);RET.cells.push({id,cx,cy,s:cell*0.97})}else placard(x,ac,cx,cy,cell)}));
+  if(RET.pop)retroPopDraw(V);
   if(full||RET.fillMode==="tile"&&avail>W*1.25){x.save();x.font="700 10px \"B612 Mono\",monospace";x.textAlign="center";x.fillStyle=ac==="p51"?"#d9cfb0":"#e8e8e8";x.globalAlpha=.7;x.fillText("GPS-DRIVEN · ENTERTAINMENT ONLY · NOT FOR NAVIGATION",W/2,H-6);x.restore()}}
 function placard(x,ac,cx,cy,cell){const w=cell*0.78,h=cell*0.34;x.save();x.fillStyle=ac==="p51"?"#1a1915":"#3a3d40";x.strokeStyle="rgba(0,0,0,.6)";x.lineWidth=2;x.fillRect(cx-w/2,cy-h/2,w,h);x.strokeRect(cx-w/2,cy-h/2,w,h);
   x.fillStyle=ac==="p51"?"#d9cfb0":"#e8e8e8";x.textAlign="center";x.font="700 "+Math.round(cell*0.065)+"px \"B612 Mono\",monospace";x.fillText(ac==="p51"?"GPS-DRIVEN DISPLAY":"GPS-DRIVEN DISPLAY",cx,cy-cell*0.03);
@@ -2518,6 +2542,12 @@ function tbCheck(){const b=$("tbBan");if(!b)return;if(!FEAT.turb||S.tbLead==="of
   b.style.display="";b.classList.toggle("ack",acked);
   if(TB.said!==a.key){TB.said=a.key;say("Turbulence master warning. Estimated "+(m<1?"now":"in "+m+" minutes")+".");hap([150,80,150,80,150])}
   if(!acked&&now-TB.lastBeep>5000){TB.lastBeep=now;try{beep()}catch(e){}}}
+/* v24c: tap anywhere on a closable message closes it */
+{const tc=(id,f)=>{const e=$(id);if(e)e.addEventListener("click",ev=>{if(ev.target.closest("button"))return;f(e)})};
+ tc("toast",e=>{clearTimeout(toastT);e.style.display="none"});
+ tc("fhToast",e=>{clearTimeout(window.__ftT);e.style.opacity="0";e.classList.add("gone")});
+ tc("tbBan",()=>{if(TB.cur)TB.dis=TB.cur.key;tbCheck()});
+ tc("spBan",e=>{e.style.display="none"});}
 if($("tbAck"))$("tbAck").onclick=e=>{e.stopPropagation();if(TB.cur)TB.ack=TB.cur.key;tbCheck()};
 if($("tbDis"))$("tbDis").onclick=e=>{e.stopPropagation();if(TB.cur)TB.dis=TB.cur.key;tbCheck()};
 setInterval(()=>{try{tbCheck()}catch(e){}},3000);
@@ -2798,6 +2828,7 @@ function cueCheck(){if(S.cues==="off"||REPLAY)return null;const k=PH.bookId||PH.
   CU.p=p;if(id&&!CU.said[id]){cueShow(id,CUT[id]);return id}return null}
 setInterval(()=>{try{cueCheck()}catch(e){}},1000);
 $("cueBar").onclick=()=>{$("cueBar").style.display="none"};
+window.cpTap={say:t=>say(t),cue:(id,t)=>cueShow(id,t)};
 window.cpCue={state:()=>({p:PH.p,ev:PH.ev,demo:!!PH.demo,cues:S.cues,rep:!!REPLAY,spd:last&&last.spd,cp:CU.p}),check:cueCheck,log:()=>CU.log.slice(),reset:()=>{CU.said={};CU.k=null;CU.log=[]},text:CUT};
 
 /* ---- 18 Connection countdown: time to make the next flight on a multi-leg trip ---- */
