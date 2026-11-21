@@ -2717,9 +2717,10 @@ window.cpShare={state:()=>({on:SH.on,id:SH.id?SH.id.slice(0,4)+"…":"",hasToken
 /* ---- follower view ---- */
 let FW={id:"",d:null,at:0,err:"",iv:0,busy:false};
 function fwParse(s){s=String(s||"").trim();const m=s.match(/[#?&](?:follow|id)=([A-Za-z0-9_-]{22})/)||s.match(/follow=([A-Za-z0-9_-]{22})/)||s.match(/^([A-Za-z0-9_-]{22})$/);return m?m[1]:null}
-async function fwPoll(){if(!FW.id||FW.busy)return;if(!cfOk()){FW.err="offline";fwDraw();return}FW.busy=true;
-  try{const r=await svcFetch(SVC.share+"/"+FW.id,{},12000);if(r.status===404){FW.err="This shared flight has ended or the link is wrong.";FW.d=null}else if(!r.ok)throw new Error("answered "+r.status);else{FW.d=await r.json();FW.at=Date.now();FW.err=""}}
-  catch(e){FW.err="Couldn't reach the share service ("+((e&&e.message)||e)+")."}finally{FW.busy=false;fwDraw()}}
+async function fwPoll(){if(!FW.id||FW.busy)return;if(!cfOk()){FW.err="offline";fwDraw();return}const f=FW;f.busy=true;
+  /* v24c: a poll that finishes after the follow view was closed or switched to another link must not write into the new view */
+  try{const r=await svcFetch(SVC.share+"/"+f.id,{},12000);if(f!==FW||!f.id)return;if(r.status===404){f.err="This shared flight has ended or the link is wrong.";f.d=null}else if(!r.ok)throw new Error("answered "+r.status);else{const d=await r.json();if(f!==FW||!f.id)return;f.d=d;f.at=Date.now();f.err="";if(d&&d.st)clearInterval(f.iv)}}
+  catch(e){if(f===FW&&f.id)f.err="Couldn't reach the share service ("+((e&&e.message)||e)+")."}finally{f.busy=false;if(f===FW)fwDraw()}}
 function fwOpen(id){if(!FEAT.follow)return;clearInterval(FW.iv);FW={id,d:null,at:0,err:"",iv:0,busy:false};$("fwOv").style.display="flex";document.body.classList.add("fw");fwDraw();fwPoll();clearInterval(FW.iv);FW.iv=setInterval(fwPoll,SVC.followPollMs);try{$("fwExit").focus()}catch(e){}}
 function fwClose(){clearInterval(FW.iv);FW.id="";$("fwOv").style.display="none";document.body.classList.remove("fw");if(/follow=/.test(location.hash))try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}}
 function fwDraw(){const cv=$("fwCv");if(!cv||!FW.id)return;const W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;const pr=Math.min(2,window.devicePixelRatio||1);if(cv.width!==Math.round(W*pr)){cv.width=Math.round(W*pr);cv.height=Math.round(H*pr)}
