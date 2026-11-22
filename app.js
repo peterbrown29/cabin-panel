@@ -1159,9 +1159,13 @@ function profDraw(cv,small){
   if(cv.width!==W*dpr||cv.height!==H*dpr){cv.width=W*dpr;cv.height=H*dpr}
   const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
   const css=getComputedStyle(document.body),col=k=>css.getPropertyValue(k).trim();
-  const fr=apBy(S.from),to=apBy(S.to);if(!fr||!to||fr.c===to.c)return;
-  const tot=dist(fr,to),pl=plan(tot);
-  const top=Math.max(pl.cr,...prof.map(q=>q.a))*1.12||10000;
+  /* v27: while tracking, the profile uses the tracked aircraft's own route (adsbdb by callsign) when it fits the plane's position;
+     otherwise it plots the flown trace against distance flown, so the trace never disappears */
+  const tkF=pfTk(),rt=tkF?pfRoute(tkF):null;PF.n=0;PF.ax=null;PF.ay=null;PF.mode=tkF?(rt?"route":"flown"):"plan";
+  if(tkF&&!rt){pfFlown(x,W,H,small,col,tkF);return}
+  const fr=rt?rt.fr:apBy(S.from),to=rt?rt.to:apBy(S.to);if(!fr||!to||fr.c===to.c)return;PF.rt=rt?fr.c+"-"+to.c:"";
+  const tot=dist(fr,to),pl=plan(tot),prof=rt?[]:PROF0();
+  const top=Math.max(pl.cr,...prof.map(q=>q.a),...(tkF?((TKS&&TKS.trail)||[]).slice(-600).map(q=>q[3]>0?q[3]/FT:0):[]))*1.12||10000;
   const L0=small?2:54,R0=small?8:12,T0=small?3:12,B0=small?3:24;
   const X=f=>L0+f*(W-L0-R0),Y=a=>H-B0-Math.max(0,a)/top*(H-T0-B0);
   if(!small){x.strokeStyle=col("--line");x.lineWidth=1;x.fillStyle=col("--dim");x.font="11px \"B612 Mono\",monospace";x.textAlign="right";
@@ -1179,7 +1183,6 @@ function profDraw(cv,small){
     x.beginPath();x.moveTo(X(ps[0].f),Y(0));ps.forEach(q=>x.lineTo(X(q.f),Y(q.a)));x.lineTo(X(ps[ps.length-1].f),Y(0));x.closePath();x.globalAlpha=.22;x.fillStyle=col("--mag");x.fill();x.globalAlpha=1;
     x.strokeStyle=col("--mag");x.lineWidth=small?2:2.5;x.beginPath();ps.forEach((q,i)=>{i?x.lineTo(X(q.f),Y(q.a)):x.moveTo(X(q.f),Y(q.a))});x.stroke()}
   /* v26f: while following an aircraft, plot its ACTUAL flown altitude (ADS-B trail: history + every fix since the follow started) as a solid line */
-  const tkF=pfTk();PF.n=0;PF.ax=null;PF.ay=null;
   if(tkF){const c=S.disp==="nvg"?col("--ink"):"#ff8a1f",tr=pfTrail(fr,to,tot);PF.n=tr.length;
     if(tr.length){x.save();x.strokeStyle=c;x.lineWidth=small?2:2.6;x.lineJoin="round";x.beginPath();tr.forEach((q,i)=>{const px=X(q[0]),py=Y(q[1]);i?x.lineTo(px,py):x.moveTo(px,py)});
       const lf=Math.max(0,Math.min(1,1-dist(tkF,to)/tot));x.lineTo(X(lf),Y(tkF.gnd?0:(tkF.alt||0)));x.stroke();
@@ -1188,6 +1191,33 @@ function profDraw(cv,small){
   if(me){const f=Math.max(0,Math.min(1,1-dist(me,to)/tot)),px=X(f),py=Y(me.gnd?0:(me.alt||0)),k=small?1:1.4;if(!small){PF.ax=+px.toFixed(1);PF.ay=+py.toFixed(1)}
     x.fillStyle=col("--ink");x.strokeStyle=col("--bg");x.lineWidth=2;x.beginPath();x.moveTo(px+7*k,py);x.lineTo(px-5*k,py-5*k);x.lineTo(px-2*k,py);x.lineTo(px-5*k,py+5*k);x.closePath();x.stroke();x.fill()}
 }
+function PROF0(){return prof}
+/* v27: tracked aircraft's route by callsign (adsbdb, cached 10 min per callsign); plausible only if the plane is near the great circle */
+const PFR={cs:"",at:0,r:null,busy:false,why:""};
+function pfRouteFetch(cs){if(!cs||PFR.busy||(PFR.cs===cs&&Date.now()-PFR.at<600000))return;if(typeof cfOk==="function"&&!cfOk())return;PFR.busy=true;PFR.cs=cs;PFR.at=Date.now();PFR.r=null;
+  const ap=a=>a&&typeof a.latitude==="number"&&typeof a.longitude==="number"&&Math.abs(a.latitude)<=90&&Math.abs(a.longitude)<=180?{c:String(a.iata_code||a.icao_code||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,4)||"?",lat:+a.latitude,lon:+a.longitude,n:String(a.municipality||a.name||"").slice(0,40)}:null;
+  fetchT("https://api.adsbdb.com/v0/callsign/"+encodeURIComponent(cs),9000).then(r=>r.ok?r.json():null).then(j=>{const f=j&&j.response&&j.response.flightroute,o=f&&ap(f.origin),d=f&&ap(f.destination);PFR.r=o&&d?{o,d}:null})
+    .catch(()=>{PFR.r=null}).finally(()=>{PFR.busy=false;try{profAll()}catch(e){}})}
+function pfRoute(tk){const cs=String((tk&&tk.cs)||(TKS&&TKS.cs&&TKS.cs.length&&TKS.cs[TKS.cs.length-1].cs)||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(!cs){PFR.why="no callsign";return null}pfRouteFetch(cs);if(PFR.cs!==cs||!PFR.r){PFR.why=PFR.busy?"looking up route":"no route";return null}
+  const o=PFR.r.o,d=PFR.r.d,od=dist(o,d);if(od<20000||o.c===d.c){PFR.why="implausible route";return null}
+  if(dist(o,tk)+dist(tk,d)>od*1.3+100000){PFR.why="route doesn't match the plane's position";return null}
+  PFR.why="ok";return {fr:o,to:d}}
+/* v27: no usable route: flown trace (this leg) against distance flown */
+function pfLeg(){const tr=(TKS&&TKS.trail)||[];let s=0;for(let i=tr.length-1;i>0;i--){if(tr[i-1][3]===-1&&tr[i][3]!==-1){s=i-1;break}}
+  const out=[];let cum=0,pv=null;for(let i=s;i<tr.length;i++){const q=tr[i];if(q[3]==null)continue;const p={lat:q[1],lon:q[2]};if(pv){const dd=dist(pv,p);if(dd>400000)continue;cum+=dd}pv=p;out.push([cum,q[3]===-1?0:q[3]/FT,p])}return out}
+function pfFlown(x,W,H,small,col,tkF){const tr=pfLeg();let cum=tr.length?tr[tr.length-1][0]:0;const last=tr.length?tr[tr.length-1][2]:null;if(last)cum+=Math.min(400000,dist(last,tkF));
+  const st0=cum>200000?100000:25000,mx=Math.max(50000,Math.ceil(cum*1.15/st0)*st0),top=Math.max(3000,...tr.map(q=>q[1]),tkF.alt||0)*1.15;
+  const L0=small?2:54,R0=small?8:12,T0=small?3:12,B0=small?3:24,X=d=>L0+Math.min(1,d/mx)*(W-L0-R0),Y=a=>H-B0-Math.max(0,a)/top*(H-T0-B0);
+  if(!small){x.strokeStyle=col("--line");x.lineWidth=1;x.fillStyle=col("--dim");x.font="11px \"B612 Mono\",monospace";x.textAlign="right";
+    const stepFt=top*FT>30000?10000:top*FT>12000?5000:2000;for(let ft=0;ft<=top*FT;ft+=stepFt){const y=Y(ft/FT);x.beginPath();x.moveTo(L0,y);x.lineTo(W-R0,y);x.stroke();x.fillText(ft?(ft/1000)+"k ft":"0",L0-6,y+4)}
+    x.textAlign="left";x.fillText("start",L0,H-6);x.textAlign="right";x.fillText(Math.round(fDst(mx)).toLocaleString()+" "+S.dst,W-R0,H-6);x.textAlign="center";x.fillText("distance flown (route unknown)",(L0+W-R0)/2,H-6);x.textAlign="start"}
+  else{x.strokeStyle=col("--line");x.lineWidth=2;x.beginPath();x.moveTo(X(0),Y(0));x.lineTo(X(mx),Y(0));x.stroke()}
+  const c=S.disp==="nvg"?col("--ink"):"#ff8a1f";PF.n=tr.length;PF.fd=Math.round(cum);
+  if(tr.length){x.save();x.strokeStyle=c;x.lineWidth=small?2:2.6;x.lineJoin="round";x.beginPath();tr.forEach((q,i)=>{i?x.lineTo(X(q[0]),Y(q[1])):x.moveTo(X(q[0]),Y(q[1]))});x.lineTo(X(cum),Y(tkF.gnd?0:(tkF.alt||0)));x.stroke();
+    if(!small)for(const q of tr){x.fillStyle=c;x.fillRect(X(q[0])-1.5,Y(q[1])-1.5,3,3)}x.restore()}
+  const px=X(cum),py=Y(tkF.gnd?0:(tkF.alt||0)),k=small?1:1.4;if(!small){PF.ax=+px.toFixed(1);PF.ay=+py.toFixed(1)}
+  x.fillStyle=col("--ink");x.strokeStyle=col("--bg");x.lineWidth=2;x.beginPath();x.moveTo(px+7*k,py);x.lineTo(px-5*k,py-5*k);x.lineTo(px-2*k,py);x.lineTo(px-5*k,py+5*k);x.closePath();x.stroke();x.fill()}
 /* v26f: the aircraft the profile is about (tracked ADS-B aircraft when it's shown) and its flown trail as [fraction along route, altitude m] */
 const PF={n:0,ax:null,ay:null};
 function pfTk(){try{if(tkOn()&&TKS&&TKS.L)return tkLive()||TKS.L}catch(e){}return null}
@@ -1196,10 +1226,12 @@ function pfTrail(fr,to,tot){const tr=(TKS&&TKS.trail)||[];let s=0;
   for(let i=tr.length-1;i>=0;i--){const q=tr[i];if(q[3]===-1&&dist({lat:q[1],lon:q[2]},fr)<8000){s=i;break}}
   const out=[];for(let i=s;i<tr.length;i++){const q=tr[i];if(q[3]==null)continue;const p={lat:q[1],lon:q[2]},dt=dist(p,to);if(dt>tot*1.25||dist(p,fr)>tot*1.25)continue;
     out.push([Math.max(0,Math.min(1,1-dt/tot)),q[3]===-1?0:q[3]/FT])}return out}
-window.cpTkPoll=()=>{if(TKS&&TKS.on){TKX.busy=false;tkPoll()}};window.cpProf=()=>({tk:!!pfTk(),n:PF.n,ax:PF.ax,ay:PF.ay,trail:(TKS&&TKS.trail||[]).length});
+window.cpTkPoll=()=>{if(TKS&&TKS.on){TKX.busy=false;tkPoll()}};window.cpProf=()=>({tk:!!pfTk(),n:PF.n,ax:PF.ax,ay:PF.ay,trail:(TKS&&TKS.trail||[]).length,mode:PF.mode||"plan",fd:PF.mode==="flown"?PF.fd:null,rt:PF.rt||"",why:PFR.why});
 function profAll(){profDraw($("prof"),false);profDraw($("sProf"),true);try{turbSummary()}catch(e){}
-  const fr=apBy(S.from),to=apBy(S.to);
-  const me=pfTk()||last,who=pfTk()?"Tracking "+(TKS.flt||TKS.reg||"the aircraft")+" (solid line = its actual ADS-B altitude, "+PF.n+" fixes). ":"";
+  const tk=pfTk(),rt=tk?pfRoute(tk):null;
+  if(tk&&!rt){$("profTxt").textContent="Tracking "+(TKS.flt||TKS.reg||"the aircraft")+": solid line = its actual ADS-B altitude against distance flown ("+PF.n+" fixes). Route not used: "+PFR.why+".";return}
+  const fr=rt?rt.fr:apBy(S.from),to=rt?rt.to:apBy(S.to);
+  const me=tk||last,who=tk?"Tracking "+(TKS.flt||TKS.reg||"the aircraft")+(rt?" on its route "+fr.c+" → "+to.c:"")+" (solid line = its actual ADS-B altitude, "+PF.n+" fixes). ":"";
   if(fr&&to&&fr.c!==to.c&&me){const tot=dist(fr,to),pl=plan(tot),dtg=dist(me,to),toTod=dtg-pl.d;
     $("profTxt").textContent=who+(toTod>2000?`Top of descent in about ${Math.round(fDst(toTod)).toLocaleString()} ${S.dst}`+(me.spd>25?` (${hm(toTod/me.spd)})`:"")+`. Estimated from the 3-to-1 rule, so the crew's actual point will differ.`:dtg>2000?"Descending into "+to.n+".":"Arrived "+to.n+".")}}
 new ResizeObserver(profAll).observe($("profFig"));new ResizeObserver(profAll).observe($("strip"));
