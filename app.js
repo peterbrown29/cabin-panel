@@ -3445,7 +3445,9 @@ const GM_CONE={a:16,eLo:-4,eHi:14,gLo:-19,gHi:-7};
 /* v26b: on the ground (gate, taxi, parked, a car, or no GPS yet) air targets fly above the horizon and ground targets sit
    a few hundred metres to ~1.5 km away across the airfield, just below the horizon from a terminal or seat window */
 const GM_CONE_GND={a:16,eLo:2,eHi:16,gLo:-3.2,gHi:-0.4};
-function gmGround(){const L=last;if(DRV.on)return true;if(demo)return demo.stg!=="air";if(!L)return true;return GROUND.includes(PH.p)||((L.alt==null||L.alt<300)&&(L.spd==null||L.spd<40))}
+/* ground = gate/taxi/parked/car/no GPS. Speed wins over the phase detector, which still reads "parked" for the first fixes of a flight */
+function gmGround(){const L=last;if(DRV.on)return true;if(demo)return demo.stg!=="air";if(!L)return true;if(L.spd!=null&&L.spd>40)return false;
+  if(["climb","cruise","descent","approach"].includes(PH.p))return false;return GROUND.includes(PH.p)||L.alt==null||L.alt<300||L.spd==null||L.spd<15}
 function gmCone(){return gmGround()?GM_CONE_GND:GM_CONE}
 function gmSave(){store.set("game",GM.st)}
 /* v26b: the game runs in every phase (gate, parked, taxi, airborne), in Demo flight and with no GPS at all. The only gate kept is
