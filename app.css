@@ -440,16 +440,27 @@ details.more>.note,details.more>p.note{margin-top:2px!important}
 /* v26: Alien game layer (red = game, never used by the real boxes) */
 #gmCv,#gmOv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;background:transparent}#gmOv{z-index:2}
 #gmTgl.pri{background:#4a0e0e;border-color:#ff3b3b;color:#ffd6d6}.gmSub{font-size:10px;opacity:.75}
-#gmHud{display:none;position:absolute;right:max(10px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top,0px) + 132px);z-index:6;flex-direction:column;align-items:stretch;gap:7px;width:96px}
+/* v27b: compact red game stack — narrower, tighter gap/type, GUN no longer taller; 44 px in portrait */
+#gmHud{display:none;position:absolute;right:max(10px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top,0px) + 132px);z-index:6;flex-direction:column;align-items:stretch;gap:5px;width:80px}
 body.gmOn #gmHud{display:flex}
-#gmHud button{min-height:42px;background:rgba(20,0,0,.6);color:#ff6b6b;border:2px solid #ff3b3b;border-radius:10px;font:700 13px "B612 Mono",monospace;letter-spacing:.06em;padding:0 6px;touch-action:none;user-select:none;-webkit-user-select:none}
+#gmHud button{min-height:44px;background:rgba(20,0,0,.6);color:#ff6b6b;border:1.5px solid #ff3b3b;border-radius:7px;font:700 11px "B612 Mono",monospace;letter-spacing:.03em;padding:0 3px;line-height:1.15;touch-action:none;user-select:none;-webkit-user-select:none}
 #gmHud button:active,#gmHud button.lk{background:#ff3b3b;color:#180000}
-#gmGun{min-height:56px!important}
-#gmSc{font:700 11px "B612 Mono",monospace;color:#ff6b6b;text-align:center;background:rgba(0,0,0,.6);border-radius:6px;padding:3px 4px;text-shadow:0 0 2px #000}
-#gmMsg{display:none;position:absolute;left:12px;right:118px;top:calc(env(safe-area-inset-top,0px) + 132px);z-index:7;background:rgba(30,0,0,.82);border:1.5px solid #ff3b3b;border-radius:8px;padding:7px 10px;color:#ffd6d6;font:700 12px "B612 Mono",monospace;max-width:420px}
+#gmGun{min-height:44px!important}
+#gmSc{font:700 10px "B612 Mono",monospace;color:#ff6b6b;text-align:center;background:rgba(0,0,0,.6);border-radius:5px;padding:2px 3px;text-shadow:0 0 2px #000}
+#gmMsg{display:none;position:absolute;left:12px;right:102px;top:calc(env(safe-area-inset-top,0px) + 132px);z-index:7;background:rgba(30,0,0,.82);border:1.5px solid #ff3b3b;border-radius:8px;padding:7px 10px;color:#ffd6d6;font:700 12px "B612 Mono",monospace;max-width:420px}
 #gmMsg.tapClose::after{color:#ff9a9a}
 #arMsg.tapClose::after{text-align:center}
-@media (orientation:landscape){#gmHud{top:calc(env(safe-area-inset-top,0px) + 130px);width:88px;gap:5px}#gmHud button{min-height:34px;font-size:12px}#gmGun{min-height:44px!important}#gmMsg{top:calc(env(safe-area-inset-top,0px) + 70px)}}
+/* v27b landscape: two-column 40 px targets so 5–7 buttons clear the bottom bar; score + target card sit left of the stack */
+@media (orientation:landscape){
+#gmHud{top:calc(env(safe-area-inset-top,0px) + 130px);width:136px;gap:4px;flex-direction:row;flex-wrap:wrap;align-items:stretch}
+#gmSc{position:absolute;right:100%;top:0;margin-right:6px;width:auto;min-width:max-content;padding:2px 5px;white-space:nowrap}
+#gmTgt{position:absolute;right:100%;top:22px;margin-right:6px;width:112px}
+#gmHud button{min-height:40px;height:40px;flex:0 0 calc((100% - 4px)/2);min-width:calc((100% - 4px)/2);font-size:10px;letter-spacing:.02em;padding:0 2px}
+#gmGun{min-height:40px!important;height:40px}
+#gsaCtl{display:contents}
+#gsaCtl[hidden]{display:none}
+#gmMsg{top:calc(env(safe-area-inset-top,0px) + 70px);right:154px}
+}
 #gsOv{position:fixed;inset:0;z-index:34;background:#111;display:none;overflow:hidden}body.gs{overflow:hidden}body.gs #gsOv{display:block}
 #gsCv,#gsHud{position:absolute;inset:0;width:100%;height:100%;display:block}#gsHud{touch-action:none;cursor:crosshair}
 #gsExit{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:3;min-height:40px;font-size:12px}
@@ -475,7 +486,7 @@ body.gmOn #gmHud{display:flex}
 body.arf-grn #ar3Cv{filter:grayscale(1) sepia(1) hue-rotate(55deg) saturate(4) contrast(1.25) brightness(.95)}body.arf-wht #ar3Cv{filter:grayscale(1) contrast(1.35) brightness(1.05)}
 body.arf-nvg #ar3Cv{filter:grayscale(1) brightness(1.7) contrast(1.35) sepia(1) hue-rotate(65deg) saturate(5)}body.arf-ir #ar3Cv{filter:grayscale(1) contrast(1.7) brightness(1.15)}body.arf-flir #ar3Cv{filter:url(#fIron) contrast(1.2)}
 @media (orientation:landscape){#arBar .arMain{max-width:560px}}
-#gmHud button{min-height:44px}#arIdBtn{min-height:44px}#arExit{min-height:44px}
+#arIdBtn{min-height:44px}#arExit{min-height:44px}
 
 /* v27: setup checklist */
 #ckTile .ckModes{flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
@@ -492,7 +503,7 @@ ul.ck li button{min-width:52px;min-height:44px;padding:0 10px}
 .ckFlash{outline:2px solid var(--ink);outline-offset:3px}
 
 /* v27: target type card + recommended weapon highlight */
-#gmTgt{background:rgba(20,0,0,.72);border:1px solid #ff3b3b;border-radius:8px;padding:4px 5px;font:700 10px "B612 Mono",monospace;color:#ffb3b3;line-height:1.3;letter-spacing:.03em;pointer-events:none}
+#gmTgt{background:rgba(20,0,0,.72);border:1px solid #ff3b3b;border-radius:6px;padding:3px 4px;font:700 9px "B612 Mono",monospace;color:#ffb3b3;line-height:1.25;letter-spacing:.02em;pointer-events:none}
 #gmTgt[hidden]{display:none}
 #gmTgt b,#gmTgt span{display:block}
 #gmTgt b{color:#fff;font-size:11px}
@@ -504,8 +515,10 @@ ul.ck li button{min-width:52px;min-height:44px;padding:0 10px}
 /* v27: AR gunship overlay (window seat): thermal-style filters over the camera feed or AR 3D, gunship symbology on #gsaCv */
 #gsaCv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;display:none}
 body.gsar #gsaCv{display:block}
-#gsaCtl{display:flex;flex-direction:column;gap:7px}#gsaCtl[hidden]{display:none}
+#gsaCtl{display:flex;flex-direction:column;gap:5px}#gsaCtl[hidden]{display:none}
 #gmHud #gmGsAr.on{background:#ff3b3b;color:#180000}
+/* v27b: must follow the base #gsaCtl rule so landscape two-column wrap is not overridden */
+@media (orientation:landscape){#gsaCtl{display:contents}#gsaCtl[hidden]{display:none}}
 body.gsar.gsa-wht #arVid,body.gsar.gsa-wht #ar3Cv{filter:grayscale(1) contrast(1.6) brightness(1.1)}
 body.gsar.gsa-bht #arVid,body.gsar.gsa-bht #ar3Cv{filter:grayscale(1) invert(1) contrast(1.6) brightness(1.05)}
 body.gsar.gsa-nvg #arVid,body.gsar.gsa-nvg #ar3Cv{filter:grayscale(1) brightness(1.7) contrast(1.35) sepia(1) hue-rotate(65deg) saturate(5)}
