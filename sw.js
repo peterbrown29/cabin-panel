@@ -1,6 +1,6 @@
 // Cabin Panel service worker. Bump C on every release, or installed phones keep the old version.
 // v23: caches named cpsv-* hold the user's downloaded 3D route packs; never delete them on activate.
-const C='cabin-panel-v26c';
+const C='cabin-panel-v26d';
 const F=['./','index.html','app.js','app.css','manifest.webmanifest','icon-180.png','icon-512.png','icon-512-maskable.png',
   'bg-day.webp','bg-ocean.webp','bg-sunset.webp','bg-night.webp','bg-appday.webp','bg-appnight.webp',
   'bg-apron.webp','bg-apronnight.webp','rwy.json','twy.json','lmk.json',

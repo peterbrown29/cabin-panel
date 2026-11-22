@@ -7,7 +7,7 @@ if(window.top!==window.self){try{window.top.location=window.location.href}catch(
 /* v25: the follow page now lives on the share server; old links to this copy on the app's web host move there, keeping the #id */
 if(/\.github\.io$/i.test(location.hostname)){location.replace("https://cabin-adsb.cabinpanel-pb.workers.dev/follow/"+location.hash);throw new Error("moved")}
 (()=>{
-const API="https://cabin-adsb.cabinpanel-pb.workers.dev/share/",POLL=30000,R=6371008.8,NM=1852,FT=3.28084;
+const API="https://cabin-adsb.cabinpanel-pb.workers.dev/share/",POLL=15000,POLL_AB=10000,R=6371008.8,NM=1852,FT=3.28084;
 const $=id=>document.getElementById(id),rad=d=>d*Math.PI/180,deg=r=>r*180/Math.PI;
 const st={id:null,d:null,err:"",at:0,ap:null,tiles:{},busy:false,t:0,dest:null,seq:0};
 function idFrom(s){s=String(s||"");const m=s.match(/[#?&](?:id|follow)=([A-Za-z0-9_-]{22})(?![A-Za-z0-9_-])/)||s.match(/^\s*([A-Za-z0-9_-]{22})\s*$/);return m?m[1]:null}
@@ -15,7 +15,13 @@ function dist(a,b){const p1=rad(a.lat),p2=rad(b.lat),dp=p2-p1,dl=rad(b.lon-a.lon
 async function airports(){if(st.ap)return st.ap;try{const r=await fetch("rwy.json",{cache:"force-cache"});const j=await r.json();st.ap={};for(const a of j)if(a&&a[0])st.ap[a[0]]={c:a[0],lat:a[2],lon:a[3]}}catch(e){st.ap={}}return st.ap}
 function hhmm(ms){try{return new Date(ms).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}catch(e){return new Date(ms).toTimeString().slice(0,5)}}
 function ago(ms){const s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<90?s+" s ago":Math.round(s/60)+" min ago"}
-function landed(d){const p=d.pts||[];if(!p.length)return false;const l=p[p.length-1],flew=p.some(q=>q[4]!=null&&q[4]>70);
+/* v26d: one track from the phone's points and the aircraft's ADS-B points (the share server looks the aircraft up itself) */
+function abPt(a){return a&&typeof a.lat==="number"&&typeof a.lon==="number"&&typeof a.t==="number"?[a.t,a.lat,a.lon,a.gnd?0:a.ft==null?null:a.ft/FT,a.kt==null?null:a.kt*NM/3600,a.trk==null?null:a.trk,1]:null}
+function merged(d){if(!d)return [];const ph=(d.pts||[]).map(q=>q.slice(0,6)),air=(d.apts||[]).map(q=>q.slice(0,6).concat([1])),ab=abPt(d.ab);
+  if(ab&&(!air.length||ab[0]>air[air.length-1][0]))air.push(ab);if(!air.length)return ph;
+  return ph.concat(air).filter(q=>typeof q[0]==="number").sort((a,b)=>a[0]-b[0])}
+function pollMs(){return st.d&&st.d.ab?POLL_AB:POLL}
+function landed(d){const p=merged(d);if(!p.length)return false;const l=p[p.length-1],flew=p.some(q=>q[4]!=null&&q[4]>70);
   const near=st.dest&&dist({lat:l[1],lon:l[2]},st.dest)<15000;return flew&&l[4]!=null&&l[4]<40&&(near||!st.dest)}
 async function poll(){if(!st.id||st.busy)return;st.busy=true;const id=st.id,seq=st.seq;
   try{const r=await fetch(API+id,{cache:"no-store",credentials:"omit",referrerPolicy:"no-referrer"});
@@ -25,21 +31,25 @@ async function poll(){if(!st.id||st.busy)return;st.busy=true;const id=st.id,seq=
     else if(!r.ok){st.err="Couldn't load ("+r.status+"). Trying again…"}
     else{const data=await r.json();if(seq!==st.seq){st.busy=false;return poll()}st.d=data;st.err="";st.at=Date.now();const ap=await airports();if(seq!==st.seq){st.busy=false;return poll()}st.dest=st.d.to&&ap[st.d.to]||null;st.orig=st.d.fr&&ap[st.d.fr]||null}}
   catch(e){if(seq!==st.seq){st.busy=false;return poll()}st.err="No connection. Trying again…"}
-  st.busy=false;draw();clearTimeout(st.t);if(!(st.d&&st.d.st))st.t=setTimeout(poll,document.hidden?POLL*2:POLL)}
+  st.busy=false;draw();clearTimeout(st.t);if(!(st.d&&st.d.st))st.t=setTimeout(poll,document.hidden?pollMs()*3:pollMs())}
 function txt(id,v){const e=$(id);if(e.textContent!==v)e.textContent=v}
 function draw(){const d=st.d;
   if(d){const dv=d.fr==="DRV",who=dv?"Shared drive":"Shared flight",rt=dv?"Drive":(d.fr||"?")+" → "+(d.to||"?"),fl=!dv&&typeof d.fl==="string"&&/^[A-Z0-9]{3,8}$/.test(d.fl)?d.fl:"",rg=!dv&&typeof d.rg==="string"&&/^[A-Z0-9][A-Z0-9-]{1,9}$/.test(d.rg)?d.rg:"",idt=[fl,rg].filter(Boolean).join(" · ");txt("title",idt||who);txt("sub",rt+" · Cabin Panel");document.title=(idt?idt+" · ":"")+who+" "+rt;$("mode").hidden=!dv;document.body.classList.toggle("drive",dv);txt("altL",dv?"Altitude":"Height");txt("spdL",dv?"Speed":"Speed");
-    const p=d.pts||[],l=p[p.length-1];const isL=!dv&&landed(d);$("landed").hidden=!isL;if(isL)txt("landed","✈ Landed"+(d.to?" at "+d.to:"")+" · "+hhmm(l[0]));
+    const p=merged(d),l=p[p.length-1];const isL=!dv&&landed(d);$("landed").hidden=!isL;if(isL)txt("landed","✈ Landed"+(d.to?" at "+d.to:"")+" · "+hhmm(l[0]));
     txt("eta",isL?"Landed":d.eta?hhmm(d.eta)+(dv?" est.":""):"--:--");txt("alt",l&&l[3]!=null?(dv?Math.round(l[3]/10)*10+" m":Math.round(l[3]*FT/100)*100+" ft"):"---");txt("spd",l&&l[4]!=null?(dv?Math.round(l[4]*3.6)+" km/h":Math.round(l[4]*1.94384)+" kt"):"---");
     txt("dtg",l&&st.dest?Math.round(dist({lat:l[1],lon:l[2]},st.dest)/1000)+" km":"---");
-    txt("st",(d.st?"Sharing has ended. ":"")+(l?"Last position "+ago(l[0])+(Date.now()-l[0]>10*60000&&!isL&&!d.st?" (the phone may be offline; it catches up when it reconnects)":""):d.st?"Position history has been removed.":"Waiting for the first position…")+(st.err?" · "+st.err:""))}
-  else txt("st",st.err||"Loading…");
+    const fromAb=!!(l&&l[6]),A=d.ab;
+    txt("st",(d.st?"Sharing has ended. ":"")+(l?"Last position "+ago(l[0])+(Date.now()-l[0]>10*60000&&!isL&&!d.st?(fromAb?" (not seen by ADS-B receivers right now)":" (the phone may be offline; it catches up when it reconnects)"):""):d.st?"Position history has been removed.":"Waiting for the first position…")+(st.err?" · "+st.err:""));
+    const ph=(d.pts||[])[(d.pts||[]).length-1];
+    txt("src",!l?"":fromAb?"Source: live ADS-B ("+(A&&A.src==="adsb.fi"?"adsb.fi":"adsb.lol")+(A&&A.via?", "+A.via:"")+")"+(A&&A.cs?" · "+A.cs:"")+(A&&A.rg?" · "+A.rg:"")+(A&&A.ty?" · "+A.ty:"")+" · seen "+ago(A?A.t:l[0])+(ph?" · phone "+ago(ph[0]):""):"Source: traveller's phone · "+ago(l[0])+(fl||rg?" · aircraft not seen by ADS-B right now":""));
+    $("src").classList.toggle("adsb",fromAb)}
+  else{txt("st",st.err||"Loading…");txt("src","")}
   map()}
 /* web-mercator map with EOX imagery tiles, the shared track, the plane and the airports */
 function wm(lat,lon,z){const s=256*2**z,x=(lon+180)/360*s,sl=Math.sin(rad(Math.max(-85,Math.min(85,lat))));return [x,(0.5-Math.log((1+sl)/(1-sl))/(4*Math.PI))*s]}
 function tile(z,x,y,cb){const k=z+"/"+x+"/"+y;let t=st.tiles[k];if(!t){t=st.tiles[k]=new Image();if(Object.keys(st.tiles).length>160)delete st.tiles[Object.keys(st.tiles)[0]];t.onload=cb;t.src="https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/"+z+"/"+y+"/"+x+".jpg"}return t.complete&&t.naturalWidth?t:null}
 function map(){const cv=$("map"),dpr=Math.min(2,window.devicePixelRatio||1),W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);
-  g.fillStyle="#0a2440";g.fillRect(0,0,W,H);const d=st.d,P=(d&&d.pts||[]).map(q=>({lat:q[1],lon:q[2],trk:q[5]}));const pts=P.slice();if(st.dest)pts.push({...st.dest});if(st.orig)pts.push({...st.orig});
+  g.fillStyle="#0a2440";g.fillRect(0,0,W,H);const d=st.d,P=merged(d).map(q=>({lat:q[1],lon:q[2],trk:q[5]}));const pts=P.slice();if(st.dest)pts.push({...st.dest});if(st.orig)pts.push({...st.orig});
   if(!pts.length){g.fillStyle="#8fb3d9";g.font="14px system-ui";g.textAlign="center";g.fillText(st.id?"Waiting for position…":"No flight selected",W/2,H/2);return}
   /* Unwrap longitudes about the first point: 179E -> 179W is 2 degrees, not 358. */
   const ref=pts[0].lon,unwrap=lo=>ref+((lo-ref+540)%360)-180;
@@ -60,7 +70,7 @@ function start(){st.seq++;st.id=idFrom(location.hash)||idFrom(location.search);s
 $("go").addEventListener("click",()=>{const id=idFrom($("code").value);if(!id){txt("st","That doesn't look like a follow link.");return}location.hash="id="+id});
 $("code").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("go").click()}});
 window.addEventListener("hashchange",()=>{clearTimeout(st.t);st.d=null;start()});window.addEventListener("resize",map);
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&st.id&&!(st.d&&st.d.st)&&Date.now()-st.at>POLL){clearTimeout(st.t);poll()}});
-window.cpFollowPage={state:()=>({id:st.id,d:st.d,err:st.err,landed:st.d?landed(st.d):false,dest:st.dest}),poll};
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&st.id&&!(st.d&&st.d.st)&&Date.now()-st.at>pollMs()){clearTimeout(st.t);poll()}});
+window.cpFollowPage={state:()=>({id:st.id,d:st.d,err:st.err,landed:st.d?landed(st.d):false,dest:st.dest,pollMs:pollMs(),n:merged(st.d).length,src:$("src").textContent}),poll};
 start();
 })();

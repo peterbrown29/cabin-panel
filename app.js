@@ -80,8 +80,8 @@ const o=a=>`<option value="${a.c}">${a.n} (${a.c})</option>`;
 const opts='<optgroup label="Capital cities">'+CAP.map(c=>o(apBy(c))).join("")+'</optgroup><optgroup label="Other airports">'+AP.filter(a=>!CAP.includes(a.c)).sort((a,b)=>a.n.localeCompare(b.n)).map(o).join("")+'</optgroup>';
 $("from").innerHTML='<option value="">Departure…</option>'+opts;$("to").innerHTML='<option value="">Arrival…</option>'+opts;
 $("from").value=S.from;$("to").value=S.to;
-$("from").onchange=e=>{prof=[];S.from=e.target.value;saveS();render();drawMap();profAll()};
-$("to").onchange=e=>{prof=[];S.to=e.target.value;saveS();render();drawMap();profAll()};
+$("from").onchange=e=>{prof=[];S.from=e.target.value;fltRouteChk();saveS();render();drawMap();profAll()};
+$("to").onchange=e=>{prof=[];S.to=e.target.value;fltRouteChk();saveS();render();drawMap();profAll()};
 
 /* ---------- vertical speed by regression ---------- */
 function vsFpm(){if(tkOn())return tkVs();if(hist.length<3)return null;const t0=hist[0].t,span=(hist[hist.length-1].t-t0)/1000;if(span<4)return null;let n=hist.length,sx=0,sy=0,sxx=0,sxy=0;for(const p of hist){const x=(p.t-t0)/1000;sx+=x;sy+=p.a;sxx+=x*x;sxy+=x*p.a}const den=n*sxx-sx*sx;if(!den)return null;return (n*sxy-sx*sy)/den*FT*60}
@@ -239,7 +239,7 @@ function render(){
   const st=$("strip");
   if(fr&&to&&fr.c!==to.c){st.style.display="";$("sFrom").textContent=fr.c;$("sTo").textContent=to.c;const tot=dist(fr,to);
     if(L){const d=dist(L,to),pct=Math.max(0,Math.min(100,(1-d/tot)*100));
-      let t=(S.flt?S.flt+" · ":"")+Math.round(pct)+"% · "+Math.round(fDst(d)).toLocaleString()+" "+S.dst+" to go";const n=navT(L,to);if(n){t+=" · "+hm(n.sec)+" · ETA "+n.eta}if(L.dr)t+=" · EST";$("sTxt").textContent=t}
+      const fl=fltLabel();let t=(fl?fl+" · ":"")+Math.round(pct)+"% · "+Math.round(fDst(d)).toLocaleString()+" "+S.dst+" to go";const n=navT(L,to);if(n){t+=" · "+hm(n.sec)+" · ETA "+n.eta}if(L.dr)t+=" · EST";$("sTxt").textContent=t}
     else{$("sTxt").textContent=Math.round(fDst(tot)).toLocaleString()+" "+S.dst+" · waiting for GPS"}}
   else st.style.display="none";
   try{posInfo();arrInfo()}catch(e){}
@@ -363,7 +363,7 @@ function hudDraw(p,r,fpa,live,now){
   {const nt=hudNav();if(nt)h+=T(3,14,nt[0],null,10,700)+T(357,14,nt[1],"end",10,700)}
   /* bottom readouts */
   const v=vsFpm();h+=T(4,292,"VS "+(v==null?"---":(v>0?"+":"")+Math.round(v/50)*50),null,12,700)+T(cx,292,gOn&&gS!=null?"G "+gS.toFixed(1):(curScn?"SVS "+SCNN[curScn]+(typeof wxLab==="string"&&wxLab?" · "+wxLab:""):""),"middle",gOn&&gS!=null?12:10,700)+T(356,292,(S.att==="sen"&&sen.on?"GYRO":"GPS")+" ATT","end",12,700);
-  if(tkOn())h+=tkHudBan(cx,T);
+  if(tkOn())h+=tkHudBan(cx,T);else if(TKS&&TKS.on&&!TKS.L&&TKX.nf&&!demo)h+=tkHudNf(cx);
   if(!L)h+=`<rect x="${cx-62}" y="${cy-62}" width="124" height="22" fill="#000" stroke="var(--warn)"/><text x="${cx}" y="${cy-46}" fill="var(--warn)" stroke="none" font-size="12" font-weight="700" text-anchor="middle">NO GPS</text>`;
   h+="</g>";symG.innerHTML=h;
 }
@@ -381,7 +381,7 @@ function hudLoop(now){
   dispS=tS==null?null:(dispS==null||Math.abs(tS-dispS)>60?tS:dispS+(tS-dispS)*0.18);
   dispA=tA==null?null:(dispA==null||Math.abs(tA-dispA)>3000?tA:dispA+(tA-dispA)*0.18);
   const booting=!bootDone||(now-bootT0<500);
-  const key=[booting?Math.round(now/66):0,adiP.toFixed(1),adiR.toFixed(1),LL&&LL.trk!=null?Math.round(LL.trk):"-",dispS==null?"-":dispS.toFixed(2),dispA==null?"-":dispA.toFixed(1),v==null?"-":Math.round(v/50),fpa==null?"-":fpa.toFixed(1),live?1:0,LL?1:0,curScn,S.spd,S.alt,S.att,sen.on?1:0,gOn&&gS!=null?gS.toFixed(1):"",S.to].join("|");
+  const key=[booting?Math.round(now/66):0,adiP.toFixed(1),adiR.toFixed(1),LL&&LL.trk!=null?Math.round(LL.trk):"-",dispS==null?"-":dispS.toFixed(2),dispA==null?"-":dispA.toFixed(1),v==null?"-":Math.round(v/50),fpa==null?"-":fpa.toFixed(1),live?1:0,LL?1:0,curScn,S.spd,S.alt,S.att,sen.on?1:0,gOn&&gS!=null?gS.toFixed(1):"",S.to,TKS&&TKS.on?[TKX.nf?TKX.nf.at:0,TKS.L?TKS.L.t:0,TKS.feed||"",Math.floor(Date.now()/15000)].join(","):""].join("|");
   const nt=hudNav();
   const k2=key+"|"+(nt?nt.join(""):"");if(k2!==hudKey){hudKey=k2;hudDraw(Math.max(-60,Math.min(60,adiP)),adiR,fpa,live,now)}
   /* v18: backdrop pitches and banks with the horizon (same scale as the ladder), capped; static with reduced motion */
@@ -762,7 +762,7 @@ $("cardClose").onclick=()=>{$("cardOv").style.display="none"};
 $("cardBtn").onclick=()=>showCard(null);
 
 /* ================= flight number lookup ================= */
-const AIRL={QF:["QFA","Qantas"],VA:["VOZ","Virgin Australia"],JQ:["JST","Jetstar"],ZL:["RXA","Rex"],QQ:["UTY","Alliance Airlines"],NZ:["ANZ","Air New Zealand"],SQ:["SIA","Singapore Airlines"],EK:["UAE","Emirates"],QR:["QTR","Qatar Airways"],CX:["CPA","Cathay Pacific"],FJ:["FJI","Fiji Airways"],TR:["TGW","Scoot"],GA:["GIA","Garuda Indonesia"],MH:["MAS","Malaysia Airlines"],NF:["AVN","Air Vanuatu"],PX:["ANG","Air Niugini"]};
+const AIRL={QF:["QFA","Qantas"],VA:["VOZ","Virgin Australia"],JQ:["JST","Jetstar"],ZL:["RXA","Rex"],QQ:["UTY","Alliance Airlines"],FC:["FCA","Link Airways"],NZ:["ANZ","Air New Zealand"],SQ:["SIA","Singapore Airlines"],EK:["UAE","Emirates"],QR:["QTR","Qatar Airways"],CX:["CPA","Cathay Pacific"],FJ:["FJI","Fiji Airways"],TR:["TGW","Scoot"],GA:["GIA","Garuda Indonesia"],MH:["MAS","Malaysia Airlines"],NF:["AVN","Air Vanuatu"],PX:["ANG","Air Niugini"]};
 function toCallsign(f){f=(f||"").toUpperCase().replace(/\s+/g,"");const m=f.match(/^([A-Z]{3}|[A-Z0-9]{2})0*(\d{1,4}[A-Z]?)$/);if(!m)return null;let pre=m[1],name="";
   if(pre.length===2){const a=AIRL[pre];if(!a)return {cs:null,iata:f};pre=a[0];name=a[1];return {cs:pre+m[2],name,iata:m[1]+m[2]}}
   const a=Object.entries(AIRL).find(([k,v])=>v[0]===pre);return {cs:pre+m[2],name:a?a[1][1]:"",iata:a?a[0]+m[2]:pre+m[2]}}
@@ -780,12 +780,24 @@ function resolveAp(o){
 }
 function fetchT(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);return fetch(u,{signal:c.signal,cache:"no-store"}).finally(()=>clearTimeout(t))}
 const fltMsg=t=>{$("fltTxt").textContent=t};
+/* v26d: a saved flight number belongs to one trip. Stamp it with when and for which route it was set; drop it when the route
+   changes, when it's already in the logbook as flown (2 h after), or after 36 h, so an old flight (e.g. last week's QF1461) never lingers */
+function fltStamp(){S.fltAt=Date.now();S.fltRt=(S.from||"")+"-"+(S.to||"")}
+function fltClear(why){if(!S.flt&&!S.fltReg)return;S.flt="";S.fltName="";S.fltCs="";S.fltReg="";S.fltAt=0;S.fltRt="";try{$("fltIn").value="";$("fltReg").value="";if(why)fltMsg(why)}catch(e){}}
+function fltRouteChk(){if(S.flt&&S.fltRt&&S.fltRt!==(S.from||"")+"-"+(S.to||""))fltClear("Flight number cleared because you changed the route. Enter the new one above.")}
+function fltStale(){if(!S.flt)return false;const now=Date.now();if(S.fltAt&&now-S.fltAt>36*3600000)return true;
+  /* already flown: in the logbook, the flight is over (parked) and it started more than 2 h ago, after this number was set */
+  const b=BOOK.find(e=>e&&!e.demo&&e.flt===S.flt);if(!b||PH.p!=="parked")return false;const t=typeof b.id==="number"?b.id:(+b.date||0);
+  return !!(t&&(!S.fltAt||t>S.fltAt)&&now-t>2*3600000)}
+function fltTidy(){if(fltStale()){fltClear("");saveS();return true}if(S.flt&&!S.fltAt){fltStamp();saveS()}return false}
+/* the flight label shown on the route strip and sent with a share: an active watch/track wins over the saved flight */
+function fltLabel(){if(TKS&&TKS.on&&!DRV.on){const c=TKS.cs&&TKS.cs.length?TKS.cs[TKS.cs.length-1].cs:"";return TKS.flt||c||TKS.reg||""}return fltStale()?"":(S.flt||"")}
 async function lookupFlight(){
   const raw=$("fltIn").value.trim(),c=toCallsign(raw);
   if(!c){fltMsg("Enter a flight number like QF812, VA1234 or JQ501.");return}
   /* v26c: keep the flight number even if the route lookup fails or there's no internet (codeshares are often missing from the free databases) */
   const fn=String(c.iata||raw).toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);
-  if(fn&&fn!==S.flt){S.flt=fn;S.fltName=c.name||"";S.fltCs=c.cs||"";saveS();render()}
+  if(fn&&fn!==S.flt){S.flt=fn;S.fltName=c.name||"";S.fltCs=c.cs||"";S.fltReg="";$("fltReg").value="";fltStamp();saveS();render()}else if(fn){fltStamp();saveS()}
   const manual=fn+" saved. Set From and To below by hand"+(S.from&&S.to?" (now "+S.from+" → "+S.to+")":"")+". To follow the plane live, type its tail number (VH-…) below and tap Track it live.";
   if(!c.cs){fltMsg("I don't know airline code "+raw.slice(0,2).toUpperCase()+", so I can't look up the route. "+manual);return}
   let framed=false;try{framed=window.self!==window.top}catch(e){framed=true}
@@ -797,26 +809,35 @@ async function lookupFlight(){
     if(f&&f.origin&&f.destination){const m=a=>({iata:a.iata_code,icao:a.icao_code,name:a.name,city:a.municipality,lat:a.latitude,lon:a.longitude});res={o:m(f.origin),d:m(f.destination),mid:f.midpoint?m(f.midpoint):null,airline:f.airline&&f.airline.name};src="adsbdb.com"}}}catch(e){}
   if(!res){try{const r=await fetchT("https://hexdb.io/api/v1/route/icao/"+c.cs,9000);if(r.ok){const j=await r.json();if(j&&j.route){const parts=String(j.route).split("-");res={o:{icao:parts[0]},d:{icao:parts[parts.length-1]},mid:parts.length>2?{icao:parts[1]}:null,airline:c.name};src="hexdb.io"}}}catch(e){}}
   $("fltBtn").disabled=false;
+  /* v26d: known codeshare (e.g. VA4004 = Link Airways FC208, callsign FCA208): check the operator's callsign route, then use it */
+  if(!res&&CS_KNOWN[c.iata]){const k=CS_KNOWN[c.iata];let ok=false;$("fltBtn").disabled=true;
+    try{const r=await fetchT("https://api.adsbdb.com/v0/callsign/"+k.cs,9000);if(r.ok){const j=await r.json(),f=j&&j.response&&j.response.flightroute;if(f&&f.origin&&f.destination)ok=f.origin.iata_code===k.fr&&f.destination.iata_code===k.to}}catch(e){}
+    $("fltBtn").disabled=false;const A=apBy(k.fr),B=apBy(k.to);
+    if(A&&B){S.from=A.c;S.to=B.c;$("from").value=A.c;$("to").value=B.c;prof=[];window.__terr=null}
+    S.flt=c.iata;S.fltName=k.op;S.fltCs=k.cs;fltStamp();saveS();
+    fltMsg(c.iata+" is a codeshare flown by "+k.op+" as "+k.fl+" (callsign "+k.cs+"), "+k.ty+", scheduled "+k.fr+" "+k.dep+" → "+k.to+" "+k.arr+" local. "+(ok?"adsbdb.com confirms the "+k.cs+" route. ":"From Cabin Panel's codeshare list (not confirmed by a route database, so check your boarding pass). ")+"Live tracking and the share link search the feeds for "+k.cs+"; for the surest match type the tail number below.");
+    render();drawMap();profAll();return}
   if(!res){fltMsg(c.iata+"'s route isn't in the free route databases"+(/^VA4\d{3}$/.test(c.iata)?" (VA 4000-series flights are usually codeshares flown by another airline under its own flight number)":"")+". "+manual);return}
   const A=resolveAp(res.o),B=resolveAp(res.d);
   if(!A||!B){fltMsg("Found "+c.iata+" ("+(res.o.iata||res.o.icao)+" → "+(res.d.iata||res.d.icao)+") but couldn't place those airports. "+manual);return}
-  S.from=A.c;S.to=B.c;S.flt=c.iata;S.fltName=res.airline||c.name||"";S.fltCs=c.cs;saveS();$("from").value=A.c;$("to").value=B.c;prof=[];window.__terr=null;
+  S.from=A.c;S.to=B.c;S.flt=c.iata;S.fltName=res.airline||c.name||"";S.fltCs=c.cs;fltStamp();saveS();$("from").value=A.c;$("to").value=B.c;prof=[];window.__terr=null;
   const via=res.mid?" via "+(res.mid.city||res.mid.iata||res.mid.icao):"";
   fltMsg(`${c.iata}${S.fltName?" · "+S.fltName:""}: ${A.n} (${A.c}) → ${B.n} (${B.c})${via}. Route set and saved for offline use. Route data from ${src} can be out of date, so check it against your boarding pass.`);
   render();drawMap();profAll();
 }
 $("fltBtn").onclick=lookupFlight;$("fltIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();lookupFlight()}});
-$("fltClr").onclick=()=>{S.flt="";S.fltName="";S.fltCs="";S.fltReg="";saveS();$("fltIn").value="";$("fltReg").value="";fltMsg("Flight number cleared.");render()};
+$("fltClr").onclick=()=>{fltClear("Flight number cleared.");saveS();render()};
 /* v26c: your own aircraft's tail number. Saved for the share, and one tap starts live tracking by registration (works when the callsign doesn't match, e.g. codeshares) */
 function fltRegSave(){const r=tkNormReg(String($("fltReg").value||"").replace(/<[^>]*>/g,""));S.fltReg=/^[A-Z0-9][A-Z0-9-]{1,9}$/.test(r)?r:"";saveS();return S.fltReg}
 $("fltReg").addEventListener("change",fltRegSave);
 $("fltTrk").onclick=async()=>{const r=fltRegSave();const raw=$("fltIn").value.trim();
-  if(raw){const fn=String((toCallsign(raw)||{}).iata||raw).toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);if(fn&&fn!==S.flt){S.flt=fn;saveS()}}
+  if(raw){const fn=String((toCallsign(raw)||{}).iata||raw).toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);if(fn&&fn!==S.flt){S.flt=fn;fltStamp();saveS()}}
   if(!r){fltMsg("Type your aircraft's tail number first, e.g. VH-YIA. It's painted on the tail and the rear fuselage, or the crew can tell you.");$("fltReg").focus();return}
   $("tkReg").value=r;$("tkFlt").value=S.flt||"";if(S.to)$("tkAp").value=S.to;
   fltMsg("Tracking "+r+(S.flt?" ("+S.flt+")":"")+" by tail number. It shows on the HUD whenever your own GPS isn't flying. Needs internet.");
   try{await tkStart()}catch(e){}};
 $("fltReg").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("fltTrk").click()}});
+fltTidy();setInterval(()=>{if(fltTidy())render()},600000);
 if(S.fltReg)$("fltReg").value=S.fltReg;
 XAP=XAP.map(cleanAp).filter(Boolean);XAP.forEach(x=>{if(!apBy(x.c))AP.push(x);addApOption(x)});
 if(S.from)$("from").value=S.from;if(S.to)$("to").value=S.to;
@@ -973,7 +994,7 @@ const vOf=(c,spanKm,W,H)=>({cx:c.lon,cy:c.lat,sc:Math.min(W,H)/(spanKm*1000/1113
 const spanOf=(v,W,H)=>Math.min(W,H)/v.sc*111.32;
 function zoomTarget(fitV,W,H,fr,to){
   const L=last,p=PH.p,fitSpan=spanOf(fitV,W,H);ZM.why="";
-  if(ZM.paused&&ZM.man){ZM.mode="manual";return ZM.man}
+  if(ZM.paused&&ZM.man){ZM.mode="manual";const m=ZM.man,F=m.off&&zmFocus();if(F){const k=Math.cos(rad(F.lat));return {cx:F.lon-m.off[0]/(k*m.sc),cy:F.lat+m.off[1]/m.sc,sc:m.sc,off:m.off}}return m}
   if((S.mapAuto||"on")!=="on"){ZM.mode="fit";return fitV}
   {const z=tkZoom(W,H);if(z)return z}
   const ground=(c)=>{const ap=rwyNear(c,6000);if(ap){const apc={lat:ap[2],lon:ap[3]},far=L&&dist(L,apc)>2500;ZM.mode="airport";return vOf(far?L:apc,7,W,H)}ZM.mode="area";return vOf(c,40,W,H)};
@@ -1007,9 +1028,15 @@ function zoomTick(now){ZM.raf=0;const c=ZM.cur,t=ZM.tgt;if(!c||!t)return;const d
   if(mv<0.5&&sr<0.004)ZM.cur=Object.assign({},t);else{ZM.raf=requestAnimationFrame(zoomTick)}
   try{drawMapCore()}catch(e){}}
 function updAutoBtn(){const b=$("mzAuto");if(!b)return;const on=(S.mapAuto||"on")==="on",pz=on&&ZM.paused;b.className=pz?"paused":on?"on":"off";b.setAttribute("aria-pressed",on&&!pz?"true":"false");b.title=pz?"Auto zoom paused — tap to resume":on?"Auto zoom on — tap to turn off":"Auto zoom off — tap to turn on"}
-function zoomManual(f,ox,oy){/* f>1 zooms in about canvas point (ox,oy) */const c=ZM.cur||ZM.tgt;if(!c||!ZM.W)return;const W=ZM.W,H=ZM.H,k=Math.cos(rad(c.cy));
-  const nsc=Math.max(3,Math.min(60000,c.sc*f));ox=ox==null?W/2:ox;oy=oy==null?H/2:oy;
+/* v26d: the aircraft the map is about: the tracked one when it's shown, otherwise your own GPS */
+function zmFocus(){try{if(tkOn()&&TKS&&TKS.L)return tkLive()||TKS.L}catch(e){}return last}
+function zoomManual(f,ox,oy){/* f>1 zooms in about canvas point (ox,oy); the + / − buttons zoom about the aircraft */const c=ZM.cur||ZM.tgt;if(!c||!ZM.W)return;const W=ZM.W,H=ZM.H,k=Math.cos(rad(c.cy));
+  const nsc=Math.max(3,Math.min(60000,c.sc*f));const F=zmFocus();
+  const scr=q=>q?[W/2+(q.lon-c.cx)*k*c.sc,H/2-(q.lat-c.cy)*c.sc]:null,fs=scr(F),onS=fs&&fs[0]>=0&&fs[1]>=0&&fs[0]<=W&&fs[1]<=H;
+  if(ox==null){if(onS){ox=fs[0];oy=fs[1]}else if(F){ox=W/2;oy=H/2;const m0={cx:F.lon,cy:F.lat,sc:nsc};ZM.paused=true;ZM.man=Object.assign(m0,{off:[0,0]});if(reduceMo)ZM.cur=Object.assign({},m0);drawMap();return}else{ox=W/2;oy=H/2}}
   const lon=c.cx+(ox-W/2)/(k*c.sc),lat=c.cy-(oy-H/2)/c.sc;const m={cx:lon-(ox-W/2)/(k*nsc),cy:lat+(oy-H/2)/nsc,sc:nsc};
+  /* keep following the aircraft at the same spot on screen, so a zoomed-in map doesn't sit on empty ground while it moves */
+  if(F){const k2=Math.cos(rad(m.cy)),q=[W/2+(F.lon-m.cx)*k2*nsc,H/2-(F.lat-m.cy)*nsc];if(q[0]>=0&&q[1]>=0&&q[0]<=W&&q[1]<=H)m.off=[q[0]-W/2,q[1]-H/2]}
   ZM.paused=true;
   ZM.man=m;if(reduceMo)ZM.cur=Object.assign({},m);drawMap()}
 $("mzIn").onclick=()=>zoomManual(2);$("mzOut").onclick=()=>zoomManual(0.5);
@@ -1021,7 +1048,7 @@ $("mzAuto").onclick=()=>{const on=(S.mapAuto||"on")==="on";if(on&&ZM.paused){ZM.
   mf.addEventListener("gesturestart",e=>e.preventDefault());
   mf.addEventListener("wheel",e=>{if(!e.ctrlKey&&!e.altKey)return;e.preventDefault();const r=mf.getBoundingClientRect();zoomManual(Math.exp(-e.deltaY*0.01),e.clientX-r.left,e.clientY-r.top)},{passive:false});
   mf.addEventListener("dblclick",e=>{const r=mf.getBoundingClientRect();zoomManual(2,e.clientX-r.left,e.clientY-r.top)})}
-window.cpZoom=()=>({mode:ZM.mode,phase:PH.p,auto:S.mapAuto||"on",paused:ZM.paused,targetKm:ZM.span&&+ZM.span.toFixed(2),curKm:ZM.cur&&ZM.W?+spanOf(ZM.cur,ZM.W,ZM.H).toFixed(2):null,anim:!!ZM.raf,rwy:RWY?RWY.length:0});
+window.cpZoom=()=>({mode:ZM.mode,phase:PH.p,auto:S.mapAuto||"on",paused:ZM.paused,targetKm:ZM.span&&+ZM.span.toFixed(2),curKm:ZM.cur&&ZM.W?+spanOf(ZM.cur,ZM.W,ZM.H).toFixed(2):null,anim:!!ZM.raf,rwy:RWY?RWY.length:0,cur:ZM.cur,W:ZM.W,H:ZM.H,focus:(f=>f?{lat:f.lat,lon:f.lon}:null)(zmFocus())});
 function drawMap(){if(ZM.raf)return;drawMapCore()}
 function drawMapCore(){
   const W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;const dpr=window.devicePixelRatio||1;
@@ -1081,7 +1108,7 @@ function drawMapCore(){
   for(const a of AP){if((fr&&a.c===fr.c)||(to&&a.c===to.c))continue;const [ax,ay]=P(a);if(ax<-10||ay<-10||ax>W+10||ay>H+10)continue;dot(ax,ay,2.6,col("--dim"));label(a.c,ax,ay,"11px \"B612 Mono\",monospace",col("--dim"))}
   if(RWY&&sc>40&&sc<2500){for(const a of RWY){const c=a[0]||a[1];if(apBy(c))continue;const [ax,ay]=P({lat:a[2],lon:a[3]});if(ax<-10||ay<-10||ax>W+10||ay>H+10)continue;if(!rwyDrawn.has(c))dot(ax,ay,2.2,col("--dim"));label(c,ax,ay,"11px \"B612 Mono\",monospace",col("--dim"))}}
   /* scale bar when zoomed */
-  if(ZM.mode!=="fit"){const mpp=111320/sc,want=W*0.22*mpp,u=S.dst==="nm"?NMm:1000,uv=want/u,nice=[0.5,1,2,5,10,20,50,100,200,500,1000].reduce((b,v)=>v<=uv?v:b,0.5),px=nice*u/mpp;
+  if(ZM.mode!=="fit"){const mpp=111320/sc,want=W*0.22*mpp,u=S.dst==="nm"?NMm:1000,uv=want/u,nice=[0.1,0.2,0.5,1,2,5,10,20,50,100,200,500,1000].reduce((b,v)=>v<=uv?v:b,0.1),px=nice*u/mpp;
     x.save();x.strokeStyle=col("--ink");x.fillStyle=col("--ink");x.lineWidth=2;x.beginPath();x.moveTo(10,H-12);x.lineTo(10+px,H-12);x.moveTo(10,H-17);x.lineTo(10,H-7);x.moveTo(10+px,H-17);x.lineTo(10+px,H-7);x.stroke();
     x.font="11px \"B612 Mono\",monospace";x.fillText(nice+(S.dst==="nm"?" NM":" KM"),14+px,H-8);x.restore()}
   /* aircraft sprite */
@@ -1276,7 +1303,7 @@ function pickRender(){const cs=pickCands();const f=t=>t?new Date(t).toTimeString
     :'<li><span>No flight saved on this phone. Use "From exported file…" if you exported one.</span></li>'}
 function pickUp(c){
   if(demo)stopDemo();if(REPLAY)replayStop();
-  if(c.from&&apBy(c.from))S.from=c.from;if(c.to&&apBy(c.to))S.to=c.to;if(c.flt!=null){S.flt=c.flt;S.fltName=c.fltName||S.fltName||""}saveS();$("from").value=S.from;$("to").value=S.to;if(S.flt)$("fltIn").value=S.flt;
+  if(c.from&&apBy(c.from))S.from=c.from;if(c.to&&apBy(c.to))S.to=c.to;if(c.flt!=null){S.flt=c.flt;S.fltName=c.fltName||S.fltName||"";fltStamp()}saveS();$("from").value=S.from;$("to").value=S.to;if(S.flt)$("fltIn").value=S.flt;
   const pts=c.pts.slice().sort((a,b)=>a[3]-b[3]);LOG={on:true,pts};store.set("log",LOG);
   if(c.marks&&c.marks.length){const mk=m=>m.t+"|"+(+m.lat).toFixed(5)+"|"+(+m.lon).toFixed(5),hs=new Set(MARKS.map(mk));for(const m of c.marks)if(!hs.has(mk(m))){MARKS.push(m);hs.add(mk(m))}MARKS.sort((a,b)=>a.t-b.t);store.set("marks",MARKS)}
   const ph=c.ph||inferPhase(pts);
@@ -2051,7 +2078,9 @@ function tkMove(p,b,d){const dr=d/R,t=rad(b),p1=rad(p.lat),l1=rad(p.lon),p2=Math
 let TKDR={k:0,t:0,v:null};
 function tkLive(){const L=TKS&&TKS.L;if(!L)return null;const now=Date.now();
   if(TKDR.v&&TKDR.k===L&&now-TKDR.t<200)return TKDR.v;
-  let dt=(now-L.t)/1000;if(tkStale()||L.gnd||L.spd==null||L.spd<15||L.trk==null||!(dt>0.5)){TKDR={k:L,t:now,v:L};return L}
+  let dt=(now-L.t)/1000;const lost=tkStale()&&!L.gnd&&L.spd!=null&&L.spd>=40&&L.trk!=null&&dt<1200;
+  if((tkStale()&&!lost)||L.gnd||L.spd==null||L.spd<15||L.trk==null||!(dt>0.5)){TKDR={k:L,t:now,v:L};return L}
+  if(lost){const p=tkMove({lat:L.lat,lon:L.lon},L.trk,L.spd*dt),v=Object.assign({},L,{lat:p.lat,lon:p.lon,dr:true,drS:Math.round(dt),lost:true,drMin:Math.round(dt/60)});TKDR={k:L,t:now,v};return v}
   dt=Math.min(dt,30);const rate=L.rate!=null&&Math.abs(L.rate)<=4?L.rate:0,n=6,h=dt/n;let p={lat:L.lat,lon:L.lon},trk=L.trk;
   for(let i=0;i<n;i++){trk=(trk+rate*h/2+360)%360;p=tkMove(p,trk,L.spd*h);trk=(trk+rate*h/2+360)%360}
   let alt=L.alt,ft=L.ft;const vs=tkVs();if(vs!=null&&alt!=null&&Math.abs(vs)>=150){const da=vs/196.85*dt;let fl=0;if(vs<0){const na=nearestAp(p);if(na&&na.d<15000)fl=(na.a[4]||0)/FT}alt=Math.max(fl,alt+da);if(ft!=null)ft=Math.max(fl*FT,ft+da*FT)}
@@ -2125,13 +2154,35 @@ async function tkGet(path,ms){const src=[["proxy",tkUrl(path)]];
   for(const [k,u] of src){try{tkQuota(1);const r=await fetchT(u,ms||12000);
       if(r.status===429){const e=new Error("rate limited");e.rl=+(r.headers.get("retry-after")||0);throw e}
       if(r.status===404){const e=new Error("not found");e.nf=true;throw e}
-      if(!r.ok)throw new Error("answered "+r.status);const j=await r.json();TKS&&(TKS.via=k);return j}
+      if(!r.ok)throw new Error("answered "+r.status);const j=await r.json();TKS&&(TKS.via=k);TKX.tried=Array.isArray(j.tried)?j.tried.filter(x=>/^adsb\.(lol|fi)$/.test(x)):["adsb.lol"];TKX.down=j.errs&&typeof j.errs==="object"?Object.keys(j.errs).filter(x=>/^adsb\.(lol|fi)$/.test(x)&&!TKX.tried.includes(x)):[];TKX.feed=/^adsb\.(lol|fi)$/.test(j.src)?j.src:"";return j}
     catch(e){if(e.nf)throw e;if(e.rl!=null)rl=e;else lastE=e}}   /* a limited or failed private proxy falls back to the relay */
   throw rl||lastE||new Error("no answer")}
 async function tkHexOf(reg){try{const r=await fetchT("https://api.adsbdb.com/v0/aircraft/"+encodeURIComponent(reg),9000);if(r.ok){const j=await r.json(),a=j&&j.response&&j.response.aircraft;
     if(a&&a.mode_s)return {hex:String(a.mode_s).toLowerCase(),type:a.icao_type||"",desc:[a.manufacturer,a.type].filter(Boolean).join(" "),op:a.registered_owner||""}}}catch(e){}
   try{const r=await fetchT("https://hexdb.io/reg-hex?reg="+encodeURIComponent(reg),9000);if(r.ok){const t=(await r.text()).trim();if(/^[0-9A-Fa-f]{6}$/.test(t))return {hex:t.toLowerCase()}}}catch(e){}
   return null}
+/* v26d: codeshares. VA/QF regional flights are often flown by another airline under its own callsign, so the feeds never show "VOZ4004".
+   KNOWN: exact pairs (hints only: used once a live feed actually shows that callsign). HINT: which operators to look for near the airports. */
+const CS_KNOWN={VA4004:{cs:"FCA208",fl:"FC208",op:"Link Airways",fr:"NTL",to:"CBR",dep:"17:20",arr:"18:30",ty:"Saab 340"}};
+const CS_HINT=[[/^VA4\d{3}$/,[["FCA","Link Airways"],["UTY","Alliance Airlines"]]],[/^QF[12]\d{3}$/,[["QLK","QantasLink"]]],[/^VA1[3-9]\d{2}$/,[["UTY","Alliance Airlines"]]]];
+function csInfo(fl){fl=String(fl||"").toUpperCase();const k=CS_KNOWN[fl]||null,h=(CS_HINT.find(x=>x[0].test(fl))||[0,[]])[1];return {known:k,ops:k?[[k.cs.slice(0,3),k.op]].concat(h.filter(o=>o[0]!==k.cs.slice(0,3))):h}}
+/* what we're looking for, said plainly: "VA4004 (Link FC208)" */
+function tkWhat(){if(!TKS)return "";const f=TKS.flt||"",g=csInfo(f).known,k=TKS.op||(g&&{fl:g.fl,short:g.op.split(" ")[0]});return (TKS.reg?TKS.reg+(f?" / "+f:""):f)+(k&&k.fl&&k.fl!==f?" ("+k.short+" "+k.fl+")":"")}
+const feedsTxt=(t,d)=>{t=t&&t.length?t:["adsb.lol"];d=(d||[]).filter(x=>!t.includes(x));return t.join(" + ")+(d.length?" ("+d.join(", ")+" unavailable)":"")};
+/* nearby aircraft at an airport (25 NM), for picking the plane by hand */
+async function tkNearAt(code){const a=apBy(code);if(!a){TKX.near={ap:code,err:"Unknown airport "+code};tkRender();return}
+  TKX.near={ap:a.c,busy:true,list:[]};tkRender();
+  try{const r=await svcFetch(SVC.near+"/"+a.lat.toFixed(4)+"/"+a.lon.toFixed(4)+"/25",{},12000);if(r.status===429)throw new Error("the feed is busy; try again in a minute");if(!r.ok)throw new Error("answered "+r.status);
+    const j=await r.json(),ops=TKS?csInfo(TKS.flt).ops.map(o=>o[0]):[];
+    const L=(Array.isArray(j.ac)?j.ac:[]).filter(x=>x&&typeof x.lat==="number"&&/^[0-9a-f]{6}$/i.test(String(x.hex||""))).map(x=>{const cs=String(x.flight||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);
+      return {hex:String(x.hex).toLowerCase(),cs,r:tkNormReg(x.r),t:String(x.t||"").replace(/[^A-Z0-9]/gi,"").slice(0,4),gnd:x.alt_baro==="ground",ft:typeof x.alt_baro==="number"?x.alt_baro:null,d:dist(a,{lat:x.lat,lon:x.lon}),hint:ops.some(o=>cs.startsWith(o))}})
+      .sort((p,q)=>(q.hint-p.hint)||(p.d-q.d)).slice(0,15);
+    TKX.near={ap:a.c,list:L,src:j.src||"adsb.lol",tried:j.tried||["adsb.lol"],at:Date.now()}}
+  catch(e){TKX.near={ap:a.c,err:"Couldn't get aircraft near "+a.c+" ("+(e&&e.name==="AbortError"?"timed out":(e&&e.message)||e)+")"}}
+  tkRender()}
+function tkPick(hex){const n=TKX.near&&TKX.near.list&&TKX.near.list.find(x=>x.hex===hex);if(!n||!TKS)return;
+  TKS.hex=n.hex;if(n.r)TKS.reg=n.r;if(n.t)TKS.type=n.t;if(n.cs&&!TKS.opCs&&TKS.flt&&!n.cs.startsWith((toCallsign(TKS.flt)||{}).cs||"#"))TKS.opCs=n.cs;
+  TKS.L=null;TKS.trail=[];TKS.traceAt=0;TKX.nf=null;TKX.near=null;$("tkReg").value=TKS.reg||"";tkSave();tkRender();hap(15);TKX.busy=false;tkPoll()}
 /* today's history from the adsb.lol trace (readsb trace format) */
 async function tkTrace(){if(!TKS||!TKS.hex)return;let j;try{j=await tkGet("/1/trace/full/"+TKS.hex,20000)}catch(e){TKS.traceErr=e.nf?"no history today":String(e.message||e);return}
   const ts=+j.timestamp||0,pts=Array.isArray(j.trace)?j.trace:[],from=Date.now()-14*3600000,out=[];
@@ -2144,24 +2195,36 @@ async function tkTrace(){if(!TKS||!TKS.hex)return;let j;try{j=await tkGet("/1/tr
   tkArrFromTrail()}
 async function tkPoll(){if(!TKS||!TKS.on||TKX.busy)return;TKX.busy=true;TKX.lastPoll=Date.now();const ses=TKS;let gap=null;
   try{if(!cfOk())throw Object.assign(new Error("offline"),{off:true});
-    const q=tkQuota(0);if(q>=470){TKX.err="Daily free ADS-B allowance nearly used on this phone ("+q+" lookups today; adsb.lol allows about 500 a day per proxy address). Polling paused until tomorrow.";gap=30*60000;return}
+    const q=tkQuota(0);if(q>=6000){TKX.err="Daily ADS-B lookups on this phone are very high ("+q+" today). Polling paused for 30 minutes to go easy on the free feed.";gap=30*60000;return}
     let j=null;if(TKS.hex)j=await tkGet("/v2/hex/"+TKS.hex);else if(TKS.reg)j=await tkGet("/v2/reg/"+encodeURIComponent(TKS.reg));
     if(TKS!==ses)return;let ac=(j&&Array.isArray(j.ac)?j.ac:[]).filter(a=>a&&typeof a.lat==="number");
-    if(!ac.length&&!TKS.hex&&TKS.flt){const cs=toCallsign(TKS.flt);if(cs&&cs.cs){const k=await tkGet("/v2/callsign/"+cs.cs);ac=(k&&Array.isArray(k.ac)?k.ac:[]).filter(a=>a&&typeof a.lat==="number")}}
+    if(!ac.length&&!TKS.hex&&TKS.flt){const okAc=k=>(k&&Array.isArray(k.ac)?k.ac:[]).filter(a=>a&&typeof a.lat==="number");
+      const cs=toCallsign(TKS.flt);if(cs&&cs.cs){ac=okAc(await tkGet("/v2/callsign/"+cs.cs))}
+      /* v26d: codeshare. Try the operator's own callsign: one we already matched, else the table's guess (kept only if a feed shows it) */
+      if(!ac.length&&TKS===ses){const ci=csInfo(TKS.flt),g=TKS.opCs||(ci.known&&ci.known.cs);
+        if(g&&(!cs||g!==cs.cs)){ac=okAc(await tkGet("/v2/callsign/"+g));if(ac.length&&TKS===ses){TKS.opCs=g;const k=ci.known&&ci.known.cs===g?ci.known:null,a1=AIRL[Object.keys(AIRL).find(x=>AIRL[x][0]===g.slice(0,3))||""];
+          TKS.op={cs:g,fl:k?k.fl:(Object.keys(AIRL).find(x=>AIRL[x][0]===g.slice(0,3))||g.slice(0,3))+g.slice(3),name:k?k.op:a1?a1[1]:g.slice(0,3),short:(k?k.op:a1?a1[1]:g.slice(0,3)).split(" ")[0],how:"live match on "+(TKX.feed||"adsb.lol")}}}}}
     if(TKS!==ses)return;const a=ac.find(x=>TKS.hex&&x.hex===TKS.hex)||ac.find(x=>tkNormReg(x.r)===TKS.reg)||ac[0];
     if(a){if(a.hex&&!TKS.hex){TKS.hex=String(a.hex).toLowerCase();if(!TKS.traceAt)await tkTrace()}if(TKS!==ses)return;if(a.r&&!TKS.reg)TKS.reg=tkNormReg(a.r);
       if(a.t)TKS.type=TKS.type||a.t;if(a.desc)TKS.desc=TKS.desc||a.desc;const f=tkFix(a,j&&j.now||Date.now());if(f){const pv=TKS.L,dt=pv?(f.t-pv.t)/1000:0;
         if(pv&&!pv.old&&dt>1&&dt<=120){if(f.trk!=null&&pv.trk!=null&&f.roll==null){const r=w180(f.trk-pv.trk)/dt;if(Math.abs(r)<=4)f.rate=r}
           if(f.vs!=null&&pv.vs!=null){const q=pv.vsS!=null?pv.vsS:pv.vs;f.vsS=Math.abs(f.vs-q)<300?(f.vs+q)/2:f.vs}else if(f.vs==null&&f.ft!=null&&pv.ft!=null)f.vs=(f.ft-pv.ft)/dt*60}
         else if(pv&&f.t<=pv.t&&!pv.old){f.rate=pv.rate;f.vsS=pv.vsS}
-        TKS.L=f;TKS.seen=Date.now();tkNoteCs(f.cs,f.t);tkPush(f);tkLegState()}TKX.err="";TKX.back=0}
-    else{TKX.err="Not seen right now by adsb.lol receivers: it may be parked with the transponder off, outside receiver coverage (common over remote areas and the ocean) or hidden from public feeds."+(TKS.L?" Showing the last known position.":"");if(TKS.L)TKS.L.old=true}
+        TKS.L=f;TKS.seen=Date.now();TKS.feed=TKX.feed||"adsb.lol";tkNoteCs(f.cs,f.t);tkPush(f);tkLegState()}TKX.err="";TKX.back=0;TKX.nf=null}
+    else{const tr=feedsTxt(TKX.tried,TKX.down),at=tkTime(Date.now(),tkAp().tz);TKX.nf={at:Date.now(),tried:(TKX.tried||["adsb.lol"]).slice(),down:(TKX.down||[]).slice()};
+      if(TKS.L){TKS.L.old=true;const L=TKS.L;
+        TKX.err=L.gnd?tkWhat()+" not on ADS-B feeds right now — last seen "+tkTime(L.t,tkAp().tz)+" near "+tkNear(L)+" on the ground (parked aircraft often have the transponder off). Last checked "+at+" on "+tr+"."
+          :"Lost: "+tkWhat()+" was last seen "+tkTime(L.t,tkAp().tz)+" near "+tkNear(L)+" at FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")+". "+(L.spd!=null&&L.spd>=20?"Showing an estimated position (EST) from its last speed and track. ":"")+"It may be outside receiver coverage (common over remote areas and the ocean). Still checking "+tr+" (last check "+at+")."}
+      else TKX.err=tkWhat()+" not on ADS-B feeds yet — last checked "+at+" on "+tr+". It may be parked with the transponder off, outside receiver coverage or hidden from public feeds."}
   }catch(e){if(e.off){if(TKS&&TKS.L)TKS.L.old=true;TKX.err="Offline: showing the last known position"+(TKS&&TKS.L?" from "+tkTime(TKS.L.t,tkAp().tz):"")+". Tracking needs internet.";gap=60000}
     else if(e.rl!=null){TKX.back=Math.min(600000,Math.max(60000,(TKX.back||30000)*2,e.rl*1000));gap=TKX.back;TKX.err="adsb.lol is limiting requests right now; trying again in "+Math.round(gap/60000)+" min."}
     else{TKX.back=Math.min(300000,Math.max(30000,(TKX.back||15000)*2));gap=TKX.back;TKX.err="Couldn't reach the live ADS-B data ("+(e&&e.name==="AbortError"?"timed out":(e&&e.message)||e)+"). Retrying.";if(TKS&&TKS.L)TKS.L.old=true}}
   finally{TKX.busy=false;if(TKS!==ses){if(TKS&&TKS.on)tkSched(800);return}tkSave();tkSched(gap);tkRender();try{render();drawMap();pickScene()}catch(e){}tkWxMaybe()}}
-function tkInterval(){if(!TKS||!TKS.L)return 30000;const L=TKS.L,A=tkAp(),d=dist(L,A),e=tkEta();
-  if(TKS.arrAt&&!TKS.depAt)return 60000;if(L.gnd||L.spd==null||L.spd<40)return d<7000?30000:90000;if((e&&e.sec<45*60)||d<200000)return 15000;{const na=nearestAp(L);if(na&&na.d<40000&&(L.ft||0)<10000)return 15000}return 30000}
+/* v26d: poll often enough that the HUD looks live (dead-reckoning fills the gaps): 8 s flying, 10 s taxiing, 20 s parked.
+   Slows to 30 s after a heavy day (2,500 lookups on this phone) so the free feed isn't hammered. */
+function tkInterval(){if(!TKS||!TKS.L)return 10000;const L=TKS.L,heavy=tkQuota(0)>=2500;let ms;
+  if(TKS.arrAt&&!TKS.depAt&&(L.spd==null||L.spd<3))ms=30000;else if(L.gnd||L.spd==null||L.spd<40)ms=L.spd!=null&&L.spd>=3?10000:20000;else ms=8000;
+  return heavy?Math.max(ms,30000):ms}
 function tkSched(gap){clearTimeout(TKT);TKT=0;if(!TKS||!TKS.on)return;let ms=gap!=null?gap:tkInterval();if(document.hidden)ms=Math.max(ms,300000);TKX.next=Date.now()+ms;TKT=setTimeout(tkPoll,ms)}
 document.addEventListener("visibilitychange",()=>{if(!TKS||!TKS.on)return;if(document.hidden)tkSched(Math.max(300000,TKX.next-Date.now()));else if(Date.now()-TKX.lastPoll>tkInterval())tkPoll();else tkSched(Math.max(1000,TKX.lastPoll+tkInterval()-Date.now()))});
 window.addEventListener("online",()=>{if(TKS&&TKS.on)tkPoll()});
@@ -2200,14 +2263,26 @@ function tkRender(){const ban=$("tkBan"),box=$("tkOut"),st=$("tkSt");const on=TK
   const ageT=age==null?"":age<90?Math.round(age)+" s ago":age<5400?Math.round(age/60)+" min ago":(age/3600).toFixed(1)+" h ago";
   const shown=tkOn();document.body.classList.toggle("tking",shown);
   const fl=L?(L.gnd?"GND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")):"";ban.classList.toggle("slim",S.tkMini==="on");ban.style.display="";
-  if(S.tkMini==="on"){ban.innerHTML=`<button id="tkBanChip" aria-expanded="false" aria-label="Tracking ${esc(TKS.reg)}: show the tracking bar">● ${shown?"TRK":"WATCH"} ${esc(TKS.reg)}${fl?" · "+fl:""}${age!=null&&age>180?" · OLD":""} ▾</button><button id="tkBanStop" aria-label="Stop tracking">Stop</button>`;
+  if(S.tkMini==="on"){ban.innerHTML=`<button id="tkBanChip" aria-expanded="false" aria-label="Tracking ${esc(TKS.reg||TKS.flt)}: show the tracking bar">● ${shown?"TRK":"WATCH"} ${esc(TKS.reg||TKS.flt)}${fl?" · "+fl:""}${!L&&TKX.nf?" · NOT FOUND":age!=null&&age>180?(L.gnd?" · OLD":" · LOST"):""} ▾</button><button id="tkBanStop" aria-label="Stop tracking">Stop</button>`;
     $("tkBanChip").onclick=()=>{S.tkMini="off";saveS();tkRender()};$("tkBanStop").onclick=tkStop}
-  else ban.innerHTML=`<span>${shown?"TRACKING ":"WATCHING "}${esc(TKS.reg)}${cs?" · "+esc(cs):""}${L&&L.sq?" · SQK "+esc(L.sq):""}${L?" · "+(L.gnd?"ON GROUND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")):""}${age!=null&&age>60?" · LAST SEEN "+esc(ageT.toUpperCase()):""}</span><small>${shown?"Gauges, HUD and map show this aircraft, not your GPS":"Your own GPS is in use (you are not on the ground)"}</small><button id="tkBanGo" aria-label="Open tracking details">Open</button><button id="tkBanStop">Stop</button>`;
+  else ban.innerHTML=`<span>${shown?"TRACKING ":"WATCHING "}${esc(tkWhat())}${cs?" · "+esc(cs):""}${!L&&TKX.nf?" · NOT ON ADS-B FEEDS YET":""}${L&&L.sq?" · SQK "+esc(L.sq):""}${L?" · "+(L.gnd?"ON GROUND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")):""}${age!=null&&age>60?" · LAST SEEN "+esc(ageT.toUpperCase()):""}</span><small>${shown?"Gauges, HUD and map show this aircraft, not your GPS":!L?"Not found on the feeds yet: Open for retry, nearby planes and tail number":"Your own GPS is in use (you are not on the ground)"}</small><button id="tkBanGo" aria-label="Open tracking details">Open</button><button id="tkBanStop">Stop</button>`;
   if(S.tkMini!=="on"){$("tkBanGo").onclick=tkOpenDetails;$("tkBanStop").onclick=tkStop}
-  st.textContent=TKX.err||(L?"Live from adsb.lol"+(TKS.via==="relay"?" via the public cors.dev relay (private proxy unavailable)":TKS.via==="proxy"?(tkPxOk(String(S.tkProxy||"").trim())?" via your proxy":" via Cabin Panel's private proxy"):"")+" · updated "+ageT+(TKX.next?" · next check "+tkTime(TKX.next,A.tz):""):"Looking for "+TKS.reg+"…");
+  st.textContent=TKX.err||(L?"Live from "+(TKS.feed||"adsb.lol")+(TKS.via==="relay"?" via the public cors.dev relay (private proxy unavailable)":TKS.via==="proxy"?(tkPxOk(String(S.tkProxy||"").trim())?" via your proxy":" via Cabin Panel's private proxy"):"")+" · updated "+ageT+(TKX.next?" · next check "+tkTime(TKX.next,A.tz):""):"Looking for "+TKS.reg+"…");
   const rows=[];const li=(k,v,c)=>rows.push(`<li${c?` class="${c}"`:""}><span>${k}</span><b>${v}</b></li>`);
-  li("Aircraft",esc(TKS.reg)+(TKS.type?" · "+esc(TKS.type):"")+(TKS.hex?" · "+esc(TKS.hex.toUpperCase()):""));
-  if(L){li("Now",(L.gnd?"On the ground":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")+" · "+Math.round(fSpd(L.spd)||0)+" "+S.spd+" · track "+(L.trk==null?"---":String(Math.round(L.trk)%360).padStart(3,"0")+"°")+(L.vs!=null&&Math.abs(L.vs)>300?" · "+(L.vs>0?"climbing ":"descending ")+Math.abs(Math.round(L.vs/100)*100)+" fpm":""))+" near "+esc(tkNear(L)));
+  li("Aircraft",esc(TKS.reg||"(tail not known yet)")+(TKS.type?" · "+esc(TKS.type):"")+(TKS.hex?" · "+esc(TKS.hex.toUpperCase()):""));
+  if(TKS.flt){const ci=csInfo(TKS.flt),k=ci.known;if(TKS.op)li("Flown as",esc(TKS.flt)+" = "+esc(TKS.op.name)+" "+esc(TKS.op.fl)+" (callsign "+esc(TKS.op.cs)+") · "+esc(TKS.op.how),"ok");
+    else if(k)li("Codeshare?",esc(TKS.flt)+" is usually "+esc(k.op)+" "+esc(k.fl)+" ("+esc(k.cs)+"), "+esc(k.ty)+": not confirmed on a live feed yet");
+    else if(ci.ops.length)li("Codeshare?",esc(TKS.flt)+" may be flown by "+ci.ops.map(o=>esc(o[1])+" ("+o[0]+"…)").join(" or ")+" under its own flight number");
+    if(k&&!L)li("Scheduled",esc(k.fr)+" "+esc(k.dep)+" → "+esc(k.to)+" "+esc(k.arr)+" local (timetable, not live)")}
+  if(L&&tkStale()&&!L.gnd){const v=tkLive();li("Lost",(v&&v.lost?"EST position "+v.drMin+" min on from the last fix · ":"")+"last seen "+tkTime(L.t,A.tz)+" near "+esc(tkNear(L))+" · retrying "+esc(feedsTxt(TKX.tried,TKX.down)),"warn")}
+  if(TKX.nf&&!L){const dep=(csInfo(TKS.flt).known||{}).fr||S.from||"",arr=TKS.ap||S.to||"";
+    rows.push(`<li class="tkAct"><button id="tkRetry">Retry now</button><button id="tkTail">Enter tail number</button>${dep?`<button id="tkNearDep" data-ap="${esc(dep)}">Planes at ${esc(dep)}</button>`:""}${arr&&arr!==dep?`<button id="tkNearArr" data-ap="${esc(arr)}">Planes at ${esc(arr)}</button>`:""}</li>`);
+    li("Tips","Regional aircraft (Saab 340, Dash 8, some ATRs) are often missing from volunteer ADS-B feeds, especially on the ground and at smaller airports. The tail number (on the boarding gate screen, the aircraft or your airline app) is the most reliable way to track. Codeshares fly under the operator's own callsign.")}
+  if(TKX.near){const N=TKX.near;if(N.busy)li("Near "+esc(N.ap),"looking…");else if(N.err)li("Near "+esc(N.ap),esc(N.err),"warn");
+    else if(!N.list.length)li("Near "+esc(N.ap),"no aircraft seen within 25 NM on "+esc(feedsTxt(N.tried))+" ("+tkTime(N.at,A.tz)+")","warn");
+    else{li("Near "+esc(N.ap),N.list.length+" aircraft within 25 NM · "+esc(N.src)+" · "+tkTime(N.at,A.tz)+" · tap one to track it");
+      rows.push(`<li class="tkNear">${N.list.map(x=>`<button data-hex="${esc(x.hex)}" class="${x.hint?"pri":""}">${esc(x.cs||"no callsign")} · ${esc(x.r||x.hex.toUpperCase())}${x.t?" · "+esc(x.t):""} · ${x.gnd?"GND":x.ft!=null?"FL"+String(Math.round(x.ft/100)).padStart(3,"0"):"?"} · ${Math.round(fDst(x.d))} ${S.dst}</button>`).join("")}</li>`)}}
+  if(L){li(tkStale()?"Last fix":"Now",(L.gnd?"On the ground":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")+" · "+Math.round(fSpd(L.spd)||0)+" "+S.spd+" · track "+(L.trk==null?"---":String(Math.round(L.trk)%360).padStart(3,"0")+"°")+(L.vs!=null&&Math.abs(L.vs)>300?" · "+(L.vs>0?"climbing ":"descending ")+Math.abs(Math.round(L.vs/100)*100)+" fpm":""))+" near "+esc(tkNear(L)));
     li("Distance to "+esc(A.c),Math.round(fDst(dist(L,A))).toLocaleString()+" "+S.dst)}
   if(L&&L.em)li("Emergency",esc(L.em),"bad");
   const e=tkEta();if(TKS.arrAt&&!TKS.depAt)li("Arrived "+esc(A.c),tkTime(TKS.arrAt,A.tz)+" local","ok");else if(e)li("ETA "+esc(A.c),"~"+tkTime(e.at,A.tz)+" local ("+hm(e.sec)+", estimate)");
@@ -2217,6 +2292,12 @@ function tkRender(){const ban=$("tkBan"),box=$("tkOut"),st=$("tkSt");const on=TK
   const W=TKS.wx;if(W){li("Weather it flew through",esc(tkWxText()));if(W.ap.now)li(esc(A.c)+" now",esc(tkApWx(W.ap.now)));if(W.ap.arr)li(esc(A.c)+" at its arrival",esc(tkApWx(W.ap.arr)));if(W.ap.dep)li(esc(A.c)+" at your departure",esc(tkApWx(W.ap.dep)))}
   else if(TKS.wxErr)li("Weather","couldn't download ("+esc(TKS.wxErr)+")");
   box.innerHTML=rows.join("")}
+/* v26d: one delegated handler for the not-found / nearby buttons (no inline handlers: CSP) */
+$("tkOut").addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("button");if(!b)return;
+  if(b.id==="tkRetry"){TKX.back=0;clearTimeout(TKT);TKX.busy=false;tkPoll()}
+  else if(b.id==="tkTail"){const i=$("tkReg");i.scrollIntoView({block:"center"});i.focus()}
+  else if(b.id==="tkNearDep"||b.id==="tkNearArr")tkNearAt(b.dataset.ap);
+  else if(b.dataset.hex)tkPick(b.dataset.hex)});
 function tkOpenDetails(){S.tkMini="on";saveS();tkRender();const i=PG.els.findIndex(e=>e.id==="pg-route");try{pgGo(i,true)}catch(e){}
   setTimeout(()=>{const t=$("tkTile"),pg=PG.els[i];if(pg)pg.scrollTop=Math.max(0,t.getBoundingClientRect().top-pg.getBoundingClientRect().top+pg.scrollTop-8);try{pgGo(i,true)}catch(e){}t.classList.add("flash");setTimeout(()=>t.classList.remove("flash"),1600)},120)}
 async function tkStart(){const reg=tkNormReg($("tkReg").value),flt=String($("tkFlt").value||"").toUpperCase().replace(/\s+/g,""),dep=$("tkDep").value,ap=String($("tkAp").value||"").toUpperCase().trim(),turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));
@@ -2239,10 +2320,13 @@ $("tkProxy").value=S.tkProxy||"";$("tkProxy").onchange=()=>{const v=$("tkProxy")
 /* airport list for "your airport" */
 {const dl=$("tkApL");if(dl){dl.innerHTML=AP.map(a=>`<option value="${esc(a.c)}">${esc(a.n)}</option>`).join("")}}
 /* ---------- HUD + map ---------- */
+/* v26d: never silently show nothing: the HUD says the watched flight isn't on the feeds */
+function tkHudNf(cx){const w=tkWhat().toUpperCase(),t="NOT ON ADS-B · CHECKED "+tkTime(TKX.nf.at,tkAp().tz)+" · "+feedsTxt(TKX.nf.tried,TKX.nf.down).toUpperCase();
+  return `<rect x="${cx-110}" y="38" width="220" height="30" fill="#000" fill-opacity=".72" stroke="var(--warn)" stroke-width="1.4"/><text x="${cx}" y="51" fill="var(--warn)" stroke="none" font-size="10" font-weight="700" text-anchor="middle">WATCH ${esc(w.slice(0,34))}</text><text x="${cx}" y="63" fill="var(--warn)" stroke="none" font-size="8" font-weight="700" text-anchor="middle">${esc(t)}</text>`}
 function tkHudBan(cx,T){const L=TKS.L,age=(Date.now()-L.t)/1000,cs=L.cs||"";
   return `<rect x="${cx-92}" y="38" width="184" height="30" fill="#000" fill-opacity=".72" stroke="#ff8a1f" stroke-width="1.4"/>`+
-    `<text x="${cx}" y="51" fill="#ff8a1f" stroke="none" font-size="11" font-weight="700" text-anchor="middle">TRACKING ${esc(TKS.reg)}${cs?" "+esc(cs):""}</text>`+
-    `<text x="${cx}" y="63" fill="#ff8a1f" stroke="none" font-size="9" font-weight="700" text-anchor="middle">${tkStale()?"STALE · ":(Date.now()-L.t)>20000?"EST · ":""}NOT YOUR GPS${L.sq?" · SQK "+esc(L.sq):""}${age>60?" · "+(age<5400?Math.round(age/60)+"M":Math.round(age/3600)+"H")+" OLD":""}${L.gnd?" · ON GND":""}</text>`}
+    `<text x="${cx}" y="51" fill="#ff8a1f" stroke="none" font-size="11" font-weight="700" text-anchor="middle">TRACKING ${esc(TKS.reg||TKS.flt)}${cs?" "+esc(cs):""}${TKS.feed==="adsb.fi"?" · ADSB.FI":""}</text>`+
+    `<text x="${cx}" y="63" fill="#ff8a1f" stroke="none" font-size="9" font-weight="700" text-anchor="middle">${tkStale()?(L.gnd?"STALE · ":"LOST "+tkTime(L.t,tkAp().tz)+" · EST · "):(Date.now()-L.t)>20000?"EST · ":""}NOT YOUR GPS${L.sq?" · SQK "+esc(L.sq):""}${age>60?" · "+(age<5400?Math.round(age/60)+"M":Math.round(age/3600)+"H")+" OLD":""}${L.gnd?" · ON GND":""}</text>`}
 function tkZoom(W,H){if(!tkOn())return null;const L=tkLive()||TKS.L,A=tkAp(),d=dist(L,A)/1000;ZM.why="track";
   if(d<6){ZM.mode="track";return vOf(L.gnd||d<3?A:L,7,W,H)}ZM.mode="track";const m=gcPoint(L,A,0.5);return vOf(m,Math.max(20,Math.min(4500,d*1.35+15)),W,H)}
 function tkMapDraw(x,P,sc,W,H,col,glow){if(!TKS||!TKS.on||!TKS.L)return;const nvg=S.disp==="nvg",c=nvg?col("--ink"):"#ff8a1f",L=(tkOn()&&tkLive())||TKS.L,A=tkAp();
@@ -2254,11 +2338,11 @@ function tkMapDraw(x,P,sc,W,H,col,glow){if(!TKS||!TKS.on||!TKS.L)return;const nv
   const [px,py]=P(L);x.translate(px,py);x.rotate(rad(L.trk||0));x.fillStyle=c;x.strokeStyle="#000";x.lineWidth=2;x.beginPath();x.moveTo(0,-13);x.lineTo(3,-4);x.lineTo(12,3);x.lineTo(12,6);x.lineTo(3,3);x.lineTo(2,9);x.lineTo(5,12);x.lineTo(-5,12);x.lineTo(-2,9);x.lineTo(-3,3);x.lineTo(-12,6);x.lineTo(-12,3);x.lineTo(-3,-4);x.closePath();x.stroke();x.fill();
   x.setTransform(1,0,0,1,0,0);const dpr=window.devicePixelRatio||1;x.setTransform(dpr,0,0,dpr,0,0);
   const t1=TKS.reg+(L.cs?" "+L.cs:""),t2=L.gnd?"ON GROUND":"FL"+String(Math.round((L.ft||0)/100)).padStart(3,"0")+" "+Math.round(fSpd(L.spd)||0)+(S.spd==="kmh"?"KMH":S.spd.toUpperCase());
-  x.font="700 12px \"B612 Mono\",monospace";const w=Math.max(x.measureText(t1).width,x.measureText(t2).width)+10,bx=Math.min(W-w-4,Math.max(4,px+16)),by=Math.min(H-34,Math.max(4,py-36));
+  x.font="700 12px \"B612 Mono\",monospace";const w=Math.max(x.measureText(t1).width,x.measureText(t2).width)+10,bx=Math.min(W-w-62,Math.max(4,px+16)),by=Math.min(H-50,Math.max(4,py-36));  /* v26d: keep clear of the zoom buttons (right) and the data tag (bottom) */
   x.fillStyle="rgba(0,0,0,.72)";x.fillRect(bx,by,w,30);x.strokeStyle=c;x.lineWidth=1.2;x.strokeRect(bx,by,w,30);x.fillStyle=c;x.fillText(t1,bx+5,by+13);x.font="700 11px \"B612 Mono\",monospace";x.fillText(t2,bx+5,by+26);
   x.font="700 11px \"B612 Mono\",monospace";const tag="TRACKING "+TKS.reg+" · ADS-B data: adsb.lol (ODbL)",tw=x.measureText(tag).width;x.fillStyle="rgba(0,0,0,.7)";x.fillRect(6,H-44,tw+10,17);x.fillStyle=c;x.fillText(tag,11,H-31);x.restore()}
 /* test hooks */
-window.cpTk=()=>TKS?{on:TKS.on,reg:TKS.reg,hex:TKS.hex,via:TKS.via,cs:(TKS.cs||[]).map(c=>c.cs),L:TKS.L&&{lat:TKS.L.lat,lon:TKS.L.lon,ft:TKS.L.ft,gnd:TKS.L.gnd,cs:TKS.L.cs,sq:TKS.L.sq,old:!!TKS.L.old},trail:(TKS.trail||[]).length,arrAt:TKS.arrAt||null,shown:tkOn(),eta:tkEta(),delay:tkDelay(),wx:TKS.wx?tkWxText():null,err:TKX.err,next:TKX.next,quota:tkQuota(0),ap:tkAp().c,own:{phase:PH.p,last:last&&{lat:last.lat,lon:last.lon},log:LOG.pts.length}}:{on:false,err:TKX.err};
+window.cpTk=()=>TKS?{on:TKS.on,reg:TKS.reg,flt:TKS.flt,hex:TKS.hex,via:TKS.via,feed:TKS.feed||"",tried:TKX.tried||null,nf:TKX.nf||null,op:TKS.op||null,opCs:TKS.opCs||"",live:(()=>{const v=tkLive();return v&&{lat:v.lat,lon:v.lon,lost:!!v.lost,dr:!!v.dr,drMin:v.drMin||0}})(),near:TKX.near||null,cs:(TKS.cs||[]).map(c=>c.cs),L:TKS.L&&{lat:TKS.L.lat,lon:TKS.L.lon,ft:TKS.L.ft,gnd:TKS.L.gnd,cs:TKS.L.cs,sq:TKS.L.sq,old:!!TKS.L.old},trail:(TKS.trail||[]).length,arrAt:TKS.arrAt||null,shown:tkOn(),eta:tkEta(),delay:tkDelay(),wx:TKS.wx?tkWxText():null,err:TKX.err,next:TKX.next,iv:tkInterval(),quota:tkQuota(0),ap:tkAp().c,own:{phase:PH.p,last:last&&{lat:last.lat,lon:last.lon},log:LOG.pts.length}}:{on:false,err:TKX.err};
 window.cpTkPoll=()=>tkPoll();window.cpTkNorm=tkNormReg;window.cpTkLocal=(h,tz,n)=>tkLocalMs(h,tz,n);window.cpTkWx=()=>tkWxMaybe(true);
 /* restore after reload */
 {const s=store.get("tk",null);if(s&&s.on&&(s.reg||s.flt)&&Date.now()-(s.at||0)<36*3600000){TKS=s;$("tkReg").value=s.reg||"";$("tkFlt").value=s.flt||"";$("tkDep").value=s.dep||"";$("tkAp").value=s.ap||"";$("tkTurn").value=s.turn||30;setTimeout(tkPoll,1500)}
@@ -2356,7 +2440,7 @@ window.cpSV={open:svOpen,close:svClose,on:()=>SV.on,status:()=>SV.ctl?SV.ctl.sta
 /* ---- central feature toggles and service config (one place; a public build can switch features or endpoints here) ---- */
 const FEAT=Object.assign({seat:1,identify:1,replay:1,stats:1,turb:1,bumps:1,arrival:1,card:1,share:1,follow:1,net:1,diary:1,bodyclock:1,landing:1,tod:1,sunalt:1,spot:1},store.get("feat",{}));
 const SVC={base:TK_PROXY.replace(/\/+$/,""),appKey:"",ping:"/ping",share:"/share",near:"/api/near",wx:"/api/wx/now",ac:"/api/ac",info:"/api/info/",tle:"/api/tle/iss",
-  nearNm:25,nearEveryMs:60000,nearPerDay:150,shareSampleMs:15000,shareSendMs:45000,followPollMs:30000};
+  nearNm:25,nearEveryMs:60000,nearPerDay:150,shareSampleMs:10000,shareSendMs:15000,followPollMs:15000};
 /* every Worker call goes through here, so a per-user app key (X-App-Key) can be added later without touching features */
 function svcFetch(path,opt,ms){opt=Object.assign({cache:"no-store"},opt||{});if(SVC.appKey)opt.headers=Object.assign({"X-App-Key":SVC.appKey},opt.headers||{});
   const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||12000);opt.signal=c.signal;return fetch(SVC.base+path,opt).finally(()=>clearTimeout(t))}
@@ -2818,7 +2902,7 @@ function shUI(){const on=SH.on&&SH.exp>Date.now();const t=$("shTag");if(t)t.styl
   else setTx($("shSt"),"Off. Nothing is shared until you tap Start sharing.")}
 async function shStart(){if(!cfOk()){say(cfWhy()+".");return false}const n="";
   $("shStart").disabled=true;$("shStart").dataset.busy="1";
-  try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n:"",fr:shFr(),to:shTo(),fl:shFl(),rg:shRg()})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
+  try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n:"",fr:shFr(),to:shTo(),fl:shFl(),rg:shRg(),cs:shCs(),hx:shHx()})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
     const j=await r.json();Object.assign(SH,{on:true,id:j.id,token:j.token,exp:j.exp,sent:0,err:"",buf:[]});shSave();shUI();shSample(true);shSend(true);hap(20);return true}
   catch(e){setTx($("shSt"),"Couldn't start sharing: "+((e&&e.message)||e)+".");return false}finally{delete $("shStart").dataset.busy;$("shStart").disabled=false;cfApply()}}
 async function shStop(){const id=SH.id,tok=SH.token;
@@ -2835,7 +2919,7 @@ function shSample(force){if(!SH.on)return;const L=tkOn()&&!DRV.on?TKS.L:last;if(
 async function shSend(force){if(!SH.on||SH.busy)return;if(SH.exp<=Date.now()){Object.assign(SH,{on:false});shSave();shUI();return}
   if(!cfOk()||!SH.buf.length||(!force&&Date.now()-SH.lastT<SVC.shareSendMs))return;SH.busy=true;SH.lastT=Date.now();
   const pts=SH.buf.length>12?thin(SH.buf,12):SH.buf.slice(),to=apBy(S.to),n=tkOn()?null:navT(viewL()||last,to);
-  try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,n:"",fr:shFr(),to:shTo(),fl:shFl(),rg:shRg(),eta:DRV.on?drvEtaMs():n&&n.sec!=null?Math.round(Date.now()+n.sec*1000):null})},12000);
+  try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,n:"",fr:shFr(),to:shTo(),fl:shFl(),rg:shRg(),cs:shCs(),hx:shHx(),eta:DRV.on?drvEtaMs():n&&n.sec!=null?Math.round(Date.now()+n.sec*1000):null})},12000);
     if(r.status===404||r.status===410||r.status===403){Object.assign(SH,{on:false,err:"share ended"});shSave()}
     else if(r.ok){SH.buf=SH.buf.filter(q=>q[0]>pts[pts.length-1][0]);SH.sent=Date.now();SH.err="";shSave()}else SH.err="update failed ("+r.status+")"}
   catch(e){SH.err="no connection"}finally{SH.busy=false;shUI()}}
@@ -2847,7 +2931,7 @@ if($("shStart")){$("shStart").onclick=shStart;$("shStop").onclick=()=>{if(confir
   $("shShare").onclick=async()=>{const u=shLink(SH.id);try{if(navigator.share){await navigator.share({title:DRV.on?"Follow my drive":"Follow my flight",text:(DRV.on?"Follow my drive":"Follow my flight"+(S.from&&S.to?" "+S.from+" → "+S.to:""))+" on Cabin Panel",url:u});return}}catch(e){if(e&&e.name==="AbortError")return}
     try{await navigator.clipboard.writeText(u);setTx($("shSt"),"Link copied.")}catch(e){$("shLink").select()}};}
 window.cpShare={state:()=>({on:SH.on,id:SH.id?SH.id.slice(0,4)+"…":"",hasToken:!!SH.token,exp:SH.exp,sent:SH.sent,buf:SH.buf.length,err:SH.err,link:SH.id?shLink(SH.id):""}),send:()=>shSend(true),sample:()=>shSample(true),stop:()=>shStop(),start:()=>shStart(),rawId:()=>SH.id,
-  ids:(o)=>{o=o||{};const sv={f:S.flt,d:DRV.on,m:demo};try{if("flt" in o)S.flt=o.flt;if(o.drive)DRV.on=true;if(o.demo)demo=demo||{};return {fl:shFl(),rg:shRg()}}finally{S.flt=sv.f;DRV.on=sv.d;demo=sv.m}}};
+  ids:(o)=>{o=o||{};const sv={f:S.flt,d:DRV.on,m:demo};try{if("flt" in o)S.flt=o.flt;if(o.drive)DRV.on=true;if(o.demo)demo=demo||{};return {fl:shFl(),rg:shRg(),cs:shCs(),hx:shHx(),label:fltLabel()}}finally{S.flt=sv.f;DRV.on=sv.d;demo=sv.m}}};
 
 /* ---- follower view ---- */
 let FW={id:"",d:null,at:0,err:"",iv:0,busy:false};
@@ -3092,7 +3176,7 @@ function bpApply(p,how){const msg=[];if(!p){setTx($("bpTxt"),"That barcode isn't
   const okF=!!apBy(p.from),okT=!!apBy(p.to);
   if(okF){$("from").value=p.from;$("from").dispatchEvent(new Event("change"))}else msg.push(p.from+" isn't in the built-in airport list");
   if(okT){$("to").value=p.to;$("to").dispatchEvent(new Event("change"))}else msg.push(p.to+" isn't in the built-in airport list");
-  S.flt=p.flt;try{$("fltIn").value=p.flt}catch(e){}if(p.side){S.seat=p.side;try{applySeg()}catch(e){}}saveS();
+  S.flt=p.flt;fltStamp();try{$("fltIn").value=p.flt}catch(e){}if(p.side){S.seat=p.side;try{applySeg()}catch(e){}}saveS();
   BP.last={flt:p.flt,from:p.from,to:p.to,date:p.date,seat:p.seat,side:p.side,win:p.win,at:Date.now(),how};store.set("bp",BP.last);
   bpShow();try{seatRender()}catch(e){}try{render();drawMap();profAll()}catch(e){}
   if(msg.length)setTx($("bpTxt"),msg.join("; ")+". Pick it on the Route page.");
@@ -3301,9 +3385,12 @@ function shHeldWhy(){if(!DRV.on)return "position held back: you are not at an ai
 const shFr=()=>DRV.on?"DRV":(S.from||""),shTo=()=>DRV.on?"":(S.to||"");
 /* v26b: flight number and registration for the follow page header (never in the link; empty in Drive mode, demo and replay) */
 function shIdOk(){return !DRV.on&&!demo&&!REPLAY&&!(PH&&PH.demo)}
-function shTk(){return !DRV.on&&tkOn()?TKS:null}  /* the share follows the tracked aircraft, so its flight/rego win */
-const shFl=()=>{if(!shIdOk())return "";const t=shTk(),c=t&&t.cs&&t.cs.length?t.cs[t.cs.length-1].cs:"";const v=String((t?(t.flt||c):S.flt)||"").replace(/<[^>]*>/g,"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);return /^[A-Z0-9]{3,8}$/.test(v)?v:""},
-  shRg=()=>{if(!shIdOk())return "";const t=shTk();const v=String((t?t.reg:S.fltReg)||"").toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,10);return /^[A-Z0-9][A-Z0-9-]{1,9}$/.test(v)?v:""};
+function shTk(){return !DRV.on&&TKS&&TKS.on?TKS:null}  /* the share follows the tracked aircraft, so its flight/rego win */
+const shFl=()=>{if(!shIdOk())return "";const t=shTk(),c=t&&t.cs&&t.cs.length?t.cs[t.cs.length-1].cs:"";const v=String((t?(t.flt||c):fltLabel())||"").replace(/<[^>]*>/g,"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);return /^[A-Z0-9]{3,8}$/.test(v)?v:""},
+  shRg=()=>{if(!shIdOk())return "";const t=shTk();const v=String((t?t.reg:(fltStale()?"":S.fltReg))||"").toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,10);return /^[A-Z0-9][A-Z0-9-]{1,9}$/.test(v)?v:""},
+  /* v26d: the ICAO callsign and transponder hex let the share server find the aircraft on ADS-B itself */
+  shCs=()=>{if(!shIdOk())return "";const t=shTk(),l=t&&t.L&&t.L.cs;let v=l||(t&&t.opCs)||(!t&&!fltStale()&&S.fltCs&&S.flt&&CS_KNOWN[S.flt]&&S.fltCs===CS_KNOWN[S.flt].cs?S.fltCs:"");if(!v){const f=shFl(),c=f&&toCallsign(f);v=c&&c.cs||""}v=String(v).toUpperCase().replace(/[^A-Z0-9]/g,"");return /^[A-Z0-9]{3,8}$/.test(v)?v:""},
+  shHx=()=>{if(!shIdOk())return "";const t=shTk(),v=String(t&&t.hex||"").toLowerCase();return /^[0-9a-f]{6}$/.test(v)?v:""};
 /* ---- ride smoothness (replaces the landing score in Drive mode). For fun: GPS and phone sensors, not a driving assessment. ---- */
 const rsNew=()=>({dur:0,sq:0,brake:0,accel:0,corner:0,bump:0,le:{}});
 function rsStep(L){const T=DRV.trip;if(!T)return;const rs=T.rs||(T.rs=rsNew()),p=DRV.pf;DRV.pf={t:L.t,spd:L.spd,trk:L.trk};if(!p||L.spd==null||p.spd==null)return;

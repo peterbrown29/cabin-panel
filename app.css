@@ -456,3 +456,5 @@ body.gmOn #gmHud{display:flex}
 #gsBar button{min-height:52px;min-width:70px;background:rgba(0,0,0,.6);color:#fff;border:2px solid #ddd;border-radius:10px;font:700 14px "B612 Mono",monospace;touch-action:none;user-select:none;-webkit-user-select:none}
 #gs105,#gs25{border-color:#ff3b3b!important;color:#ff8a8a!important}
 #gsMsg{display:none;position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 110px);z-index:4;margin:0 auto;max-width:460px;background:rgba(0,0,0,.78);border:1.5px solid #ff3b3b;border-radius:8px;padding:7px 10px;color:#fff;font:700 12px "B612 Mono",monospace}
+/* v26d: not-found actions and the pick-by-hand list in the tracking tile */
+#tkOut li.tkAct,#tkOut li.tkNear{flex-wrap:wrap;gap:6px;justify-content:flex-start}#tkOut li.tkAct button,#tkOut li.tkNear button{flex:0 1 auto;min-height:40px;font:600 12px/1.3 var(--mono);text-align:left}
