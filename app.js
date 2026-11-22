@@ -843,7 +843,7 @@ async function fltTrackLive(){const tv=String($("fltReg").value||"").trim(),asF=
   if(!r&&!fl){fltMsg("Type a flight number (e.g. QF475) or a tail number (e.g. VH-VZJ). Either one is enough.");$("fltIn").focus();return}
   $("tkReg").value=r;$("tkFlt").value=fl;if(S.to)$("tkAp").value=S.to;$("fltLive").style.display="none";
   const c=fl&&toCallsign(fl);
-  fltMsg("Tracking "+(r?r+(fl?" ("+fl+")":"")+" by tail number":fl+(c&&c.cs?" by callsign "+c.cs:"")+" by flight number")+". It shows on the HUD whenever your own GPS isn't flying. Needs internet.");
+  fltMsg("Tracking "+(r?r+(fl?" ("+fl+")":"")+" by tail number":fl+" by flight number"+(c&&c.cs?" (callsign "+c.cs+")":""))+". It shows on the HUD whenever your own GPS isn't flying. Needs internet.");
   try{await tkStart()}catch(e){}}
 $("fltTrk").onclick=fltTrackLive;
 /* v26e: if the flight you typed is live on ADS-B right now, offer one tap to watch it instead of staying on your own (parked) GPS */
