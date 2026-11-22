@@ -4074,7 +4074,7 @@ window.cpSVL=()=>({on:S.svlab!=="off",n:SVL.sel.length,cand:SVL.cand,ms:SVL.ms,a
    recommended weapon (from the game's own numbers), and highlight that weapon's button. */
 const GMREC={ftr:{th:"HIGH",w:"gun",why:"fast, agile; flares beat 1 in 5 missiles"},rdr:{th:"MEDIUM",w:"msl",why:"slow; one missile kills (95%)"},
   msh:{th:"EXTREME",w:"msl",why:"armoured; 3 missiles then gun"},gnd:{th:"GROUND",w:"gs",why:"ground target; belly cam"}};
-const GMW={gun:"GUN",msl:"MSL",gs:"GUNSHIP"};
+const GMW={gun:"GUN",msl:"MSL",gs:"GUNSHIP",g105:"105"};
 let GMTI={at:0,info:null};
 function gmTgtPick(v){const lk=GM.lock!=null&&GM.tg.find(t=>t.id===GM.lock&&!t.dead);
   /* the lock wins while its target is on screen; once it drifts off, what's under the crosshair is shown instead */
@@ -4082,15 +4082,63 @@ function gmTgtPick(v){const lk=GM.lock!=null&&GM.tg.find(t=>t.id===GM.lock&&!t.d
   const u=gmUnder(v);if(u)return {t:u,how:"HOVER"};
   for(const t of GM.tg){if(t.dead||t.type!=="gnd")continue;const p=gmPos(t,v);if(Math.abs(p.x-v.pj.cx)<=p.h&&Math.abs(p.y-v.pj.cy)<=p.h)return {t,how:"HOVER"}}return null}
 function gmTgtUI(){const el=$("gmTgt");if(!el)return;const v=S.gameOn&&!GM.gsOn?gmView():null,pk=v?gmTgtPick(v):null;
-  const btn={gun:$("gmGun"),msl:$("gmMsl"),gs:$("gmGs")};
+  const btn={gun:$("gmGun"),msl:$("gmMsl"),gs:$("gmGs"),g105:$("gsa105")};
   if(!pk){if(!el.hidden)el.hidden=true;for(const b of Object.values(btn))b&&b.classList.remove("rec");GMTI.info=null;return}
   const t=pk.t,T=GMT[t.type],R=GMREC[t.type]||GMREC.ftr;let w=R.w,note="";if(w==="msl"&&GM.ammo.msl<=0){w="gun";note=" (MSL empty)"}if(w==="gun"&&GM.ammo.gun<=0&&GM.ammo.msl>0&&t.type!=="gnd"){w="msl";note=" (gun reloading)"}
-  if(w==="msl"&&pk.how!=="LOCK")note=note||" · IDENT first";
+  if(w==="msl"&&pk.how!=="LOCK")note=note||" · IDENT first";if(GSA.on&&t.type==="gnd"){w="g105";note=""}
   setTx($("gmTgtC"),pk.how+" · "+T.n);const th=$("gmTgtT");setTx(th,"THREAT "+R.th+(t.hp0>1&&t.type!=="gnd"?" · HP "+Math.max(0,t.hp)+"/"+t.hp0:""));th.className="th"+R.th;
   setTx($("gmTgtW"),"USE "+GMW[w]+note);if(el.hidden)el.hidden=false;
   for(const [k,b] of Object.entries(btn))b&&b.classList.toggle("rec",k===w);
   el.title=R.why;GMTI.info={id:t.id,type:t.type,cls:T.n,how:pk.how,threat:R.th,weapon:w,why:R.why}}
 {const _d=gmDraw;gmDraw=function(){const r=_d.apply(this,arguments);const now=performance.now();if(now-GMTI.at>100){GMTI.at=now;try{gmTgtUI()}catch(e){}}return r}}
 {const _u=gmUI;gmUI=function(){const r=_u.apply(this,arguments);try{if(!S.gameOn)gmTgtUI()}catch(e){}return r}}
-window.cpTgt=()=>({info:GMTI.info,shown:!$("gmTgt").hidden,text:[$("gmTgtC").textContent,$("gmTgtT").textContent,$("gmTgtW").textContent],rec:["gmGun","gmMsl","gmGs"].filter(i=>$(i).classList.contains("rec"))});
+window.cpTgt=()=>({info:GMTI.info,shown:!$("gmTgt").hidden,text:[$("gmTgtC").textContent,$("gmTgtT").textContent,$("gmTgtW").textContent],rec:["gmGun","gmMsl","gmGs","gsa105"].filter(i=>$(i).classList.contains("rec"))});
+
+/* ---------- v27: AR gunship overlay: a separate window-seat mode. Gunship symbology and thermal-style filters drawn over the
+   live camera (or AR 3D when cloud blocks the window). 105 mm hits anything under the reticle after 1.2 s (ground bases too);
+   the 25 mm GUN also hits ground forces while it's on. The belly cam (GUNSHIP) stays exactly as it was. */
+const GSA={on:false,n105:12,rl:0,shells:[],kills:0,at:0};
+const GSAF=["wht","bht","nvg","flir","crt"],GSAN={wht:"WHT",bht:"BHT",nvg:"NVG",flir:"FLIR",crt:"CRT"};
+if(!GSAF.includes(S.gsaFlt))S.gsaFlt="wht";
+function gsaApply(){document.body.classList.toggle("gsar",GSA.on);for(const f of GSAF)document.body.classList.toggle("gsa-"+f,GSA.on&&S.gsaFlt===f);
+  const b=$("gmGsAr");b.classList.toggle("on",GSA.on);b.setAttribute("aria-pressed",GSA.on?"true":"false");$("gsaCtl").hidden=!GSA.on;setTx($("gsaFlt"),GSAN[S.gsaFlt]);setTx($("gsa105"),"105 · "+GSA.n105)}
+function gsaToggle(on){on=on==null?!GSA.on:!!on;if(on){if(!arOn)return false;if(!S.gameOn&&!gmToggle())return false;if(GM.gsOn)try{gsClose()}catch(e){}}
+  GSA.on=on;GSA.shells=[];if(!on){const c=$("gsaCv");try{c.getContext("2d").clearRect(0,0,c.width,c.height)}catch(e){}}
+  gsaApply();gmNote(on?"GUNSHIP OVERLAY · window seat · 105 hits ground and air, GUN hits ground too · imaginary targets":"GUNSHIP OVERLAY OFF",null);hap(15);return on}
+function gsaUnder(v,pad){const out=[];for(const t of GM.tg){if(t.dead)continue;const p=gmPos(t,v);if(Math.abs(p.x-v.pj.cx)<=p.h+pad&&Math.abs(p.y-v.pj.cy)<=p.h+pad)out.push(t)}return out}
+function gsaKill(t,v){if(t.type!=="gnd"){gmDmg(t,t.type==="msh"?6:3,v);return}
+  t.dead=Date.now();if(GM.lock===t.id)GM.lock=null;const pts=400*(t.bases||1);GM.st.score+=pts;GM.st.kills++;GM.st.ground++;GM.st.hits++;GM.st.best=Math.max(GM.st.best,GM.st.score);GSA.kills++;gmSave();
+  GM.fx.push({a:(GM.c||0)+t.rA,e:t.rE,t:0,big:1});gmNote("GOOD HITS · ALIEN BASE +"+pts,"splash");gmBadgeCheck();try{hap([30,30,60])}catch(e){}
+  if(!GM.tg.some(q=>!q.dead))setTimeout(()=>{if(S.gameOn&&!GM.tg.some(q=>!q.dead)){gmNote("MISSION COMPLETE · "+GM.st.score.toLocaleString()+" pts","mission");gmDoneShow()}},1600)}
+function gsaFire105(){if(!GSA.on)return false;if(typeof frBlock==="function"&&frBlock())return false;if(GSA.n105<=0){gmNote("105 WINCHESTER · reloading","winchester");return false}
+  const v=gmView();if(!v)return false;GSA.n105--;GSA.rl=Date.now();GM.st.shots++;GSA.shells.push({a:v.az,e:v.el,t0:Date.now()});gmNote("SHOT · 105 · splash in 1",null);gsaApply();try{hap(25)}catch(e){}return true}
+function gsaStep(){const now=Date.now();if(GSA.n105<12&&now-GSA.rl>5000){GSA.n105++;GSA.rl=now;gsaApply()}
+  const v=gmView();if(!v)return;for(const s of GSA.shells){if(s.done||now-s.t0<1200)continue;s.done=1;
+    const hit=GM.tg.filter(t=>!t.dead&&Math.hypot(w180((GM.c||0)+t.rA-s.a),t.rE-s.e)*v.pj.ppd<=gmPos(t,v).h+40);GM.fx.push({a:s.a,e:s.e,t:0,big:1});
+    if(hit.length){for(const t of hit)gsaKill(t,v)}else gmNote("SPLASH · no effect",null)}GSA.shells=GSA.shells.filter(s=>!s.done)}
+function gsaDraw(){const c=$("gsaCv"),W=c.clientWidth,H=c.clientHeight;if(!W||!H)return;const pr=Math.min(2,window.devicePixelRatio||1);if(c.width!==Math.round(W*pr)||c.height!==Math.round(H*pr)){c.width=Math.round(W*pr);c.height=Math.round(H*pr)}
+  const x=c.getContext("2d");x.setTransform(pr,0,0,pr,0,0);x.clearRect(0,0,W,H);const v=gmView();if(!v)return;const cx=v.pj.cx,cy=v.pj.cy;
+  const col=S.gsaFlt==="bht"?"#101010":S.gsaFlt==="nvg"||S.gsaFlt==="crt"?"#b8ffb8":"#ffffff",sh=S.gsaFlt==="bht"?"rgba(255,255,255,.8)":"rgba(0,0,0,.85)";
+  x.strokeStyle=col;x.fillStyle=col;x.lineWidth=2;x.shadowColor=sh;x.shadowBlur=3;x.font="700 13px \"B612 Mono\",ui-monospace,monospace";x.textBaseline="middle";
+  const m=Math.min(W,H)*0.06,L=Math.min(W,H)*0.08;let bt=H-m-110;try{const bb=$("arBar").getBoundingClientRect(),cb=c.getBoundingClientRect();if(bb.height&&!document.body.classList.contains("arHid"))bt=Math.min(bt,bb.top-cb.top-60)}catch(e){}
+  for(const [X,Y,dx,dy] of [[m,m+76,1,1],[W-m,m+76,-1,1],[m,bt,1,-1],[W-m,bt,-1,-1]]){x.beginPath();x.moveTo(X,Y+dy*L);x.lineTo(X,Y);x.lineTo(X+dx*L,Y);x.stroke()}
+  const g=16,r=46;x.beginPath();x.moveTo(cx-r-30,cy);x.lineTo(cx-g,cy);x.moveTo(cx+g,cy);x.lineTo(cx+r+30,cy);x.moveTo(cx,cy-r-30);x.lineTo(cx,cy-g);x.moveTo(cx,cy+g);x.lineTo(cx,cy+r+30);x.stroke();
+  x.strokeRect(cx-r,cy-r,2*r,2*r);for(const k of [-1,1]){x.beginPath();x.moveTo(cx+k*r,cy-8);x.lineTo(cx+k*(r-10),cy);x.lineTo(cx+k*r,cy+8);x.stroke()}
+  const u=gsaUnder(v,0);x.textAlign="left";x.fillText("AZ "+String(Math.round(((v.az%360)+360)%360)).padStart(3,"0")+"  EL "+(v.el>=0?"+":"")+v.el.toFixed(1),m+6,m+92);
+  x.textAlign="right";x.fillText(GSAN[S.gsaFlt]+" · NFOV",W-m-110,m+92);
+  x.textAlign="left";x.fillText("105 "+String(GSA.n105).padStart(2,"0")+"   25 "+String(GM.ammo.gun).padStart(3,"0"),m+6,bt-16);
+  x.textAlign="right";x.fillText(u.length?"TGT "+GMT[u[0].type].tag+" · "+fDst(u[0].d*1000).toFixed(1)+" "+S.dst.toUpperCase():"NO TGT",W-m-110,bt-16);
+  const now=Date.now();for(const s of GSA.shells){const f=Math.min(1,(now-s.t0)/1200);x.textAlign="center";x.fillText("SPLASH "+Math.max(0,(1.2-(now-s.t0)/1000)).toFixed(1),cx,cy+r+48+GSA.shells.indexOf(s)*16)}
+  if(u.length){x.strokeStyle=S.gsaFlt==="bht"?"#000":"#ffd23b";x.lineWidth=2.5;x.strokeRect(cx-r-6,cy-r-6,2*r+12,2*r+12)}GSA.at=now}
+{const _d=gmDraw;gmDraw=function(){const r=_d.apply(this,arguments);if(GSA.on)try{gsaStep();gsaDraw()}catch(e){}return r}}
+/* 25 mm GUN also hits ground forces under the reticle while the overlay is on */
+{const _g=gmGunShot;gmGunShot=function(){const before=GM.ammo.gun;const r=_g.apply(this,arguments);if(GSA.on&&GM.ammo.gun<before){const v=gmView();if(v){const t=gsaUnder(v,0).find(q=>q.type==="gnd");if(t&&Math.random()<0.18)gsaKill(t,v)}}return r}}
+$("gmGsAr").onclick=()=>gsaToggle();$("gsa105").onclick=()=>gsaFire105();
+$("gsaFlt").onclick=()=>{S.gsaFlt=GSAF[(GSAF.indexOf(S.gsaFlt)+1)%GSAF.length];saveS();gsaApply();hap(10)};
+{const _ac=arClose;arClose=function(){if(GSA.on){GSA.on=false;GSA.shells=[];gsaApply()}return _ac.apply(this,arguments)}}
+{const _t=gmToggle;gmToggle=function(){const r=_t.apply(this,arguments);if(!S.gameOn&&GSA.on){GSA.on=false;GSA.shells=[];gsaApply()}return r}}
+{const _o=gsOpen;gsOpen=function(){if(GSA.on){GSA.on=false;GSA.shells=[];gsaApply()}return _o.apply(this,arguments)}}
+{const _u=gmUI;gmUI=function(){const r=_u.apply(this,arguments);if(GSA.on&&(!arOn||!S.gameOn)){GSA.on=false;GSA.shells=[];gsaApply()}return r}}
+gsaApply();
+window.cpGSA=()=>({on:GSA.on,flt:S.gsaFlt,n105:GSA.n105,shells:GSA.shells.length,kills:GSA.kills,drawn:GSA.at,body:document.body.className.split(" ").filter(c=>c==="gsar"||c.startsWith("gsa-"))});
 }

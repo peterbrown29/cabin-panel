@@ -500,3 +500,16 @@ ul.ck li button{min-width:52px;min-height:44px;padding:0 10px}
 #gmTgtW{color:#ffd23b}
 #gmHud button.rec{border-color:#ffd23b;box-shadow:0 0 0 2px #ffd23b,0 0 12px rgba(255,210,59,.7);color:#ffd23b}
 #gmHud button.rec.lk,#gmHud button.rec:active{color:#180000}
+
+/* v27: AR gunship overlay (window seat): thermal-style filters over the camera feed or AR 3D, gunship symbology on #gsaCv */
+#gsaCv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;display:none}
+body.gsar #gsaCv{display:block}
+#gsaCtl{display:flex;flex-direction:column;gap:7px}#gsaCtl[hidden]{display:none}
+#gmHud #gmGsAr.on{background:#ff3b3b;color:#180000}
+body.gsar.gsa-wht #arVid,body.gsar.gsa-wht #ar3Cv{filter:grayscale(1) contrast(1.6) brightness(1.1)}
+body.gsar.gsa-bht #arVid,body.gsar.gsa-bht #ar3Cv{filter:grayscale(1) invert(1) contrast(1.6) brightness(1.05)}
+body.gsar.gsa-nvg #arVid,body.gsar.gsa-nvg #ar3Cv{filter:grayscale(1) brightness(1.7) contrast(1.35) sepia(1) hue-rotate(65deg) saturate(5)}
+body.gsar.gsa-flir #arVid,body.gsar.gsa-flir #ar3Cv{filter:url(#fIron) contrast(1.2)}
+body.gsar.gsa-crt #arVid,body.gsar.gsa-crt #ar3Cv{filter:grayscale(1) sepia(.6) hue-rotate(60deg) saturate(2) contrast(1.4) blur(.4px)}
+body.gsar.gsa-crt #gsaCv{background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px),radial-gradient(circle at 50% 50%,transparent 58%,rgba(0,0,0,.7) 80%)}
+body.gsar #gsaCv{background-color:transparent}
