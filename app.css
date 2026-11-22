@@ -490,3 +490,13 @@ ul.ck li .ckS{display:block;font:11px var(--mono);color:var(--dim)}
 ul.ck li.done .ckT>b{text-decoration:line-through;opacity:.75}
 ul.ck li button{min-width:52px;min-height:44px;padding:0 10px}
 .ckFlash{outline:2px solid var(--ink);outline-offset:3px}
+
+/* v27: target type card + recommended weapon highlight */
+#gmTgt{background:rgba(20,0,0,.72);border:1px solid #ff3b3b;border-radius:8px;padding:4px 5px;font:700 10px "B612 Mono",monospace;color:#ffb3b3;line-height:1.3;letter-spacing:.03em;pointer-events:none}
+#gmTgt[hidden]{display:none}
+#gmTgt b,#gmTgt span{display:block}
+#gmTgt b{color:#fff;font-size:11px}
+#gmTgt .thHIGH,#gmTgt .thEXTREME{color:#ffd23b}
+#gmTgtW{color:#ffd23b}
+#gmHud button.rec{border-color:#ffd23b;box-shadow:0 0 0 2px #ffd23b,0 0 12px rgba(255,210,59,.7);color:#ffd23b}
+#gmHud button.rec.lk,#gmHud button.rec:active{color:#180000}

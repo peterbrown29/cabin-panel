@@ -4069,4 +4069,28 @@ function svlTap(cx,cy){const r=$("svHud").getBoundingClientRect(),x=cx-r.left,y=
   svMsg(q.n+" · "+svlKind(q)+" · "+svlDist(q.d)+(q.side==="ahead"?" ahead":" on the "+q.side)+(q.note?". "+q.note:""));SVL.noteUntil=Date.now()+9000;return true}
 document.querySelector('.seg[data-k="svlab"]').addEventListener("click",()=>setTimeout(()=>{SVL.at=0;if(S.svlab==="off")SVL.sel=[]},0));
 window.cpSVL=()=>({on:S.svlab!=="off",n:SVL.sel.length,cand:SVL.cand,ms:SVL.ms,at:SVL.at,labels:SVL.hit.map(b=>({n:b.q.n,kind:b.q.kind,d:Math.round(b.q.d),side:b.q.side,x:Math.round((b.x0+b.x1)/2),y:Math.round(b.y0+15),r:[Math.round(b.x0),Math.round(b.y0),Math.round(b.x1),Math.round(b.y1)]})),seat:S.seat});
+
+/* ---------- v27: target type: when an alien is locked or under the crosshair, show its class, threat level and the
+   recommended weapon (from the game's own numbers), and highlight that weapon's button. */
+const GMREC={ftr:{th:"HIGH",w:"gun",why:"fast, agile; flares beat 1 in 5 missiles"},rdr:{th:"MEDIUM",w:"msl",why:"slow; one missile kills (95%)"},
+  msh:{th:"EXTREME",w:"msl",why:"armoured; 3 missiles then gun"},gnd:{th:"GROUND",w:"gs",why:"ground target; belly cam"}};
+const GMW={gun:"GUN",msl:"MSL",gs:"GUNSHIP"};
+let GMTI={at:0,info:null};
+function gmTgtPick(v){const lk=GM.lock!=null&&GM.tg.find(t=>t.id===GM.lock&&!t.dead);
+  /* the lock wins while its target is on screen; once it drifts off, what's under the crosshair is shown instead */
+  if(lk){const p=gmPos(lk,v),ov=$("gmOv"),W=ov?ov.clientWidth:innerWidth,H=ov?ov.clientHeight:innerHeight;if(p.x>=-p.h&&p.x<=W+p.h&&p.y>=-p.h&&p.y<=H+p.h)return {t:lk,how:"LOCK"}}
+  const u=gmUnder(v);if(u)return {t:u,how:"HOVER"};
+  for(const t of GM.tg){if(t.dead||t.type!=="gnd")continue;const p=gmPos(t,v);if(Math.abs(p.x-v.pj.cx)<=p.h&&Math.abs(p.y-v.pj.cy)<=p.h)return {t,how:"HOVER"}}return null}
+function gmTgtUI(){const el=$("gmTgt");if(!el)return;const v=S.gameOn&&!GM.gsOn?gmView():null,pk=v?gmTgtPick(v):null;
+  const btn={gun:$("gmGun"),msl:$("gmMsl"),gs:$("gmGs")};
+  if(!pk){if(!el.hidden)el.hidden=true;for(const b of Object.values(btn))b&&b.classList.remove("rec");GMTI.info=null;return}
+  const t=pk.t,T=GMT[t.type],R=GMREC[t.type]||GMREC.ftr;let w=R.w,note="";if(w==="msl"&&GM.ammo.msl<=0){w="gun";note=" (MSL empty)"}if(w==="gun"&&GM.ammo.gun<=0&&GM.ammo.msl>0&&t.type!=="gnd"){w="msl";note=" (gun reloading)"}
+  if(w==="msl"&&pk.how!=="LOCK")note=note||" · IDENT first";
+  setTx($("gmTgtC"),pk.how+" · "+T.n);const th=$("gmTgtT");setTx(th,"THREAT "+R.th+(t.hp0>1&&t.type!=="gnd"?" · HP "+Math.max(0,t.hp)+"/"+t.hp0:""));th.className="th"+R.th;
+  setTx($("gmTgtW"),"USE "+GMW[w]+note);if(el.hidden)el.hidden=false;
+  for(const [k,b] of Object.entries(btn))b&&b.classList.toggle("rec",k===w);
+  el.title=R.why;GMTI.info={id:t.id,type:t.type,cls:T.n,how:pk.how,threat:R.th,weapon:w,why:R.why}}
+{const _d=gmDraw;gmDraw=function(){const r=_d.apply(this,arguments);const now=performance.now();if(now-GMTI.at>100){GMTI.at=now;try{gmTgtUI()}catch(e){}}return r}}
+{const _u=gmUI;gmUI=function(){const r=_u.apply(this,arguments);try{if(!S.gameOn)gmTgtUI()}catch(e){}return r}}
+window.cpTgt=()=>({info:GMTI.info,shown:!$("gmTgt").hidden,text:[$("gmTgtC").textContent,$("gmTgtT").textContent,$("gmTgtW").textContent],rec:["gmGun","gmMsl","gmGs"].filter(i=>$(i).classList.contains("rec"))});
 }
