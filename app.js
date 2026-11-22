@@ -3485,10 +3485,12 @@ function gmUI(){const on=!!S.gameOn,b=$("gmTgl");if(b){b.textContent=on?"Alien g
   if($("gmMsl"))$("gmMsl").textContent="MSL "+GM.ammo.msl;if($("gmGun"))$("gmGun").textContent=GM.ammo.gun>0?"GUN "+GM.ammo.gun:"GUN · RELOAD";
   if($("gmGs"))$("gmGs").style.display=live.some(t=>t.type==="gnd")?"":"none";if($("gmId"))$("gmId").classList.toggle("lk",!!GM.lock)}
 function gmToggle(){if(!S.gameOn){if(!confirm("Alien game: passengers only (not the pilot, crew or the driver). Imaginary targets for fun, never real aircraft. Turn it on?"))return false;
-    S.gameOn=true;S.gameEver=1;saveS();GM.next=gmFirst();GM.c=null;gmPrep();try{voxPlay("game-on")}catch(e){}}
-  else{S.gameOn=false;saveS();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmStopGun();try{GM.ar&&GM.ar.clear()}catch(e){}try{voxPlay("game-off")}catch(e){}}
+    S.gameOn=true;S.gameEver=1;saveS();GM.next=gmFirst();GM.c=null;gmPrep();try{voxPlay("game-on")}catch(e){}gmKickCamSoon()}
+  else{S.gameOn=false;saveS();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmStopGun();try{GM.ar&&GM.ar.clear()}catch(e){}try{voxPlay("game-off")}catch(e){}gmKickCamSoon()}
   gmUI();try{statsRender()}catch(e){}hap(20);return S.gameOn}
-function gmPrep(){if(GM.ar||!S.gameOn)return;gmMod().then(m=>{if(GM.ar)return;try{GM.ar=m.createAR($("gmCv"))}catch(e){GM.modErr="webgl";GM.ar=null}}).catch(()=>{})}
+function gmKickCam(){if(!arOn||!AR.stream)return;const v=$("arVid");if(!v)return;try{const p=v.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}}
+function gmKickCamSoon(){gmKickCam();setTimeout(gmKickCam,300);setTimeout(gmKickCam,1200)}
+function gmPrep(){if(GM.ar||!S.gameOn)return;gmMod().then(m=>{if(!GM.ar){try{GM.ar=m.createAR($("gmCv"))}catch(e){GM.modErr="webgl";GM.ar=null}}gmKickCamSoon()}).catch(()=>{gmKickCamSoon()})}
 /* ---------- per-frame: move targets, rounds, missiles; draw (after the real AR symbology) ---------- */
 function gmView(){const pj=AR.pj;if(!pj)return null;const sensor=AR.ot&&Date.now()-AR.ot<5000;if(sensor){GM.pan.a=0;GM.pan.e=0}
   const az=(pj.az!=null?pj.az:(GM.c!=null?GM.c:0))+GM.pan.a,el=(pj.pitch||0)+GM.pan.e;return {az,el,pj}}
@@ -3633,7 +3635,7 @@ $("bdgOut").addEventListener("click",e=>{const t=e.target.closest(".bdg");if(!t|
   const i=GBADGES.findIndex(x=>x[0]===b.k);ptOpen({key:b.k,img:"patches/"+b.k+".svg",got:b.got,n:b.n,k:"GAME BADGE · "+(i+1)+" / "+GBADGES.length,d:b.d+". Alien game, just for fun.",s:b.got?"EARNED":(b.g>1?"PROGRESS "+bdgProg(b):"LOCKED · NOT YET EARNED")})},true);
 /* tap to close: AR and 3D view messages */
 $("arMsg").addEventListener("click",()=>{$("arMsg").style.display="none"});$("svMsg").addEventListener("click",()=>{$("svMsg").style.display="none"});
-{const _ao=arOpen;arOpen=function(){const r=_ao.apply(this,arguments);GM.cv=0;if(S.gameOn){gmPrep();if(GM.c==null)GM.c=gmAnchor()}gmUI();return r}}
+{const _ao=arOpen;arOpen=function(){const r=_ao.apply(this,arguments);GM.cv=0;if(S.gameOn){gmPrep();if(GM.c==null)GM.c=gmAnchor();gmKickCamSoon()}gmUI();return r}}
 $("arBtn").onclick=arOpen;
 gmUI();if(S.gameOn){gmPrep();GM.next=gmFirst()}
 window.cpGame={state:()=>({on:S.gameOn,ever:!!S.gameEver,live:GM.tg.filter(t=>!t.dead).map(t=>({id:t.id,type:t.type,rA:+t.rA.toFixed(2),rE:+t.rE.toFixed(2),hp:t.hp,d:+t.d.toFixed(1),cl:t.cl||0})),lock:GM.lock,ammo:Object.assign({},GM.ammo),

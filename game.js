@@ -58,7 +58,10 @@ export function stats(){const g=geos(),o={};for(const k in g){const t=(g[k].body
 
 /* ================= AR overlay: models drawn at the 2D positions the app projects ================= */
 export function createAR(cv){
-  const r=new THREE.WebGLRenderer({canvas:cv,alpha:true,antialias:true,powerPreference:"low-power",premultipliedAlpha:true});r.setClearColor(0,0);
+  /* iOS Safari: antialias + alpha can composite this overlay as opaque and freeze the live camera <video> under it.
+     Keep a fully transparent buffer and never bind the camera video as a texture. */
+  const r=new THREE.WebGLRenderer({canvas:cv,alpha:true,antialias:false,powerPreference:"low-power",premultipliedAlpha:true,preserveDrawingBuffer:false});
+  r.setClearColor(0x000000,0);r.setClearAlpha(0);r.autoClear=true;
   const sc=new THREE.Scene(),cam=new THREE.OrthographicCamera(0,1,0,-1,-2000,2000);cam.position.z=1000;
   sc.add(new THREE.HemisphereLight("#cfe3ff","#2a2a22",1.6));const sun=new THREE.DirectionalLight("#ffffff",2.2);sun.position.set(-0.5,1,0.8);sc.add(sun);
   const bodyM=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true,transparent:true}),glowM=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true});

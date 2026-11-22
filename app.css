@@ -147,7 +147,7 @@ label.chk{display:flex;align-items:center;gap:8px;font:13px var(--mono);color:va
 #arOv{position:fixed;inset:0;z-index:32;background:#000;display:none;overflow:hidden}
 body.ar{overflow:hidden}body.ar #arOv{display:block}
 #arVid,#arCv{position:absolute;inset:0;width:100%;height:100%}
-#arVid{object-fit:cover;background:#000}
+#arVid{object-fit:cover;background:#000;transform:translateZ(0);-webkit-transform:translateZ(0)}
 #arCv{touch-action:none}
 #arExit{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:3;min-height:40px;font-size:12px;opacity:.9}
 #arPhase{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:3}
@@ -436,7 +436,7 @@ details.more>summary::before{content:"\25B8\00a0"}
 details.more[open]>summary::before{content:"\25BE\00a0"}
 details.more>.note,details.more>p.note{margin-top:2px!important}
 /* v26: Alien game layer (red = game, never used by the real boxes) */
-#gmCv,#gmOv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}#gmOv{z-index:2}
+#gmCv,#gmOv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;background:transparent}#gmOv{z-index:2}
 #gmTgl.pri{background:#4a0e0e;border-color:#ff3b3b;color:#ffd6d6}.gmSub{font-size:10px;opacity:.75}
 #gmHud{display:none;position:absolute;right:max(10px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top,0px) + 132px);z-index:6;flex-direction:column;align-items:stretch;gap:7px;width:96px}
 body.gmOn #gmHud{display:flex}
