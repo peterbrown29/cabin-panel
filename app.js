@@ -1656,7 +1656,7 @@ function arDraw(dt){
     /* stay on the canvas and above the AR bar (labels under the bar looked like they had been dropped). Prefer a free slot
        in the content area; if the box is coming in from an edge, slide the closest slot on-screen beside it rather than
        hiding the label or parking it far from the box. Overlap HUD chrome if that keeps the label on its box. */
-    const xLo=4,xHi=W-4,yLo=2,yHi=(typeof yB==="number"?yB:H)-4,ySafe=Math.max(tY+30,yLo);
+    const xLo=4,xHi=W-4,yLo=2,yHi=(typeof bt==="number"?bt:H)-4,ySafe=Math.max(tY+30,yLo);
     const raw=[[bx+hw+5,by-hh+9,"left"],[bx-hw-5,by-hh+9,"right"],[bx-lw/2,by+hh+12,"left"],[bx-lw/2,by-hh-17,"left"]];
     const fit=(c,yMin)=>{let x0=c[2]==="left"?c[0]:c[0]-lw,y0=c[1]-10;
       x0=Math.max(xLo,Math.min(xHi-lw,x0));y0=Math.max(yMin,Math.min(yHi-lh,y0));
