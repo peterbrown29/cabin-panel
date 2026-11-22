@@ -59,6 +59,7 @@
     <button id="demoBtn">Demo flight</button>
     <button id="markBtn" class="pri">MARK</button>
     <button id="pickBtn">Pick up current flight</button>
+    <button id="trkFltBtn" data-net aria-label="Track a flight live by flight number or tail number">Track a flight</button>
     <button id="endBtn" data-css="display:none">End flight</button>
   </div>
   <p class="note" id="hfHelp">Hands-free: one tap turns on GPS, spoken callouts, the motion sensor and Keep screen on. Tap again to undo.</p>
@@ -178,9 +179,11 @@
 </div></section>
 <section class="page" id="pg-route" data-t="Route" data-c="FPLN"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>FPLN</b><span>Route and tracking</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
   <h2>Route</h2>
-  <div class="row" id="fltRow" data-css="margin-bottom:6px"><input type="text" id="fltIn" placeholder="Flight number, e.g. QF812" autocapitalize="characters" autocomplete="off" maxlength="9" aria-label="Flight number"><button id="fltBtn" data-net class="pri">Look up</button><button id="fltClr" aria-label="Clear flight number">✕</button></div>
+  <div class="row" id="fltRow" data-css="margin-bottom:6px"><input type="text" id="fltIn" placeholder="Flight number, e.g. QF475" autocapitalize="characters" autocomplete="off" maxlength="9" aria-label="Flight number"><button id="fltBtn" data-net class="pri">Look up</button><button id="fltClr" aria-label="Clear flight number">✕</button></div>
   <div class="note" id="fltTxt">Look up your flight before boarding (needs internet); the route is saved for offline use.</div>
-  <div class="row" id="fltRegRow" data-css="margin:4px 0 6px"><input type="text" id="fltReg" placeholder="Tail number if known, e.g. VH-YIA" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Your aircraft's tail number (optional)"><button id="fltTrk" data-net>Track it live</button></div>
+  <div class="row" id="fltRegRow" data-css="margin:4px 0 6px"><input type="text" id="fltReg" placeholder="or tail number, e.g. VH-VZJ (optional)" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Tail number (optional: a flight number above is enough)"><button id="fltTrk" data-net>Track it live</button></div>
+  <div class="note" id="fltEither" data-css="margin:0 0 6px">Track it live needs <b>either</b> a flight number (e.g. QF475) <b>or</b> a tail number (e.g. VH-VZJ). The flight number alone is enough.</div>
+  <div class="row" id="fltLive" data-css="display:none;margin:0 0 6px"><span class="note" id="fltLiveTxt"></span><button id="fltWatch" class="pri" data-net>Watch it live</button></div>
   <div class="tile" id="bpTile">
     <div class="lab"><span>Boarding pass</span><button id="bpClr">Clear</button></div>
     <div class="row"><button id="bpScan" class="pri">📷 Scan boarding pass</button><button id="bpUp">Upload image or Wallet pass</button></div>
@@ -238,9 +241,10 @@
   <div class="note" id="rtNote">Saved routes keep their pack (weather, turbulence guide, extra places) on this phone for offline use. Tap Update before each flight.</div>
   <h2 id="tkH">Inbound aircraft</h2>
   <div class="tile" id="tkTile"><div class="note drvOnly" id="drvTkNote" data-css="margin:0 0 8px"></div>
-    <div class="lab"><span>Track your aircraft by tail number</span><span>Ground mode</span></div>
+    <div class="lab"><span>Track a flight: flight number or tail number</span><span>Ground mode</span></div>
     <details class="more"><summary>How it works</summary><p class="note" data-css="margin:6px 0 4px">Waiting at the airport? Follow the aircraft that will fly your flight before it changes flight numbers: where it is, when it should get here, a rough delay estimate and the weather it has flown through.</p></details>
-    <div class="row" data-css="margin-top:6px"><input type="text" id="tkReg" placeholder="Tail number, e.g. VH-YIA" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Aircraft registration (tail number)"><input type="text" id="tkFlt" placeholder="Its flight (optional)" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="9" aria-label="The aircraft's current flight number (optional)"></div>
+    <div class="row" data-css="margin-top:6px"><input type="text" id="tkFlt" placeholder="Flight number, e.g. QF475" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="9" aria-label="Flight number (either this or a tail number is enough)"><input type="text" id="tkReg" placeholder="or tail number, e.g. VH-VZJ" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="10" aria-label="Tail number (either this or a flight number is enough)"></div>
+    <div class="note" id="tkEither" data-css="margin:2px 0 4px">Enter <b>either</b> one: a flight number or a tail number. Both is best (the tail number survives flight-number changes), but one is enough.</div>
     <div class="row" id="tkDepRow"><span class="sub">Your departure</span><input type="time" id="tkDep" aria-label="Your scheduled departure, local time at your airport"><span class="sub">from</span><input type="text" id="tkAp" list="tkApL" placeholder="SYD" maxlength="4" autocapitalize="characters" autocomplete="off" aria-label="Your airport (IATA code)"><datalist id="tkApL"></datalist></div>
     <div class="row"><span class="sub">Minimum turnaround</span><input type="number" id="tkTurn" min="10" max="240" step="5" value="30" inputmode="numeric" aria-label="Minimum turnaround, minutes"><span class="sub">min</span><button id="tkGo" data-net class="pri">Track</button><button id="tkStop" data-css="display:none">Stop</button></div>
     <label class="chk"><input type="checkbox" id="tkShow" checked> Show it on the HUD, gauges, Map, Nav and 3D view while my own GPS isn't flying</label>

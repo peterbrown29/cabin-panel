@@ -825,17 +825,42 @@ async function lookupFlight(){
   fltMsg(`${c.iata}${S.fltName?" · "+S.fltName:""}: ${A.n} (${A.c}) → ${B.n} (${B.c})${via}. Route set and saved for offline use. Route data from ${src} can be out of date, so check it against your boarding pass.`);
   render();drawMap();profAll();
 }
-$("fltBtn").onclick=lookupFlight;$("fltIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();lookupFlight()}});
+$("fltBtn").onclick=async()=>{await lookupFlight();fltLiveCheck(true)};$("fltIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();lookupFlight()}});
 $("fltClr").onclick=()=>{fltClear("Flight number cleared.");saveS();render()};
 /* v26c: your own aircraft's tail number. Saved for the share, and one tap starts live tracking by registration (works when the callsign doesn't match, e.g. codeshares) */
 function fltRegSave(){const r=tkNormReg(String($("fltReg").value||"").replace(/<[^>]*>/g,""));S.fltReg=/^[A-Z0-9][A-Z0-9-]{1,9}$/.test(r)?r:"";saveS();return S.fltReg}
 $("fltReg").addEventListener("change",fltRegSave);
-$("fltTrk").onclick=async()=>{const r=fltRegSave();const raw=$("fltIn").value.trim();
-  if(raw){const fn=String((toCallsign(raw)||{}).iata||raw).toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);if(fn&&fn!==S.flt){S.flt=fn;fltStamp();saveS()}}
-  if(!r){fltMsg("Type your aircraft's tail number first, e.g. VH-YIA. It's painted on the tail and the rear fuselage, or the crew can tell you.");$("fltReg").focus();return}
-  $("tkReg").value=r;$("tkFlt").value=S.flt||"";if(S.to)$("tkAp").value=S.to;
-  fltMsg("Tracking "+r+(S.flt?" ("+S.flt+")":"")+" by tail number. It shows on the HUD whenever your own GPS isn't flying. Needs internet.");
-  try{await tkStart()}catch(e){}};
+/* v26e: a flight number is enough. Something that looks like a flight number (known airline code + digits, e.g. ZL6783, QF475, RXA6783)
+   is a flight, not a registration, whichever box it was typed in. */
+function looksFlight(v){v=String(v||"").toUpperCase().replace(/\s+/g,"");if(!v||v.includes("-"))return null;if(tkNormReg(v).includes("-"))return null;
+  if(!/^([A-Z0-9]{2}|[A-Z]{3})0*\d{1,4}[A-Z]?$/.test(v)||!/\d/.test(v.slice(2)))return null;const c=toCallsign(v);return c&&c.cs?c:null}
+function fltNorm(v){const c=toCallsign(v);return String((c&&c.iata)||v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8)}
+async function fltTrackLive(){const tv=String($("fltReg").value||"").trim(),asF=looksFlight(tv);let r="";
+  if(asF){$("fltReg").value="";S.fltReg="";saveS();if(!$("fltIn").value.trim())$("fltIn").value=asF.iata}else r=fltRegSave();
+  const raw=$("fltIn").value.trim()||(asF?asF.iata:"");
+  if(raw){const fn=fltNorm(raw);if(fn&&fn!==S.flt){S.flt=fn;S.fltCs=(toCallsign(fn)||{}).cs||"";fltStamp();saveS()}}
+  const fl=raw?S.flt:"";
+  if(!r&&!fl){fltMsg("Type a flight number (e.g. QF475) or a tail number (e.g. VH-VZJ). Either one is enough.");$("fltIn").focus();return}
+  $("tkReg").value=r;$("tkFlt").value=fl;if(S.to)$("tkAp").value=S.to;$("fltLive").style.display="none";
+  const c=fl&&toCallsign(fl);
+  fltMsg("Tracking "+(r?r+(fl?" ("+fl+")":"")+" by tail number":fl+(c&&c.cs?" by callsign "+c.cs:"")+" by flight number")+". It shows on the HUD whenever your own GPS isn't flying. Needs internet.");
+  try{await tkStart()}catch(e){}}
+$("fltTrk").onclick=fltTrackLive;
+/* v26e: if the flight you typed is live on ADS-B right now, offer one tap to watch it instead of staying on your own (parked) GPS */
+var FLV={cs:"",at:0,busy:false,hit:null};
+async function fltLiveCheck(force){if(FLV.busy||!S.flt||fltStale()||DRV.on||demo||(TKS&&TKS.on)||!cfOk())return;
+  const c=toCallsign(S.flt),k=csInfo(S.flt).known,cands=[S.fltCs,c&&c.cs,k&&k.cs].filter((x,i,a)=>x&&a.indexOf(x)===i);if(!cands.length)return;
+  if(!force&&FLV.cs===cands.join()&&Date.now()-FLV.at<300000)return;FLV.busy=true;FLV.cs=cands.join();FLV.at=Date.now();let hit=null;
+  try{for(const cs of cands){const j=await tkGet("/v2/callsign/"+cs,10000);const a=(j&&Array.isArray(j.ac)?j.ac:[]).find(x=>x&&typeof x.lat==="number");if(a){hit={cs,a,src:j.src||"adsb.lol"};break}}}catch(e){}
+  FLV.busy=false;FLV.hit=hit;fltLiveShow()}
+function fltLiveShow(){const h=FLV.hit,on=!!(h&&S.flt&&!(TKS&&TKS.on)&&!DRV.on);$("fltLive").style.display=on?"":"none";
+  const b=$("trkFltBtn");if(b)b.textContent=on?"▶ Watch "+S.flt+" live":"Track a flight";if(b)b.classList.toggle("pri",on);
+  if(!on)return;const a=h.a,gnd=a.alt_baro==="ground",fl=typeof a.alt_baro==="number"?"FL"+String(Math.round(a.alt_baro/100)).padStart(3,"0"):"";
+  setTx($("fltLiveTxt"),S.flt+(h.cs!==S.flt?" ("+h.cs+")":"")+" is live on ADS-B now"+(gnd?", on the ground":fl?", "+fl:"")+" near "+tkNear({lat:a.lat,lon:a.lon})+" ("+h.src+"). Your HUD is on your own GPS until you watch it.")}
+$("fltWatch").onclick=()=>{$("fltReg").value=$("fltReg").value||"";fltTrackLive()};
+$("trkFltBtn").onclick=()=>{if(FLV.hit&&S.flt&&!(TKS&&TKS.on)){fltTrackLive();return}
+  const i=PG.els.findIndex(e=>e.id==="pg-route");try{pgGo(i,true)}catch(e){}setTimeout(()=>{const f=$("fltIn"),pg=PG.els[i];if(pg)pg.scrollTop=Math.max(0,f.getBoundingClientRect().top-pg.getBoundingClientRect().top+pg.scrollTop-60);f.focus()},150)};
+setTimeout(()=>fltLiveCheck(),4000);setInterval(()=>fltLiveCheck(),300000);
 $("fltReg").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("fltTrk").click()}});
 fltTidy();setInterval(()=>{if(fltTidy())render()},600000);
 if(S.fltReg)$("fltReg").value=S.fltReg;
@@ -2257,7 +2282,7 @@ function tkWxText(){const W=TKS&&TKS.wx;if(!W)return "";const A=tkAp(),parts=[];
 function tkApWx(w){if(!w)return "";const k=v=>v==null?"--":Math.round(v);return (w.T!=null?Math.round(w.T)+"°C, ":"")+(TKWW(w.wc)||"")+(w.storm&&w.wc<95?", storms possible":"")+(w.pr?", "+w.pr+" mm/h":"")+", wind "+k(w.w10)+" kt"+(w.g10&&w.g10>(w.w10||0)+8?" gusting "+k(w.g10):"")}
 /* ---------- UI ---------- */
 /* v24: Open takes you to the details and folds the banner into a slim chip (tap the chip to unfold); Stop is always there */
-function tkRender(){const ban=$("tkBan"),box=$("tkOut"),st=$("tkSt");const on=TKS&&TKS.on;$("tkGo").textContent=on?"Update":"Track";$("tkStop").style.display=on?"":"none";
+function tkRender(){try{if(typeof FLV!=="undefined"&&FLV)fltLiveShow()}catch(e){}const ban=$("tkBan"),box=$("tkOut"),st=$("tkSt");const on=TKS&&TKS.on;$("tkGo").textContent=on?"Update":"Track";$("tkStop").style.display=on?"":"none";
   if(!on){ban.style.display="none";box.innerHTML="";st.textContent=TKX.err||"Needs internet. Enter the registration painted on the aircraft (for example VH-YIA). Display only: it never changes your own flight, phases or logbook.";document.body.classList.remove("tking");return}
   const A=tkAp(),L=TKS.L,age=L?Math.max(0,(Date.now()-L.t)/1000):null,cs=L&&L.cs||(TKS.cs&&TKS.cs.length?TKS.cs[TKS.cs.length-1].cs:"");
   const ageT=age==null?"":age<90?Math.round(age)+" s ago":age<5400?Math.round(age/60)+" min ago":(age/3600).toFixed(1)+" h ago";
@@ -2300,9 +2325,10 @@ $("tkOut").addEventListener("click",e=>{const b=e.target.closest&&e.target.close
   else if(b.dataset.hex)tkPick(b.dataset.hex)});
 function tkOpenDetails(){S.tkMini="on";saveS();tkRender();const i=PG.els.findIndex(e=>e.id==="pg-route");try{pgGo(i,true)}catch(e){}
   setTimeout(()=>{const t=$("tkTile"),pg=PG.els[i];if(pg)pg.scrollTop=Math.max(0,t.getBoundingClientRect().top-pg.getBoundingClientRect().top+pg.scrollTop-8);try{pgGo(i,true)}catch(e){}t.classList.add("flash");setTimeout(()=>t.classList.remove("flash"),1600)},120)}
-async function tkStart(){const reg=tkNormReg($("tkReg").value),flt=String($("tkFlt").value||"").toUpperCase().replace(/\s+/g,""),dep=$("tkDep").value,ap=String($("tkAp").value||"").toUpperCase().trim(),turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));
-  if(!reg&&!flt){TKX.err="Enter a registration (tail number), for example VH-YIA.";tkRender();return}
-  const same=TKS&&TKS.reg===reg&&TKS.on;
+async function tkStart(){{const lf=looksFlight($("tkReg").value);if(lf){if(!String($("tkFlt").value||"").trim())$("tkFlt").value=lf.iata;$("tkReg").value=""}}
+  const reg=tkNormReg($("tkReg").value),flt=fltNorm(String($("tkFlt").value||"").toUpperCase().replace(/\s+/g,"")),dep=$("tkDep").value,ap=String($("tkAp").value||"").toUpperCase().trim(),turn=Math.max(10,Math.min(240,+$("tkTurn").value||30));
+  if(!reg&&!flt){TKX.err="Enter a flight number (e.g. QF475) or a tail number (e.g. VH-VZJ). Either one is enough.";tkRender();return}
+  const same=!!(TKS&&TKS.on&&(reg?TKS.reg===reg:!TKS.reg&&TKS.flt===flt));
   if(!same)TKS={on:true,reg:reg||"",flt,dep,ap:ap||null,turn,hex:null,type:"",desc:"",cs:[],trail:[],L:null,at:Date.now()};else Object.assign(TKS,{flt,dep,ap:ap||TKS.ap,turn});
   if(!TKS.ap){const n=last&&nearestAp(last);TKS.ap=n&&n.d<20000?n.a[0]:(S.from||"SYD")}$("tkAp").value=TKS.ap;$("tkReg").value=TKS.reg;
   TKX.err="";TKX.back=0;tkSave();tkRender();hap(15);
