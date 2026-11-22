@@ -1652,21 +1652,35 @@ function arDraw(dt){
   /* v26b: every target box carries its own label (name + type/alt + range), re-placed beside the box every frame */
   const labTxt=t=>{const nm=(t.n.length>18?t.n.slice(0,17)+"\u2026":t.n).toUpperCase(),rg=fDst(t.d),rs=(rg<10?rg.toFixed(1):Math.round(rg).toLocaleString())+" "+S.dst.toUpperCase();
     const info=t.kind==="ac"?(t.note||"").toUpperCase():"";return [nm,(info?(info.length>30?info.slice(0,29)+"\u2026":info)+" \u00b7 ":"")+rs]};
-  const lab=(t,bx,by,hw,hh,col,al)=>{const [l1,l2]=labTxt(t);x.font=F(10);const lw=Math.max(x.measureText(l1).width,x.measureText(l2).width),lh=24;
+  const lab=(t,bx,by,hw,hh,col,al)=>{let [l1,l2]=labTxt(t);
     /* stay on the canvas and above the AR bar (labels under the bar looked like they had been dropped). Prefer a free slot
        in the content area; if the box is coming in from an edge, slide the closest slot on-screen beside it rather than
-       hiding the label or parking it far from the box. Overlap HUD chrome if that keeps the label on its box. */
+       hiding the label or parking it far from the box. Overlap HUD chrome if that keeps the label on its box.
+       Cap the type/range line so a long note cannot drag the short name off the box; always keep the range. Crowded labels step aside, not off. */
+    const ellip=(s,fs,mw)=>{x.font=F(fs);if(x.measureText(s).width<=mw)return s;let lo=0,hi=s.length,cut=s;
+      while(lo<hi){const mid=(lo+hi+1)>>1,u=s.slice(0,mid)+"\u2026";if(x.measureText(u).width<=mw){lo=mid;cut=u}else hi=mid-1}
+      return lo?cut:"\u2026"};
+    const maxLw=Math.min(148,Math.max(64,Math.floor(W*0.38)));
+    l1=ellip(l1,10,maxLw);
+    {const m=l2.match(/^(.*?)(?: \u00b7 )?(\d[\d.,]*\s+(?:NM|KM|MI))$/);
+      const info=m&&m[1]?m[1]:"" ,rs=m?m[2]:l2;x.font=F(9);
+      const gap=info?x.measureText(" \u00b7 ").width:0,rw=x.measureText(rs).width;
+      const keep=info?ellip(info,9,Math.max(24,maxLw-rw-gap)):"";
+      l2=keep?keep+" \u00b7 "+rs:rs;}
+    x.font=F(10);const lw=Math.max(x.measureText(l1).width,(x.font=F(9),x.measureText(l2).width)),lh=24;
     const xLo=4,xHi=W-4,yLo=2,yHi=(typeof bt==="number"?bt:H)-4,ySafe=Math.max(tY+30,yLo);
-    const raw=[[bx+hw+5,by-hh+9,"left"],[bx-hw-5,by-hh+9,"right"],[bx-lw/2,by+hh+12,"left"],[bx-lw/2,by-hh-17,"left"]];
+    const raw=[[bx+hw+5,by-hh+9,"left"],[bx-hw-5,by-hh+9,"right"],[bx-lw/2,by+hh+16,"left"],[bx-lw/2,by-hh-17,"left"]];
+    for(const dy of [-28,-14,14,28,42])for(const side of [0,1])raw.push([raw[side][0],raw[side][1]+dy,raw[side][2]]);
     const fit=(c,yMin)=>{let x0=c[2]==="left"?c[0]:c[0]-lw,y0=c[1]-10;
       x0=Math.max(xLo,Math.min(xHi-lw,x0));y0=Math.max(yMin,Math.min(yHi-lh,y0));
       return {cx:c[2]==="left"?x0:x0+lw,cy:y0+10,al:c[2],r:[x0-2,y0,lw+4,lh],
         nat: (c[2]==="left"?c[0]:c[0]-lw)>=xLo&&(c[2]==="left"?c[0]:c[0]-lw)+lw<=xHi&&c[1]-10>=yMin&&c[1]-10+lh<=yHi};
     };
+    const nearD=p=>{const nx=p.al==="left"?p.cx+Math.min(lw,40):p.cx-Math.min(lw,40);return Math.hypot(nx-bx,p.cy-by)};
     let pick=null;
     for(const [ci,c] of raw.entries()){const p=fit(c,ySafe);if(!p.nat||hitR(p.r))continue;pick=p;pick.i=ci;break}
     if(!pick){let best=null,bestD=1e9;
-      for(const [ci,c] of raw.entries()){const p=fit(c,yLo);const d=Math.hypot(p.cx-c[0],p.cy-c[1])+(hitR(p.r)?30:0);
+      for(const [ci,c] of raw.entries()){const p=fit(c,yLo);const d=nearD(p)+(hitR(p.r)?25:0);
         if(d<bestD){best=p;best.i=ci;best.fb=1;bestD=d}}pick=best}
     res(pick.r);
     const ga=x.globalAlpha;x.globalAlpha=Math.max(ga,al||0.9);T(l1,pick.cx,pick.cy,10,pick.al,col);T(l2,pick.cx,pick.cy+11,9,pick.al,DIM);x.globalAlpha=ga;AR.lay.labels++;
@@ -1698,7 +1712,7 @@ function arDraw(dt){
     if(lk){x.lineWidth=1;x.strokeRect(des.px-hw-3,des.py-hh-3,2*hw+6,2*hh+6)}x.restore();
     S2(()=>{x.moveTo(des.px-5,des.py);x.lineTo(des.px+5,des.py);x.moveTo(des.px,des.py-5);x.lineTo(des.px,des.py+5)},1.2);
     const tt=lk?"TGT LOCK":"TGT";x.font=F(10);const tw2=x.measureText(tt).width;let ty=des.py-hh-(lk?10:7);if(ty<tY+36)ty=des.py+hh+(lk?18:15);
-    T(tt,des.px,ty,10,"center",c);res([des.px-tw2/2-3,ty-11,tw2+6,14]);res([des.px-hw-4,des.py-hh-4,2*hw+8,2*hh+8]);lab(des,des.px,des.py,hw,hh,c,1);
+    T(tt,des.px,ty,10,"center",c);res([des.px-tw2/2-3,ty-11,tw2+6,14]);lab(des,des.px,des.py,hw,hh,c,1);res([des.px-hw-4,des.py-hh-4,2*hw+8,2*hh+8]);
     AR.hits.push({n:des.n,x0:des.px-hw-8,x1:des.px+hw+8,y0:des.py-hh-8,y1:des.py+hh+8})}
   /* off-screen cues: max 3 a side, stacked into free slots, lower priority dropped if no room */
   const yTop=tY+68,yBot=yB-4;
