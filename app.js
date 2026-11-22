@@ -1655,7 +1655,9 @@ function arDraw(dt){
   const lab=(t,bx,by,hw,hh,col,al)=>{const [l1,l2]=labTxt(t);x.font=F(10);const lw=Math.max(x.measureText(l1).width,x.measureText(l2).width),lh=24;
     const cands=[[bx+hw+5,by-hh+9,"left"],[bx-hw-5,by-hh+9,"right"],[bx-lw/2,by+hh+12,"left"],[bx-lw/2,by-hh-17,"left"]];let pick=null;
     for(const [ci,c] of cands.entries()){const x0=c[2]==="left"?c[0]:c[0]-lw,r=[x0-2,c[1]-10,lw+4,lh];if(r[0]<2||r[0]+r[2]>W-2||r[1]<tY+30||r[1]+r[3]>H-2||hitR(r))continue;pick=c;pick.i=ci;res(r);break}
-    if(!pick){const i=cands[0][0]+lw>W-2?1:0;pick=cands[i];pick.i=i;pick.fb=1}
+    if(!pick){/* crowded: overlap other symbols rather than drop the label, but keep it fully on screen beside its box */
+      for(const [ci,c] of cands.entries()){const x0=c[2]==="left"?c[0]:c[0]-lw;if(x0<2||x0+lw>W-2||c[1]-10<tY+30||c[1]+14>H-2)continue;pick=c.slice();pick.i=ci;break}
+      if(!pick){pick=cands[2].slice();pick.i=2;pick[0]=Math.max(4,Math.min(W-4-lw,pick[0]));pick[1]=Math.max(tY+40,Math.min(H-14,pick[1]))}pick.fb=1}
     const ga=x.globalAlpha;x.globalAlpha=Math.max(ga,al||0.9);T(l1,pick[0],pick[1],10,pick[2],col);T(l2,pick[0],pick[1]+11,9,pick[2],DIM);x.globalAlpha=ga;AR.lay.labels++;
     AR.labs.push({n:t.n,bx:+bx.toFixed(1),by:+by.toFixed(1),lx:+pick[0].toFixed(1),ly:+pick[1].toFixed(1),al:pick[2],ci:pick.i,fb:!!pick.fb,t1:l1,t2:l2})};
   if(az==null||!L)return;
@@ -3544,13 +3546,15 @@ function gmDraw(dt){const ov=$("gmOv"),pj=AR.pj;if(!ov||!pj)return;const W=pj.W,
     if(!t.dead)boxes.push([t,p])}
   try{if(GM.ar){const cv=$("gmCv");GM.ar.size(W,H,dpr);GM.info=GM.ar.render(list,t0)}else gmFallback(x,list)}catch(e){GM.ar=null;GM.modErr="render";gmFallback(x,list)}
   /* red ALIEN boxes: dashed corners + tag; locked = solid box + diamond */
-  x.lineJoin="miter";GM.labs=[];
+  x.lineJoin="miter";GM.labs=[];let hudR=null;try{const hb=$("gmHud"),cb=ov.getBoundingClientRect(),r=hb&&hb.offsetParent?hb.getBoundingClientRect():null;if(r&&r.width)hudR=[r.left-cb.left-4,r.top-cb.top-4,r.right-cb.left+4,r.bottom-cb.top+4]}catch(e){}
   for(const [t,p] of boxes){const lk=GM.lock===t.id,h=p.h,X0=p.x-h,Y0=p.y-h,cl=h*0.45;x.strokeStyle="rgba(0,0,0,.85)";x.lineWidth=4.2;
     const path=()=>{x.beginPath();if(lk){x.rect(X0,Y0,2*h,2*h)}else for(const [sx,sy] of [[0,0],[1,0],[1,1],[0,1]]){const X=X0+sx*2*h,Y=Y0+sy*2*h;x.moveTo(X+(sx?-cl:cl),Y);x.lineTo(X,Y);x.lineTo(X,Y+(sy?-cl:cl))}};
     path();x.stroke();x.strokeStyle=RED;x.lineWidth=2;path();x.stroke();
     if(lk){x.beginPath();x.moveTo(p.x,Y0-9);x.lineTo(p.x+7,Y0-2);x.lineTo(p.x,Y0+5);x.lineTo(p.x-7,Y0-2);x.closePath();x.fillStyle=RED;x.fill()}
     const tg=GMT[t.type].tag,rg=fDst(t.d*1000),lt="ALIEN "+tg+(lk?" · LOCK":"")+" · "+(rg<10?rg.toFixed(1):Math.round(rg))+" "+S.dst.toUpperCase();x.font=F(10);
-    const lw=x.measureText(lt).width,lx=Math.max(2,Math.min(W-lw-2,X0)),ly=Y0-6-(lk?8:0)<14?p.y+h+(t.hp0>1&&t.type!=="gnd"?20:14):Y0-6-(lk?8:0);T(lt,lx,ly,10,"left");
+    const lw=x.measureText(lt).width,ly=Y0-6-(lk?8:0)<14?p.y+h+(t.hp0>1&&t.type!=="gnd"?20:14):Y0-6-(lk?8:0);let lx=Math.max(2,Math.min(W-lw-2,X0));
+    /* v26b: keep the label clear of the IDENT/MSL/GUN buttons (slide it left of them) */
+    if(hudR&&lx+lw>hudR[0]&&lx<hudR[2]&&ly>hudR[1]&&ly-11<hudR[3])lx=Math.max(2,hudR[0]-lw-2);T(lt,lx,ly,10,"left");
     GM.labs.push({id:t.id,bx:+p.x.toFixed(1),by:+p.y.toFixed(1),lx:+lx.toFixed(1),ly:+ly.toFixed(1),t:lt});if(t.type==="gnd")T("TAP · GUNSHIP",X0,p.y+h+12,9,"left");
     if(t.hp0>1&&t.type!=="gnd"){const w=2*h*Math.max(0,t.hp/t.hp0);x.fillStyle="rgba(0,0,0,.7)";x.fillRect(X0,p.y+h+4,2*h,4);x.fillStyle=RED;x.fillRect(X0,p.y+h+4,w,4)}}
   /* off-screen arrows so you can find them in the window */

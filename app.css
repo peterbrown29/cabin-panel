@@ -250,6 +250,8 @@ textarea#dyIn,textarea#dyOvIn{width:100%;min-height:64px;box-sizing:border-box;b
 #shLink{flex:1;min-width:0;font:11px "B612 Mono",monospace}
 /* v23 16-22 */
 #arIdBtn{left:auto;right:max(10px,env(safe-area-inset-right));transform:none;bottom:auto;top:calc(env(safe-area-inset-top,0px) + 84px)}
+/* v26b: with the panel hidden the older bottom rule out-ranked bottom:auto and stretched IDENTIFY into a tall pill down the right edge */
+body.arMin #arIdBtn{bottom:auto}
 #glOv{position:fixed;inset:0;z-index:9500;background:#000;color:#fff;display:none;flex-direction:column;justify-content:space-evenly;padding:calc(env(safe-area-inset-top,0px) + 6px) max(14px,env(safe-area-inset-right)) calc(env(safe-area-inset-bottom,0px) + 10px) max(14px,env(safe-area-inset-left));font-family:"B612 Mono",monospace}
 #glHead{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#9aa}
 #glHead button{min-height:40px;margin-left:6px;background:#111;color:#fff;border:1px solid #555;border-radius:8px;padding:4px 14px}
