@@ -1754,16 +1754,18 @@ function arDraw(dt){
     T("EL",ex-6,ey0-10,10,"left");res([ex-16,ey0-22,58,ey1-ey0+32])}
   /* corner data blocks */
   const tl=["ALT "+(L&&L.alt!=null?Math.round(fAlt(L.alt)).toLocaleString():"----")+(S.alt==="ft"?" FT":" M"),"GS  "+(L&&L.spd!=null?Math.round(fSpd(L.spd)):"---")+" "+S.spd.toUpperCase(),"TRK "+(L&&L.trk!=null?p3(L.trk):"---")];
-  x.font=F(10);{const w1=Math.max(...tl.map(s=>x.measureText(s).width))+8;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(4,tY+28,w1,36)}
-  tl.forEach((s,i)=>T(s,8,tY+38+i*11,10,"left"));
+  /* v27a: while the AR gunship overlay is on, its own symbology replaces the corner blocks, sensor block, RNG and target block */
+  const gsx=document.body.classList.contains("gsar");
+  if(!gsx){x.font=F(10);{const w1=Math.max(...tl.map(s=>x.measureText(s).width))+8;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(4,tY+28,w1,36)}
+  tl.forEach((s,i)=>T(s,8,tY+38+i*11,10,"left"))}
   const d=new Date(),tr=[d.toTimeString().slice(0,8)+" L",d.toISOString().slice(11,16)+"Z",({norm:"DAY TV",grn:"FLIR GRN",wht:"FLIR WHT"})[flt]+" · WFOV",(PHN[PH.p]||"").toUpperCase()];
-  x.font=F(10);{const w2=Math.max(...tr.map(s=>x.measureText(s).width))+8;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(W-4-w2,tY+28,w2,46)}
-  tr.forEach((s,i)=>T(s,W-8,tY+38+i*11,10,"right"));
+  if(!gsx){x.font=F(10);{const w2=Math.max(...tr.map(s=>x.measureText(s).width))+8;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(W-4-w2,tY+28,w2,46)}
+  tr.forEach((s,i)=>T(s,W-8,tY+38+i*11,10,"right"))}
   AR.view=az==null?null:{az:+az.toFixed(1),unc:+unc.toFixed(1),pitch:+pitch.toFixed(1),roll:+roll.toFixed(1),ppd:+ppd.toFixed(2),src:so.src,bias:+AR.bias.toFixed(1)};
   /* bottom-right sensor block: kept above the ⚙ button so nothing is clipped */
   const br=[(so.src||"NO HDG")+(unc!=null?" ±"+unc.toFixed(1)+"°":""),(tiltOk?"EL "+(pitch>=0?"+":"")+pitch.toFixed(1)+"°":"EL ---")+"  TRIM "+(S.arTrim>0?"+":"")+S.arTrim,"BIAS "+(AR.bias>=0?"+":"")+AR.bias.toFixed(1)+"°  VAR "+(so.dec>=0?"E":"W")+Math.abs(so.dec).toFixed(0)];
   let brB=yB;if(arMin){const gr=$("arShow").getBoundingClientRect();if(gr.height)brB=Math.min(yB,gr.top-cT-8)}
-  x.font=F(10);const brW=Math.max(...br.map(s=>x.measureText(s).width));br.forEach((s,i)=>T(s,W-8,brB-22+i*11,10,"right",i?DIM:SYM));res([W-brW-12,brB-34,brW+14,38]);
+  x.font=F(10);const brW=Math.max(...br.map(s=>x.measureText(s).width));if(!gsx){br.forEach((s,i)=>T(s,W-8,brB-22+i*11,10,"right",i?DIM:SYM));res([W-brW-12,brB-34,brW+14,38])}
   AR.hits=[];AR.lay={labels:0,hidden:0,cues:0};AR.labs=[];
   /* v26b: every target box carries its own label (name + type/alt + range), re-placed beside the box every frame */
   const labTxt=t=>{const nm=(t.n.length>18?t.n.slice(0,17)+"\u2026":t.n).toUpperCase(),rg=fDst(t.d),rs=(rg<10?rg.toFixed(1):Math.round(rg).toLocaleString())+" "+S.dst.toUpperCase();
@@ -1812,7 +1814,7 @@ function arDraw(dt){
   let des=on.find(t=>t.n===AR.lock)||on.slice().sort((a,b)=>Math.hypot(a.px-cx,a.py-cy)-Math.hypot(b.px-cx,b.py-cy)).find(t=>Math.abs(t.dA)<Math.max(unc*2,4)+3&&!t.hid)||null;
   /* range readout + target data block (bottom left; in portrait RNG sits above the block) */
   const tg=des||lockT;
-  if(tg){const ls=[(AR.lock===tg.n?"◆ ":"")+tg.n.toUpperCase().slice(0,30),"BRG "+p3(tg.b)+"°T  EL "+(tg.el>=0?"+":"")+tg.el.toFixed(1)+"°"+(tg.hid?"  BEYOND HZN":"")];
+  if(tg&&!gsx){const ls=[(AR.lock===tg.n?"◆ ":"")+tg.n.toUpperCase().slice(0,30),"BRG "+p3(tg.b)+"°T  EL "+(tg.el>=0?"+":"")+tg.el.toFixed(1)+"°"+(tg.hid?"  BEYOND HZN":"")];
     const mxw=narrow?Math.min(W-brW-32,W*0.58):Math.min(W*0.36,260);let notes=[];
     if(tg.note){x.font="10px \"B612\",sans-serif";let cur="";for(const w of tg.note.split(" ")){const tt=cur?cur+" "+w:w;if(x.measureText(tt).width>mxw){notes.push(cur);cur=w;if(notes.length===2)break}else cur=tt}if(notes.length<2&&cur)notes.push(cur);if(notes.length===2&&tg.note.indexOf(notes[1])+notes[1].length<tg.note.length-1)notes[1]+="…"}
     const nL=ls.length+notes.length,by=yB-6-(nL-1)*11;
@@ -4124,10 +4126,11 @@ function gsaDraw(){const c=$("gsaCv"),W=c.clientWidth,H=c.clientHeight;if(!W||!H
   for(const [X,Y,dx,dy] of [[m,m+76,1,1],[W-m,m+76,-1,1],[m,bt,1,-1],[W-m,bt,-1,-1]]){x.beginPath();x.moveTo(X,Y+dy*L);x.lineTo(X,Y);x.lineTo(X+dx*L,Y);x.stroke()}
   const g=16,r=46;x.beginPath();x.moveTo(cx-r-30,cy);x.lineTo(cx-g,cy);x.moveTo(cx+g,cy);x.lineTo(cx+r+30,cy);x.moveTo(cx,cy-r-30);x.lineTo(cx,cy-g);x.moveTo(cx,cy+g);x.lineTo(cx,cy+r+30);x.stroke();
   x.strokeRect(cx-r,cy-r,2*r,2*r);for(const k of [-1,1]){x.beginPath();x.moveTo(cx+k*r,cy-8);x.lineTo(cx+k*(r-10),cy);x.lineTo(cx+k*r,cy+8);x.stroke()}
-  const u=gsaUnder(v,0);x.textAlign="left";x.fillText("AZ "+String(Math.round(((v.az%360)+360)%360)).padStart(3,"0")+"  EL "+(v.el>=0?"+":"")+v.el.toFixed(1),m+6,m+92);
-  x.textAlign="right";x.fillText(GSAN[S.gsaFlt]+" · NFOV",W-m-110,m+92);
-  x.textAlign="left";x.fillText("105 "+String(GSA.n105).padStart(2,"0")+"   25 "+String(GM.ammo.gun).padStart(3,"0"),m+6,bt-16);
-  x.textAlign="right";x.fillText(u.length?"TGT "+GMT[u[0].type].tag+" · "+fDst(u[0].d*1000).toFixed(1)+" "+S.dst.toUpperCase():"NO TGT",W-m-110,bt-16);
+  const u=gsaUnder(v,0);x.textAlign="left";x.fillText("AZ "+String(Math.round(((v.az%360)+360)%360)).padStart(3,"0")+"  EL "+(v.el>=0?"+":"")+v.el.toFixed(1)+"  "+GSAN[S.gsaFlt],m+6,m+92);
+  /* Opaque backing keeps moving landmark labels out of the two-line gunship readout; leave the right-hand controls clear. */
+  x.shadowBlur=0;x.fillStyle="rgba(0,0,0,.92)";x.fillRect(m,bt-45,Math.min(230,W-160),42);x.fillStyle=col;x.shadowBlur=3;
+  x.textAlign="left";x.fillText("105 "+String(GSA.n105).padStart(2,"0")+"   25 "+String(GM.ammo.gun).padStart(3,"0"),m+6,bt-27);
+  x.fillText(u.length?"TGT "+GMT[u[0].type].tag+" · "+fDst(u[0].d*1000).toFixed(1)+" "+S.dst.toUpperCase():"NO TGT",m+6,bt-10);
   const now=Date.now();for(const s of GSA.shells){const f=Math.min(1,(now-s.t0)/1200);x.textAlign="center";x.fillText("SPLASH "+Math.max(0,(1.2-(now-s.t0)/1000)).toFixed(1),cx,cy+r+48+GSA.shells.indexOf(s)*16)}
   if(u.length){x.strokeStyle=S.gsaFlt==="bht"?"#000":"#ffd23b";x.lineWidth=2.5;x.strokeRect(cx-r-6,cy-r-6,2*r+12,2*r+12)}GSA.at=now}
 {const _d=gmDraw;gmDraw=function(){const r=_d.apply(this,arguments);if(GSA.on)try{gsaStep();gsaDraw()}catch(e){}return r}}
