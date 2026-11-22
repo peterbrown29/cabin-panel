@@ -183,6 +183,10 @@
   </div>
 </div></section>
 <section class="page" id="pg-route" data-t="Route" data-c="FPLN"><div class="wrap"><div class="mfdT" aria-hidden="true"><b>FPLN</b><span>Route and tracking</span><i class="mfdS"></i></div><div class="note drvOnly drvOffNote"></div>
+  <div class="tile" id="ckTile"><div class="lab"><span>Setup checklist</span><span id="ckProg">0 / 0</span></div>
+    <div class="row ckModes"><span class="seg" data-k="ckMode" role="group" aria-label="Checklist mode"><button data-v="flight">Flight</button><button data-v="ground">Ground follow</button><button data-v="drive">Drive</button></span><button id="ckReset" aria-label="Reset this checklist">Reset</button></div>
+    <ul class="ck" id="ckList" aria-live="polite"></ul>
+    <div class="note" id="ckNote">Ticks itself as you set things up; tap a box to tick it by hand. Go jumps to the step. Saved on this phone per flight.</div></div>
   <h2>Route</h2>
   <div class="row" id="fltRow" data-css="margin-bottom:6px"><input type="text" id="fltIn" placeholder="Flight number, e.g. QF475" autocapitalize="characters" autocomplete="off" maxlength="9" aria-label="Flight number"><button id="fltBtn" data-net class="pri">Look up</button><button id="fltClr" aria-label="Clear flight number">✕</button></div>
   <div class="note" id="fltTxt">Look up your flight before boarding (needs internet); the route is saved for offline use.</div>

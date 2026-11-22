@@ -476,3 +476,17 @@ body.arf-grn #ar3Cv{filter:grayscale(1) sepia(1) hue-rotate(55deg) saturate(4) c
 body.arf-nvg #ar3Cv{filter:grayscale(1) brightness(1.7) contrast(1.35) sepia(1) hue-rotate(65deg) saturate(5)}body.arf-ir #ar3Cv{filter:grayscale(1) contrast(1.7) brightness(1.15)}body.arf-flir #ar3Cv{filter:url(#fIron) contrast(1.2)}
 @media (orientation:landscape){#arBar .arMain{max-width:560px}}
 #gmHud button{min-height:44px}#arIdBtn{min-height:44px}#arExit{min-height:44px}
+
+/* v27: setup checklist */
+#ckTile .ckModes{flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+#ckTile .ckModes .seg button{min-width:0;padding:0 10px}
+ul.ck{list-style:none;margin:4px 0;padding:0}
+ul.ck li{display:flex;align-items:center;gap:8px;min-height:44px;border-top:1px solid var(--line)}
+ul.ck li:first-child{border-top:0}
+ul.ck li label{flex:1;display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
+ul.ck li input{width:22px;height:22px;flex:none;accent-color:var(--ink)}
+ul.ck li .ckT{flex:1}
+ul.ck li .ckS{display:block;font:11px var(--mono);color:var(--dim)}
+ul.ck li.done .ckT>b{text-decoration:line-through;opacity:.75}
+ul.ck li button{min-width:52px;min-height:44px;padding:0 10px}
+.ckFlash{outline:2px solid var(--ink);outline-offset:3px}

@@ -3966,4 +3966,64 @@ function frDraw3D(x){const c=SV.ctl;if(!c||!c.project)return 0;const P=svState()
 window.cpFR=()=>({n:FR.n,ac:FR.ac.length,nb:FR.nb,n3:FR.n3||0,blocked:FR.blocked,err:FR.err,ms:FR.ms,boxes:FR.box.slice(0,FR.nb).map(b=>({x0:Math.round(b.x0),y0:Math.round(b.y0),x1:Math.round(b.x1),y1:Math.round(b.y1),cs:b.a.a.cs||b.a.a.reg})),a3:{on:A3.on,err:A3.err,opens:A3.opens,st:A3.ctl?A3.ctl.status():null,or:Object.assign({},A3.or)}});
 {const _gp=gmPrep;gmPrep=function(){if(A3.on)return;return _gp.apply(this,arguments)}}
 window.cpA3=()=>({on:A3.on,err:A3.err,opens:A3.opens,probe:A3.ctl?A3.ctl.probe():null,st:A3.ctl?A3.ctl.status():null,or:Object.assign({},A3.or),cam:!!AR.stream,gameGL:!!GM.ar});
+/* ---------- v27: setup checklists (Flight / Ground follow / Drive). Each step auto-ticks from app state and can be ticked by hand;
+   Go switches page and focuses the control. Manual ticks persist per flight in localStorage (cp_ck, newest 20 kept). Text via textContent only. */
+const CK={pack3d:false,packAt:0,mapSeen:"",sig:""};
+if(!["flight","ground","drive"].includes(S.ckMode))S.ckMode=(typeof DRV!=="undefined"&&DRV.on)?"drive":"flight";
+function ckDay(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function ckKey(m){const c=v=>String(v||"").toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,12);
+  if(m==="flight")return "f|"+(c(S.flt)||c(S.from)+"-"+c(S.to))+"|"+ckDay();
+  if(m==="ground")return "g|"+(TKS?(c(TKS.flt)||c(TKS.reg)):"")+"|"+ckDay();
+  return "d|"+ckDay()}
+function ckAll(){const v=store.get("ck",{});return v&&typeof v==="object"&&!Array.isArray(v)?v:{}}
+function ckMan(m){const e=ckAll()[ckKey(m)];return e&&typeof e==="object"&&!Array.isArray(e)&&e.t&&typeof e.t==="object"?e.t:{}}
+function ckSetMan(m,id,on){const all=ckAll(),k=ckKey(m),e=all[k]&&typeof all[k]==="object"?all[k]:{t:{}};if(!e.t||typeof e.t!=="object")e.t={};
+  if(on)e.t[id]=1;else delete e.t[id];e.at=Date.now();all[k]=e;const ks=Object.keys(all).sort((a,b)=>(all[b].at||0)-(all[a].at||0));for(const x of ks.slice(20))delete all[x];store.set("ck",all)}
+function ckReset(m){const all=ckAll();delete all[ckKey(m)];store.set("ck",all)}
+function ckPack3d(){if(Date.now()-CK.packAt<5000)return CK.pack3d;CK.packAt=Date.now();
+  svPack().then(pk=>{const all=Object.values(pk.packs()||{});CK.pack3d=all.some(p=>p&&p.done&&((p.from===S.from&&p.to===S.to)||(p.from===S.to&&p.to===S.from)))}).catch(()=>{});return CK.pack3d}
+function ckSteps(m){const fr=S.from,to=S.to,trk=!!(TKS&&TKS.on),wx=!!(fr&&to&&localStorage.getItem("cp_pack_"+rtKey(fr,to))),seat=S.seat==="left"||S.seat==="right";
+  if(m==="flight")return [
+    {id:"flt",t:"Flight number",s:S.flt?S.flt:"Type it on the Route page and tap Look up",a:!!S.flt,go:"fltIn"},
+    {id:"route",t:"Route: From and To",s:fr&&to&&fr!==to?fr+" → "+to:"Pick both airports",a:!!(fr&&to&&fr!==to),go:"from"},
+    {id:"seat",t:"Window seat side",s:seat?(S.seat==="left"?"Left side":"Right side"):"Pick Left or Right (Both shows everything)",a:seat,go:"seat"},
+    {id:"wx",t:"Offline weather pack",s:wx?"Saved for "+fr+" → "+to:"Download before boarding (needs internet)",a:wx,go:"packBtn"},
+    {id:"sv",t:"3D route pack",s:ckPack3d()?"Downloaded for this route":"Optional: real satellite 3D window view offline",a:ckPack3d(),go:"svGoPack"},
+    {id:"gps",t:"GPS on",s:watchId!=null?"Running":"Start it at the window once seated",a:watchId!=null,go:"gpsBtn"},
+    {id:"hf",t:"Hands-free",s:hfOn?"On":"Optional: callouts with the phone in a pocket",a:!!hfOn,go:"hfBtn"},
+    {id:"share",t:"Share link for family",s:SH.on&&SH.exp>Date.now()?"Sharing now":"Optional: send a live link",a:!!(SH.on&&SH.exp>Date.now()),go:"shStart"}];
+  if(m==="ground")return [
+    {id:"who",t:"Flight or tail to follow",s:TKS&&(TKS.flt||TKS.reg)?(TKS.flt||TKS.reg):"Flight number or VH- tail",a:!!(TKS&&(TKS.flt||TKS.reg)),go:"tkReg"},
+    {id:"ap",t:"Your airport",s:TKS&&TKS.ap?String(TKS.ap):"Where you're meeting them",a:!!(TKS&&TKS.ap),go:"tkAp"},
+    {id:"trk",t:"Track it live",s:trk&&TKS.L?"Tracking on ADS-B":"Tap Track it",a:!!(trk&&TKS.L),go:"tkGo"},
+    {id:"map",t:"Open the map",s:"Follows the plane, zoom with + and −",a:!!(trk&&CK.mapSeen&&CK.mapSeen===(TKS.hex||TKS.reg||TKS.flt)),go:"pg-map"},
+    {id:"voice",t:"Voice on",s:voiceOn?"On: arrival callouts":"Optional: hear landing and taxi-in",a:!!voiceOn,go:"voiceBtn"},
+    {id:"share",t:"Share link",s:SH.on&&SH.exp>Date.now()?"Sharing now":"Optional: send others the live link",a:!!(SH.on&&SH.exp>Date.now()),go:"shStart"}];
+  return [
+    {id:"drv",t:"Drive mode on",s:DRV.on?"On":"Flip the Mode switch",a:!!DRV.on,go:"drvSw"},
+    {id:"pax",t:"Passenger check",s:DRV.on&&!paxNeeded()?"Answered":"Passengers only, never the driver",a:!!(DRV.on&&!paxNeeded()),go:"drvSw"},
+    {id:"dest",t:"Destination",s:DRV.dest?String(DRV.dest.n):"Type a town",a:!!DRV.dest,go:"drvDest"},
+    {id:"priv",t:"Home privacy zone",s:(DRV.priv||[]).length?"Set":"Hide home from share links",a:!!(DRV.priv||[]).length,go:"drvPrivBtn"},
+    {id:"gps",t:"GPS on",s:watchId!=null?"Running":"Start GPS",a:watchId!=null,go:"gpsBtn"},
+    {id:"share",t:"Share link",s:SH.on&&SH.exp>Date.now()?"Sharing now":"Optional",a:!!(SH.on&&SH.exp>Date.now()),go:"shStart"}]}
+function ckGo(target){let el=target==="seat"?document.querySelector('.seg[data-k="seat"] button'):target.startsWith("pg-")?$(target):$(target);if(!el)return false;
+  const pg=el.classList&&el.classList.contains("page")?el:el.closest(".page");if(pg){const i=PG.els.indexOf(pg);if(i>=0)pgGo(i,true)}
+  if(target.startsWith("pg-"))return true;
+  setTimeout(()=>{const v=el.offsetParent?el:(el.closest(".tile")||el);try{v.scrollIntoView({block:"center"})}catch(e){}try{el.focus({preventScroll:true})}catch(e){}
+    v.classList.add("ckFlash");setTimeout(()=>v.classList.remove("ckFlash"),1600)},350);return true}
+function ckRender(force){const ul=$("ckList");if(!ul)return;const m=S.ckMode,st=ckSteps(m),man=ckMan(m);
+  const sig=m+"|"+st.map(q=>q.id+(q.a?1:0)+(man[q.id]?1:0)+q.s).join("|");if(!force&&sig===CK.sig)return;CK.sig=sig;
+  let n=0;ul.textContent="";for(const q of st){const done=q.a||!!man[q.id];if(done)n++;
+    const li=document.createElement("li");li.className=done?"done":"";li.dataset.id=q.id;const lb=document.createElement("label");const cb=document.createElement("input");cb.type="checkbox";cb.checked=done;cb.dataset.id=q.id;
+    cb.setAttribute("aria-label",q.t+(q.a?" (done automatically)":""));if(q.a){cb.disabled=true;cb.title="Ticked automatically"}
+    const tx=document.createElement("span");tx.className="ckT";const b=document.createElement("b");b.textContent=q.t;const sm=document.createElement("span");sm.className="ckS";sm.textContent=(q.a?"✓ auto · ":"")+q.s;tx.append(b,sm);lb.append(cb,tx);
+    const go=document.createElement("button");go.textContent="Go";go.dataset.go=q.go;go.setAttribute("aria-label","Go to: "+q.t);li.append(lb,go);ul.append(li)}
+  setTx($("ckProg"),n+" / "+st.length+" done");applySeg()}
+$("ckList").addEventListener("change",e=>{const cb=e.target.closest("input[type=checkbox]");if(!cb)return;ckSetMan(S.ckMode,cb.dataset.id,cb.checked);ckRender(true)});
+$("ckList").addEventListener("click",e=>{const b=e.target.closest("button[data-go]");if(b)ckGo(b.dataset.go)});
+$("ckReset").onclick=()=>{ckReset(S.ckMode);ckRender(true);hap(15)};
+document.querySelector('.seg[data-k="ckMode"]').addEventListener("click",()=>setTimeout(()=>ckRender(true),0));
+setInterval(()=>{if(document.hidden)return;try{const pm=PG.els[PG.i];if(pm&&pm.id==="pg-map"&&TKS&&TKS.on)CK.mapSeen=TKS.hex||TKS.reg||TKS.flt;if(pm&&pm.id==="pg-route")ckRender()}catch(e){}},1000);
+ckRender(true);
+window.cpCk=()=>{const m=S.ckMode,st=ckSteps(m),man=ckMan(m);return {mode:m,key:ckKey(m),steps:st.map(q=>({id:q.id,auto:q.a,man:!!man[q.id],go:q.go})),done:st.filter(q=>q.a||man[q.id]).length,n:st.length,prog:$("ckProg").textContent,page:PG.els[PG.i]?PG.els[PG.i].id:""}};
 }
