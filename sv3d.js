@@ -21,7 +21,7 @@ export function create(cv,api,opt={}){
   let ren;try{ren=new THREE.WebGLRenderer({canvas:cv,antialias:!low,alpha:false,powerPreference:"default",preserveDrawingBuffer:!!opt.preserve})}
   catch(e){throw new Error("This phone could not start 3D graphics (WebGL).")}
   ren.toneMapping=THREE.ACESFilmicToneMapping;ren.outputColorSpace=THREE.SRGBColorSpace;
-  const ctl={fx:opt.fx||"none",view:opt.view||"fwd",fps:opt.fps||30,dpr:opt.dpr||1.5,wx:opt.wx!==false,asp:opt.asp!==false,closed:false};
+  const ctl={orient:opt.orient||null,fx:opt.fx||"none",view:opt.view||"fwd",fps:opt.fps||30,dpr:opt.dpr||1.5,wx:opt.wx!==false,asp:opt.asp!==false,closed:false};
   const N=low?128:192,TEX=low?1024:2048,EF=260000,EM=32000,EN=8000;
   const U={uCam:{value:new THREE.Vector3()},uR:{value:R},uSun:{value:new THREE.Vector3(0,1,0)},uSunC:{value:new THREE.Color()},uHz:{value:new THREE.Color()},uZen:{value:new THREE.Color()},
     uAmb:{value:new THREE.Color()},uVis:{value:60000},uNight:{value:0},uDusk:{value:0},uNvg:{value:0},uFlir:{value:0},uDark:{value:1},uOvc:{value:0},uSunVis:{value:1},
@@ -212,8 +212,10 @@ void main(){vec3 c=texture2D(t,vUv).rgb;float L=dot(c,vec3(.299,.587,.114));
     let alt=p.alt;if(alt==null||!isFinite(alt))alt=(p.spd||0)>40?3000:gh+4;alt=Math.max(alt,gh+3.5);st.agl=alt-gh;st.gh=gh;
     cam.position.set(w[0],alt,w[1]);U.uCam.value.copy(cam.position);cam.near=Math.max(1,Math.min(60,st.agl*0.25));cam.far=1.6e6;
     const look=ctl.view==="left"?-80:ctl.view==="right"?80:0,pt=ctl.view==="fwd"?Math.max(-6,Math.min(12,p.pitch||0))-(st.agl<30?1:4+Math.min(6,st.agl/2000)):(st.agl<30?-2:-12);
-    const hd=rad(p.hd+look),pr=rad(pt);cam.up.set(0,1,0);cam.lookAt(w[0]+Math.sin(hd)*Math.cos(pr)*1000,alt+Math.sin(pr)*1000,w[1]-Math.cos(hd)*Math.cos(pr)*1000);
-    const bank=ctl.view==="fwd"?p.bank:0;cam.rotateZ(-rad(Math.max(-35,Math.min(35,bank||0))));
+    /* v26f: AR 3D mode: look where the phone points (fused heading, pitch, roll) */
+    const OR=ctl.orient?ctl.orient():null;
+    const hd=rad(OR&&OR.az!=null?OR.az:p.hd+look),pr=rad(OR&&OR.az!=null?OR.pitch||0:pt);cam.up.set(0,1,0);cam.lookAt(w[0]+Math.sin(hd)*Math.cos(pr)*1000,alt+Math.sin(pr)*1000,w[1]-Math.cos(hd)*Math.cos(pr)*1000);
+    const bank=OR&&OR.az!=null?-(OR.roll||0):ctl.view==="fwd"?p.bank:0;cam.rotateZ(-rad(Math.max(OR?-90:-35,Math.min(OR?90:35,bank||0))));if(OR&&OR.vfov&&Math.abs(cam.fov-OR.vfov)>0.2){cam.fov=OR.vfov;cam.updateProjectionMatrix()}
     sky.position.copy(cam.position);stars.position.copy(cam.position);outer.position.set(cam.position.x,-25,cam.position.z);
     const L=light(p,st.agl);st.lit=L;U.uT.value=t0/1000;U.uNvg.value=ctl.fx==="nvg"?1:0;U.uFlir.value=ctl.fx==="flir"?1:0;
     schedule(st.agl);
@@ -225,7 +227,10 @@ void main(){vec3 c=texture2D(t,vUv).rgb;float L=dot(c,vec3(.299,.587,.114));
   function loop(now){if(ctl.closed)return;raf=requestAnimationFrame(loop);if(document.hidden)return;if(now-last<1000/ctl.fps-3)return;last=now;try{draw()}catch(e){st.err=String(e&&e.message||e);api.err&&api.err(st.err)}}
   cv.addEventListener("webglcontextlost",e=>{e.preventDefault();st.lost=true;api.err&&api.err("3D graphics were paused by the phone. Close and reopen the 3D view.")});
   raf=requestAnimationFrame(loop);
+  const _pv=new THREE.Vector3();
   Object.assign(ctl,{
+    /* v26f: screen position (CSS px) of a lat/lon/alt (m) in the last rendered frame; false if off-camera */
+    project(lat,lon,h,o){if(!O||!pose)return false;const m=PK.merc(lat,lon),w=W(m[0],m[1]);_pv.set(w[0],h==null?0:h,w[1]).project(cam);if(_pv.z>1||_pv.z<-1)return false;o.x=(_pv.x+1)/2*cv.clientWidth;o.y=(1-_pv.y)/2*cv.clientHeight;return true},
     setFx(m){ctl.fx=FXI[m]!=null?m:"none"},setView(v){ctl.view=["fwd","left","right"].includes(v)?v:"fwd"},setFps(n){ctl.fps=Math.max(5,Math.min(60,+n||30))},
     setWx(b){ctl.wx=!!b},setAsp(b){ctl.asp=!!b;meshC=null;if(!b){disposeObj(aspG);aspG=null}},
     status(){return {state:st.state,frames:st.frames,ms:+st.ms.toFixed(1),agl:Math.round(st.agl),gh:Math.round(st.gh),err:st.err||"",layers:Object.fromEntries(Object.entries(LY).map(([k,v])=>[k,v?(v.none?0:v.tiles):null])),dem:DEM.size,

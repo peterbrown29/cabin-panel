@@ -96,7 +96,9 @@ export function createGunship(cv,hooks){
   for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),h=vnoise(x/900,z/900)*60+vnoise(x/260,z/260)*18;p.setY(i,h);let t=0.18+0.16*vnoise(x/300+7,z/300)+0.05*noise(x,z);
     if(Math.abs((x*0.8+z*0.6)%1700)<30||Math.abs((z-x*0.3)%2300)<25)t=0.08;cols[i*3]=cols[i*3+1]=cols[i*3+2]=t}
   tg.setAttribute("color",new THREE.BufferAttribute(cols,3));tg.computeVertexNormals();
-  const ter=new THREE.Mesh(tg,new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true}));sc.add(ter);
+  const terM0=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true}),ter=new THREE.Mesh(tg,terM0);sc.add(ter);
+  /* v26f: real ground from the downloaded 3D route pack (thermal-treated canvases from the app), else synthetic */
+  let gnd=null;
   const hAt=(x,z)=>vnoise(x/900,z/900)*60+vnoise(x/260,z/260)*18;
   const hotM=new THREE.MeshBasicMaterial({vertexColors:true}),warmM=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});
   const thermal=g=>{const c=g.attributes.color.array,o=new Float32Array(c.length);for(let i=0;i<c.length;i+=3){const l=0.55+0.45*(0.3*c[i]+0.59*c[i+1]+0.11*c[i+2]);o[i]=o[i+1]=o[i+2]=Math.min(1,l)}const n=g.clone();n.setAttribute("color",new THREE.BufferAttribute(o,3));return n};
@@ -124,7 +126,7 @@ export function createGunship(cv,hooks){
   function frame(ts){raf=0;if(!on)return;if(document.hidden){lt=0;return}const t=ts/1000,dt=lt?Math.min(0.1,t-lt):0;
     if(fps<60&&lastR&&ts-lastR<1000/fps-2){raf=requestAnimationFrame(frame);return}lastR=ts;lt=t;
     step(dt,t);const w=cv.clientWidth,h=cv.clientHeight;if(w&&h){r.setPixelRatio(Math.min(1.5,window.devicePixelRatio||1));r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
-    sc.background=new THREE.Color(pol==="wht"?"#141617":"#d6d8d8");ter.material.color.set(pol==="wht"?"#ffffff":"#ffffff");
+    sc.background=new THREE.Color(pol==="wht"?"#141617":"#d6d8d8");if(gnd){const m=pol==="wht"?gnd.mW:gnd.mB;if(ter.material!==m)ter.material=m}else{ter.material.color.set("#ffffff")}
     r.render(sc,cam);try{hooks.hud&&hooks.hud(api.view())}catch(_){}raf=requestAnimationFrame(frame)}
   function vis(){if(on&&!document.hidden&&!raf){lt=0;raf=requestAnimationFrame(frame)}}
   document.addEventListener("visibilitychange",vis);
@@ -138,9 +140,13 @@ export function createGunship(cv,hooks){
     fire,zoom(z){zoom=z==null?(zoom?0:1):z;return zoom},pol(p){pol=p||(pol==="wht"?"bht":"wht");
       const inv=pol==="bht";for(const m of [hotM])m.color.set(inv?"#222222":"#ffffff");return pol},
     fps(n){fps=n||60},
+    ground(o){if(gnd){gnd.tW.dispose();gnd.tB.dispose();gnd.mW.dispose();gnd.mB.dispose();gnd=null;ter.material=terM0}
+      if(!o||!o.wht||!o.bht)return false;const mk=c=>{const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;return t};
+      const tW=mk(o.wht),tB=mk(o.bht);gnd={tW,tB,mW:new THREE.MeshLambertMaterial({map:tW}),mB:new THREE.MeshLambertMaterial({map:tB}),src:o.src||"pack"};ter.material=pol==="wht"?gnd.mW:gnd.mB;return true},
+    groundSrc(){return gnd?gnd.src:"synthetic"},
     view(){const w=cv.clientWidth,h=cv.clientHeight,out=[];for(const e of ents){if(!e.alive)continue;v3.copy(e.o.position);v3.y+=e.s*0.4;v3.project(cam);if(v3.z>1)continue;
         out.push({id:e.id,type:e.type,x:(v3.x+1)/2*w,y:(1-v3.y)/2*h,s:Math.max(10,e.s*h/(2*cam.position.distanceTo(e.o.position)*Math.tan(cam.fov*Math.PI/360))),hp:e.hp})}
       return {w,h,ents:out,left:ents.filter(e=>e.alive).length,ammo:{105:W[105].n,25:W[25].n},rdy105:performance.now()/1000>=W[105].rdy,zoom,pol,shells:shells.length,calls:r.info.render.calls,tris:r.info.render.triangles}},
     state(){return {on,left:ents.filter(e=>e.alive).length,ammo:{105:W[105].n,25:W[25].n},zoom,pol,calls:r.info.render.calls,tris:r.info.render.triangles}},
-    dispose(){api.close();document.removeEventListener("visibilitychange",vis);r.dispose();try{r.forceContextLoss()}catch(e){}}};
+    dispose(){api.close();try{api.ground(null)}catch(e){}document.removeEventListener("visibilitychange",vis);r.dispose();try{r.forceContextLoss()}catch(e){}}};
   return api}

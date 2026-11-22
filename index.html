@@ -170,6 +170,11 @@
     <button id="arBtn" class="pri arBig" aria-label="Open AR window"><svg viewBox="-100 -70 200 140" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2"><path d="M-62-44h-16v16M62-44h16v16M-62 44h-16v-16M62 44h16v-16"/><path d="M-40 0h-26M40 0h26M0-26v-18M0 26v18M-30-4v8M30-4v8"/><path d="M-50-58h100" stroke-width="1.4"/><path d="M-40-58v6M-20-58v4M0-58v8M20-58v4M40-58v6" stroke-width="1.4"/><rect x="18" y="-22" width="28" height="18" stroke-dasharray="0" stroke-width="1.6"/></g><text x="32" y="-26" fill="currentColor" font-size="9" text-anchor="middle" font-family="B612 Mono,monospace" font-weight="700">TGT</text></svg><span>Open AR window</span></button>
     <details class="more"><summary>How it works</summary><div class="note">A box shows where something should be, sized by how sure the phone is of its heading. Fused (default) uses the compass for where the phone points and your GPS track to correct its drift, so boxes stay tight (about ±1.5°) and widen by themselves if the compass reports trouble or drifts away from the GPS. If boxes sit off, tap Align while looking square out of the window, or fine-tune with Trim. TV, GRN and WHT switch the camera look. Things beyond your horizon get dashed boxes. Entertainment only, not for navigation.</div></details>
   </div>
+  <div class="tile" id="gmTile">
+    <div class="lab"><span>Alien game</span><span class="chip" id="gmLvlC">MISSION 1</span></div>
+    <div class="row" data-css="margin-top:6px"><button id="gmBelly" class="pri">GUNSHIP · belly cam</button></div>
+    <p class="note" id="gmBellyNote" data-css="margin:6px 0 0">Gunship belly cam: shoot through an imaginary camera under the aircraft at alien ground forces. Works offline and suits a middle or aisle seat. At a window? Open the AR window above for alien aircraft outside. Passengers only, imaginary targets.</p>
+  </div>
   <div class="tile" id="spTile">
     <div class="lab"><span>Spot the other plane</span><span class="seg" data-k="spot"><button data-v="on" data-net>On</button><button data-v="off">Off</button></span></div>
     <div class="bigv" id="spPts" data-css="font-size:16px;margin:6px 0">0 pts</div><button type="button" id="spRank" class="spRank ptc"></button>
@@ -383,23 +388,28 @@
 </div>
 <div id="arOv" role="dialog" aria-label="AR window view">
   <video id="arVid" playsinline muted autoplay></video>
+  <canvas id="ar3Cv" aria-label="Synthetic 3D view (AR 3D mode)"></canvas>
   <canvas id="arCv" aria-label="Camera view with landmark boxes"></canvas>
   <canvas id="gmCv" aria-hidden="true"></canvas><canvas id="gmOv" aria-hidden="true"></canvas>
   <button id="arExit">✕ Exit</button><span id="arPhase" class="chip"></span>
   <div id="arBar">
     <div id="arMsg" class="tapClose" title="Tap to close" data-css="display:none"></div>
-    <div class="row"><button id="arCam">Camera on</button><button id="arSen" class="pri">Enable compass</button><button id="arAlign">Align</button><button id="arHide" aria-label="Hide controls">Hide</button></div>
-    <div class="row"><span class="seg" data-k="arSrc"><button data-v="fus">Fused</button><button data-v="cmp">Compass</button><button data-v="gps">GPS</button></span><span class="seg" data-k="arFlt"><button data-v="norm">TV</button><button data-v="grn">GRN</button><button data-v="wht">WHT</button><button data-v="nvg">NVG</button><button data-v="flir">FLIR</button><button data-v="ir">IR</button></span></div>
-    <div class="row"><button id="gmTgl" aria-pressed="false">Alien game: off</button><span class="sub gmSub">Passengers only · imaginary targets</span></div>
-    <div class="row"><span class="seg" data-k="arSky"><button data-v="auto">Sky auto</button><button data-v="on">Sky on</button><button data-v="off">Sky off</button></span></div>
-    <div class="row"><span class="seg" data-k="arSide"><button data-v="left">Left window</button><button data-v="right">Right window</button></span><span class="sub">Trim</span><input type="range" id="arTrim" min="-60" max="60" step="1" value="0" aria-label="Heading trim, degrees"><b id="arTrimV">0°</b></div>
+    <div class="row arMain"><button id="arCam">Camera on</button><button id="arFltB" aria-label="Next camera filter">TV</button><button id="ar3B" aria-pressed="false" aria-label="Synthetic 3D view instead of the camera (sees through cloud)">3D</button><button id="gmTgl" aria-pressed="false">Alien game: off</button><button id="arMoreB" aria-expanded="false" aria-controls="arMore">More</button><button id="arHide" aria-label="Hide controls">Hide</button></div>
+    <div class="row arMain2"><button id="arSen" class="pri">Enable compass</button></div>
+    <div id="arMore">
+      <div class="row"><span class="seg" data-k="arSrc"><button data-v="fus">Fused</button><button data-v="cmp">Compass</button><button data-v="gps">GPS</button></span><button id="arAlign">Align</button></div>
+      <div class="row"><span class="seg" data-k="arFlt"><button data-v="norm">TV</button><button data-v="grn">GRN</button><button data-v="wht">WHT</button><button data-v="nvg">NVG</button><button data-v="flir">FLIR</button><button data-v="ir">IR</button></span></div>
+      <div class="row"><span class="seg" data-k="arSky"><button data-v="auto">Sky auto</button><button data-v="on">Sky on</button><button data-v="off">Sky off</button></span><span class="sub gmSub">Game: passengers only · imaginary targets</span></div>
+      <div class="row"><span class="seg" data-k="arSide"><button data-v="left">Left window</button><button data-v="right">Right window</button></span><span class="sub">Trim</span><input type="range" id="arTrim" min="-60" max="60" step="1" value="0" aria-label="Heading trim, degrees"><b id="arTrimV">0°</b></div>
+    </div>
   </div>
   <button id="arShow" aria-label="Show controls">⚙</button>
   <button id="arIdBtn" aria-label="Identify what is under the crosshair">IDENTIFY</button><div id="arIdOut" class="tapClose" title="Tap to close" role="status"></div><div id="spHud" role="status"></div>
-  <div id="gmHud" role="group" aria-label="Alien game controls"><span id="gmSc">0 PTS</span><button id="gmId" aria-label="Lock the alien nearest the crosshair">IDENT</button><button id="gmMsl" aria-label="Fire a fire-and-forget missile at the locked alien">MSL 4</button><button id="gmGun" aria-label="Hold to fire smart gun rounds">GUN 300</button><button id="gmGs" aria-label="Open the gunship view for alien ground forces">GUNSHIP</button></div>
+  <div id="gmHud" role="group" aria-label="Alien game controls"><span id="gmSc">0 PTS</span><button id="gmId" aria-label="Lock the alien nearest the crosshair">IDENT</button><button id="gmMsl" aria-label="Fire a fire-and-forget missile at the locked alien">MSL 4</button><button id="gmGun" aria-label="Hold to fire smart gun rounds">GUN 300</button><button id="gmGs" aria-label="Gunship belly camera: attack alien ground forces (works offline, any seat)">GUNSHIP</button></div>
   <div id="gmMsg" class="tapClose" title="Tap to close" role="status"></div>
   <div id="arDisc">Entertainment only · not for navigation · positions approximate</div>
 </div>
+<div id="gmDone" role="dialog" aria-label="Mission complete" data-css="display:none"><b id="gmDoneT">MISSION COMPLETE</b><span id="gmDoneS"></span><div class="row"><button id="gmNext" class="pri">NEXT LEVEL</button><button id="gmRestart">RESTART</button><button id="gmDoneX">Close</button></div></div>
 <div id="gsOv" role="dialog" aria-label="Alien game gunship view">
   <canvas id="gsCv" aria-label="Thermal gunship view of alien ground forces (game)"></canvas><canvas id="gsHud" aria-hidden="true"></canvas>
   <button id="gsExit">✕ Exit</button><span class="chip" id="gsTag">GAME · GUNSHIP</span>

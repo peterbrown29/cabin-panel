@@ -1178,13 +1178,30 @@ function profDraw(cv,small){
   if(prof.length>1){const ps=prof.slice().sort((a,b)=>a.f-b.f);
     x.beginPath();x.moveTo(X(ps[0].f),Y(0));ps.forEach(q=>x.lineTo(X(q.f),Y(q.a)));x.lineTo(X(ps[ps.length-1].f),Y(0));x.closePath();x.globalAlpha=.22;x.fillStyle=col("--mag");x.fill();x.globalAlpha=1;
     x.strokeStyle=col("--mag");x.lineWidth=small?2:2.5;x.beginPath();ps.forEach((q,i)=>{i?x.lineTo(X(q.f),Y(q.a)):x.moveTo(X(q.f),Y(q.a))});x.stroke()}
-  if(last){const f=Math.max(0,Math.min(1,1-dist(last,to)/tot)),px=X(f),py=Y(last.alt||0),k=small?1:1.4;
+  /* v26f: while following an aircraft, plot its ACTUAL flown altitude (ADS-B trail: history + every fix since the follow started) as a solid line */
+  const tkF=pfTk();PF.n=0;PF.ax=null;PF.ay=null;
+  if(tkF){const c=S.disp==="nvg"?col("--ink"):"#ff8a1f",tr=pfTrail(fr,to,tot);PF.n=tr.length;
+    if(tr.length){x.save();x.strokeStyle=c;x.lineWidth=small?2:2.6;x.lineJoin="round";x.beginPath();tr.forEach((q,i)=>{const px=X(q[0]),py=Y(q[1]);i?x.lineTo(px,py):x.moveTo(px,py)});
+      const lf=Math.max(0,Math.min(1,1-dist(tkF,to)/tot));x.lineTo(X(lf),Y(tkF.gnd?0:(tkF.alt||0)));x.stroke();
+      if(!small)for(const q of tr){x.fillStyle=c;x.fillRect(X(q[0])-1.5,Y(q[1])-1.5,3,3)}x.restore()}}
+  const me=tkF||last;
+  if(me){const f=Math.max(0,Math.min(1,1-dist(me,to)/tot)),px=X(f),py=Y(me.gnd?0:(me.alt||0)),k=small?1:1.4;if(!small){PF.ax=+px.toFixed(1);PF.ay=+py.toFixed(1)}
     x.fillStyle=col("--ink");x.strokeStyle=col("--bg");x.lineWidth=2;x.beginPath();x.moveTo(px+7*k,py);x.lineTo(px-5*k,py-5*k);x.lineTo(px-2*k,py);x.lineTo(px-5*k,py+5*k);x.closePath();x.stroke();x.fill()}
 }
+/* v26f: the aircraft the profile is about (tracked ADS-B aircraft when it's shown) and its flown trail as [fraction along route, altitude m] */
+const PF={n:0,ax:null,ay:null};
+function pfTk(){try{if(tkOn()&&TKS&&TKS.L)return tkLive()||TKS.L}catch(e){}return null}
+function pfTrail(fr,to,tot){const tr=(TKS&&TKS.trail)||[];let s=0;
+  /* this leg only: start after the last time it sat on the ground at the departure airport */
+  for(let i=tr.length-1;i>=0;i--){const q=tr[i];if(q[3]===-1&&dist({lat:q[1],lon:q[2]},fr)<8000){s=i;break}}
+  const out=[];for(let i=s;i<tr.length;i++){const q=tr[i];if(q[3]==null)continue;const p={lat:q[1],lon:q[2]},dt=dist(p,to);if(dt>tot*1.25||dist(p,fr)>tot*1.25)continue;
+    out.push([Math.max(0,Math.min(1,1-dt/tot)),q[3]===-1?0:q[3]/FT])}return out}
+window.cpTkPoll=()=>{if(TKS&&TKS.on){TKX.busy=false;tkPoll()}};window.cpProf=()=>({tk:!!pfTk(),n:PF.n,ax:PF.ax,ay:PF.ay,trail:(TKS&&TKS.trail||[]).length});
 function profAll(){profDraw($("prof"),false);profDraw($("sProf"),true);try{turbSummary()}catch(e){}
   const fr=apBy(S.from),to=apBy(S.to);
-  if(fr&&to&&fr.c!==to.c&&last){const tot=dist(fr,to),pl=plan(tot),dtg=dist(last,to),toTod=dtg-pl.d;
-    $("profTxt").textContent=toTod>2000?`Top of descent in about ${Math.round(fDst(toTod)).toLocaleString()} ${S.dst}`+(last.spd>25?` (${hm(toTod/last.spd)})`:"")+`. Estimated from the 3-to-1 rule, so the crew's actual point will differ.`:dtg>2000?"Descending into "+to.n+".":"Arrived "+to.n+"."}}
+  const me=pfTk()||last,who=pfTk()?"Tracking "+(TKS.flt||TKS.reg||"the aircraft")+" (solid line = its actual ADS-B altitude, "+PF.n+" fixes). ":"";
+  if(fr&&to&&fr.c!==to.c&&me){const tot=dist(fr,to),pl=plan(tot),dtg=dist(me,to),toTod=dtg-pl.d;
+    $("profTxt").textContent=who+(toTod>2000?`Top of descent in about ${Math.round(fDst(toTod)).toLocaleString()} ${S.dst}`+(me.spd>25?` (${hm(toTod/me.spd)})`:"")+`. Estimated from the 3-to-1 rule, so the crew's actual point will differ.`:dtg>2000?"Descending into "+to.n+".":"Arrived "+to.n+".")}}
 new ResizeObserver(profAll).observe($("profFig"));new ResizeObserver(profAll).observe($("strip"));
 
 
@@ -1640,7 +1657,7 @@ function arFrame(ts){AR.raf=0;if(!arOn)return;const dt=AR.lt?Math.min(0.5,(ts-AR
   if(AR.b!=null){const B=rad(AR.b),G=rad(AR.g),pitch=deg(Math.asin(Math.max(-1,Math.min(1,-Math.cos(B)*Math.cos(G))))),roll=w180(deg(Math.atan2(-Math.cos(B)*Math.sin(G),Math.sin(B)))-cmpScrAng());
     AR.ps=AR.ps==null?pitch:AR.ps+k*(pitch-AR.ps);AR.rs=AR.rs==null?roll:AR.rs+k*w180(roll-AR.rs)}
   if(ts-AR.tgAt>1000){AR.tgAt=ts;try{AR.tg=arTargets()}catch(e){AR.tg=[]}const m=arStatus(),el=$("arMsg");if(m!==AR.msgShown){AR.msgShown=m;el.textContent=m;el.style.display=m?"":"none"}if(AR.sen==="wait"&&AR.ot)AR.sen="ok";$("arSen").style.display=AR.listen&&AR.ot?"none":"";$("arPhase").textContent=PHN[PH.p]||""}
-  try{arDraw(dt)}catch(e){console.warn(e)}
+  try{arDraw(dt)}catch(e){console.warn(e)}try{frDrawAR()}catch(e){}
   AR.raf=requestAnimationFrame(arFrame)}
 window.cpAR=()=>({bias:AR.bias,flt:S.arFlt,on:arOn,cam:AR.cam,sen:AR.sen,src:AR.src,hdg:AR.hs,pitch:AR.ps,roll:AR.rs,targets:AR.tg.length,view:AR.view||null,lock:AR.lock,hits:(AR.hits||[]).slice(0,12),lay:AR.lay||null,labs:(AR.labs||[]).slice(0,16)});
 /* heading solution: FUSED (default) = phone compass for orientation (+WMM variation) with a slow GPS-track drift/bias
@@ -2090,7 +2107,7 @@ const TK_ADSB="https://api.adsb.lol",TK_PROXY="https://cabin-adsb.cabinpanel-pb.
 function tkNormReg(s){s=String(s||"").toUpperCase().replace(/[^A-Z0-9-]/g,"");if(!s)return "";
   if(s.includes("-"))return s;let m=s.match(/^(VH|ZK|9V|9M|PK|RP|A6|A7|HS|VT|PH|EI|OE|HB|OO|SE|LN|OY|OH|EC|CS|SP|OK|TC|P2|DQ|YJ|H4|F-?O)([A-Z0-9]{3})$/);if(m)return m[1]+"-"+m[2];
   m=s.match(/^(G|F|D|C|I)([A-Z]{4})$/);if(m)return m[1]+"-"+m[2];return s}
-function tkSave(){if(!TKS)return;const c=Object.assign({},TKS);if(c.trail&&c.trail.length>1500)c.trail=c.trail.slice(-1500);store.set("tk",c)}
+function tkSave(){if(!TKS)return;const c=Object.assign({},TKS);if(c.trail&&c.trail.length>2000)c.trail=c.trail.slice(-2000);store.set("tk",c)}
 function tkOwnGround(){if(DRV.on)return true;return !last||GROUND.includes(PH.p)||(Date.now()-last.t)>180000}
 function tkOn(){return !!(TKS&&TKS.on&&TKS.L&&S.tkShow!=="off"&&!demo&&!REPLAY&&tkOwnGround()&&Date.now()-TKS.L.t<6*3600000)}
 function tkVs(){const L=TKS&&TKS.L;if(!L||tkStale())return null;return L.vsS!=null?L.vsS:L.vs!=null?L.vs:null}
@@ -2244,7 +2261,7 @@ async function tkPoll(){if(!TKS||!TKS.on||TKX.busy)return;TKX.busy=true;TKX.last
   }catch(e){if(e.off){if(TKS&&TKS.L)TKS.L.old=true;TKX.err="Offline: showing the last known position"+(TKS&&TKS.L?" from "+tkTime(TKS.L.t,tkAp().tz):"")+". Tracking needs internet.";gap=60000}
     else if(e.rl!=null){TKX.back=Math.min(600000,Math.max(60000,(TKX.back||30000)*2,e.rl*1000));gap=TKX.back;TKX.err="adsb.lol is limiting requests right now; trying again in "+Math.round(gap/60000)+" min."}
     else{TKX.back=Math.min(300000,Math.max(30000,(TKX.back||15000)*2));gap=TKX.back;TKX.err="Couldn't reach the live ADS-B data ("+(e&&e.name==="AbortError"?"timed out":(e&&e.message)||e)+"). Retrying.";if(TKS&&TKS.L)TKS.L.old=true}}
-  finally{TKX.busy=false;if(TKS!==ses){if(TKS&&TKS.on)tkSched(800);return}tkSave();tkSched(gap);tkRender();try{render();drawMap();pickScene()}catch(e){}tkWxMaybe()}}
+  finally{TKX.busy=false;if(TKS!==ses){if(TKS&&TKS.on)tkSched(800);return}tkSave();tkSched(gap);tkRender();try{render();drawMap();profAll();pickScene()}catch(e){}tkWxMaybe()}}
 /* v26d: poll often enough that the HUD looks live (dead-reckoning fills the gaps): 8 s flying, 10 s taxiing, 20 s parked.
    Slows to 30 s after a heavy day (2,500 lookups on this phone) so the free feed isn't hammered. */
 function tkInterval(){if(!TKS||!TKS.L)return 10000;const L=TKS.L,heavy=tkQuota(0)>=2500;let ms;
@@ -2354,7 +2371,8 @@ function tkHudBan(cx,T){const L=TKS.L,age=(Date.now()-L.t)/1000,cs=L.cs||"";
     `<text x="${cx}" y="51" fill="#ff8a1f" stroke="none" font-size="11" font-weight="700" text-anchor="middle">TRACKING ${esc(TKS.reg||TKS.flt)}${cs?" "+esc(cs):""}${TKS.feed==="adsb.fi"?" · ADSB.FI":""}</text>`+
     `<text x="${cx}" y="63" fill="#ff8a1f" stroke="none" font-size="9" font-weight="700" text-anchor="middle">${tkStale()?(L.gnd?"STALE · ":"LOST "+tkTime(L.t,tkAp().tz)+" · EST · "):(Date.now()-L.t)>20000?"EST · ":""}NOT YOUR GPS${L.sq?" · SQK "+esc(L.sq):""}${age>60?" · "+(age<5400?Math.round(age/60)+"M":Math.round(age/3600)+"H")+" OLD":""}${L.gnd?" · ON GND":""}</text>`}
 function tkZoom(W,H){if(!tkOn())return null;const L=tkLive()||TKS.L,A=tkAp(),d=dist(L,A)/1000;ZM.why="track";
-  if(d<6){ZM.mode="track";return vOf(L.gnd||d<3?A:L,7,W,H)}ZM.mode="track";const m=gcPoint(L,A,0.5);return vOf(m,Math.max(20,Math.min(4500,d*1.35+15)),W,H)}
+  /* v26f: follow mode keeps the tracked aircraft centred and moves with it every fix (was: centred between it and the airport, so it drifted off-centre and barely moved) */
+  ZM.mode="track";return vOf(L,d<6?7:Math.max(30,Math.min(250,d*2.2+15)),W,H)}
 function tkMapDraw(x,P,sc,W,H,col,glow){if(!TKS||!TKS.on||!TKS.L)return;const nvg=S.disp==="nvg",c=nvg?col("--ink"):"#ff8a1f",L=(tkOn()&&tkLive())||TKS.L,A=tkAp();
   x.save();const tr=TKS.trail||[];if(tr.length>1){x.strokeStyle=c;x.lineWidth=2.6;x.lineJoin="round";if(glow){x.shadowColor=c;x.shadowBlur=7}x.globalAlpha=.9;x.beginPath();let pen=false,pt=0;
     for(const q of tr){const [px,py]=P({lat:q[1],lon:q[2]});if(pen&&q[0]-pt>45*60000){x.moveTo(px,py)}else if(pen)x.lineTo(px,py);else{x.moveTo(px,py);pen=true}pt=q[0]}
@@ -2374,7 +2392,7 @@ window.cpTkPoll=()=>tkPoll();window.cpTkNorm=tkNormReg;window.cpTkLocal=(h,tz,n)
 {const s=store.get("tk",null);if(s&&s.on&&(s.reg||s.flt)&&Date.now()-(s.at||0)<36*3600000){TKS=s;$("tkReg").value=s.reg||"";$("tkFlt").value=s.flt||"";$("tkDep").value=s.dep||"";$("tkAp").value=s.ap||"";$("tkTurn").value=s.turn||30;setTimeout(tkPoll,1500)}
   else if(s)store.set("tk",null);tkRender()}
 setInterval(()=>{if(TKS&&TKS.on&&!document.hidden){tkRender()}},15000);
-let tkTick=0;setInterval(()=>{if(document.hidden||!tkOn())return;tkTick++;try{render()}catch(e){}if(tkTick%2===0){try{drawMap()}catch(e){}}if(tkTick%5===0){try{pickScene()}catch(e){}}},1000);
+let tkTick=0;setInterval(()=>{if(document.hidden||!tkOn())return;tkTick++;try{render()}catch(e){}if(tkTick%2===0){try{drawMap();profAll()}catch(e){}}if(tkTick%5===0){try{pickScene()}catch(e){}}},1000);
 /* ===== v23: synthetic 3D window view + 3D route pack =====
    Display only: svState() reads the position, attitude, sun and pack weather; nothing here writes PH, LOG, BOOK or the GPS state.
    three.js (sv3d.js + three.module.min.js) is only loaded when the 3D view is opened. */
@@ -3597,7 +3615,9 @@ if(!DRV.on&&PH.p==="drive"){PH.p="parked";savePH()}
    Rendering: game.js (three.js, low-poly, 2 draw calls per model, capped at 10 models); pauses when hidden. */
 const GM={tg:[],rd:[],ms:[],fx:[],labs:[],lock:null,pan:{a:0,e:0},c:null,next:0,seq:1,ar:null,gs:null,mod:null,modErr:"",
   ammo:{msl:4,gun:300},rl:{msl:0,gun:0},firing:0,gsOn:false,gsWave:null,arWas:false,info:{calls:0,tris:0},noteAt:0,lastT:0,
-  st:Object.assign({score:0,best:0,kills:0,air:0,ground:0,mom:0,shots:0,hits:0,waves:0},store.get("game")||{})};
+  st:Object.assign({score:0,best:0,kills:0,air:0,ground:0,mom:0,shots:0,hits:0,waves:0,lvl:1},store.get("game")||{})};
+/* v26f: level 1.. raises difficulty: tougher, faster aliens, bigger waves, shorter gaps */
+function gmLvl(){const l=GM.st.lvl|0;return l>=1?Math.min(l,50):1}
 if(typeof S.gameOn!=="boolean")S.gameOn=false;
 const GMT={ftr:{n:"FIGHTER",tag:"FTR",m:70,d:[2.5,5],hp:3,pts:100,spd:3.2},rdr:{n:"RAIDER",tag:"RDR",m:120,d:[4,7],hp:5,pts:150,spd:2},
   msh:{n:"MOTHERSHIP",tag:"MSHIP",m:2400,d:[32,45],hp:24,pts:1000,spd:0.35},gnd:{n:"ALIEN BASE",tag:"BASE",m:260,d:[4,9],hp:1,pts:0,spd:0}};
@@ -3624,11 +3644,12 @@ function gmNote(t,clip){const el=$("gmMsg");if(el){el.textContent=t;el.style.dis
 function gmAnchor(){try{const so=arSolve(0);if(so.win!=null)return so.win;if(so.az!=null)return so.az}catch(e){}const L=last;if(L&&L.trk!=null)return (L.trk+(S.arSide==="right"?90:-90)+360)%360;return AR.pj&&AR.pj.az!=null?AR.pj.az:0}
 function gmRand(a,b){return a+Math.random()*(b-a)}
 function gmAdd(type,o){const T=GMT[type],g=gmGround(),C=g?GM_CONE_GND:GM_CONE,t={id:GM.seq++,type,gnd0:g,rA:gmRand(-C.a+3,C.a-3),rE:type==="gnd"?(g?gmRand(C.gLo+0.4,C.gHi-0.3):gmRand(C.gLo+2,C.gHi-2)):type==="msh"?(g?gmRand(9,13):gmRand(6,11)):gmRand(C.eLo+2,C.eHi-2),
-    vA:0,vE:0,d:type==="gnd"&&g?gmRand(0.5,1.5):gmRand(T.d[0],T.d[1]),sc:type==="gnd"&&g?0.1:1,hp:T.hp,hp0:T.hp,born:Date.now(),life:type==="gnd"?240000:type==="msh"?150000:gmRand(70000,100000),dead:0,hd:0,bank:0,jk:0,troops:type==="gnd"?(o&&o.troops)||6:0,bases:type==="gnd"?(o&&o.bases)||1:0};
-  const a=Math.random()*Math.PI*2;t.vA=Math.cos(a)*T.spd;t.vE=Math.sin(a)*T.spd*0.4;if(o)Object.assign(t,o);GM.tg.push(t);return t}
+    vA:0,vE:0,lv:gmLvl(),d:type==="gnd"&&g?gmRand(0.5,1.5):gmRand(T.d[0],T.d[1]),sc:type==="gnd"&&g?0.1:1,hp:T.hp,hp0:T.hp,born:Date.now(),life:type==="gnd"?240000:type==="msh"?150000:gmRand(70000,100000),dead:0,hd:0,bank:0,jk:0,troops:type==="gnd"?(o&&o.troops)||6:0,bases:type==="gnd"?(o&&o.bases)||1:0};
+  const lv=gmLvl();if(lv>1&&type!=="gnd"){t.hp=t.hp0=Math.round(T.hp*(1+0.25*(lv-1)))}const sp=T.spd*(1+0.12*Math.min(10,lv-1));
+  const a=Math.random()*Math.PI*2;t.vA=Math.cos(a)*sp;t.vE=Math.sin(a)*sp*0.4;if(o)Object.assign(t,o);GM.tg.push(t);return t}
 function gmWave(kind){if(GM.c==null||!GM.tg.some(t=>!t.dead))GM.c=gmAnchor();
   if(!kind){const r=Math.random();kind=DRV.on?(r<0.55?"gnd":r<0.95?"air":"msh"):gmGround()?(r<0.35?"gnd":r<0.9?"air":"msh"):(r<0.25?"gnd":r<0.85||PH.p!=="cruise"?"air":"msh")}
-  const out=[];if(kind==="air"){const n=2+Math.floor(Math.random()*2);for(let i=0;i<n;i++)out.push(gmAdd(i===0&&Math.random()<0.4?"rdr":"ftr"))}
+  const out=[];if(kind==="air"){const n=Math.min(6,2+Math.floor(Math.random()*2)+Math.floor((gmLvl()-1)/2));for(let i=0;i<n;i++)out.push(gmAdd(i===0&&Math.random()<0.4?"rdr":"ftr"))}
   else if(kind==="msh"){out.push(gmAdd("msh"));out.push(gmAdd("ftr"));out.push(gmAdd("ftr"))}
   else if(kind==="gnd"){out.push(gmAdd("gnd",{bases:1+Math.floor(Math.random()*2),troops:4+Math.floor(Math.random()*4)}))}
   else out.push(gmAdd(kind));
@@ -3640,16 +3661,16 @@ function gmTick(){if(!S.gameOn||document.hidden)return;const now=Date.now();
   GM.tg=GM.tg.filter(t=>!t.dead||now-t.dead<1500);
   if(now-GM.rl.msl>20000&&GM.ammo.msl<4){GM.ammo.msl++;GM.rl.msl=now}if(GM.ammo.gun<=0&&now-GM.rl.gun>15000){GM.ammo.gun=300}
   if(!gmLive()&&!GM.force)return;if(!GM.next)GM.next=gmFirst();
-  if(now>=GM.next&&GM.tg.filter(t=>!t.dead).length<6){gmWave();GM.next=now+gmRand(45000,195000)}}
+  if(now>=GM.next&&GM.tg.filter(t=>!t.dead).length<6){const fa=GM.firstAir;GM.firstAir=false;gmWave(fa&&!DRV.on?"air":undefined);GM.next=now+gmRand(45000,195000)/(1+0.3*Math.min(10,gmLvl()-1))}}
 setInterval(()=>{try{gmTick();gmUI()}catch(e){}},1000);
 function gmUI(){const on=!!S.gameOn,b=$("gmTgl");if(b){b.textContent=on?"Alien game: ON":"Alien game: off";b.classList.toggle("pri",on);b.setAttribute("aria-pressed",on?"true":"false")}
   document.body.classList.toggle("gmOn",on);const live=GM.tg.filter(t=>!t.dead);
   if($("gmSc"))$("gmSc").textContent=GM.st.score.toLocaleString()+" PTS"+(live.length?" · "+live.length+" ALIEN"+(live.length>1?"S":""):"");
   if($("gmMsl"))$("gmMsl").textContent="MSL "+GM.ammo.msl;if($("gmGun"))$("gmGun").textContent=GM.ammo.gun>0?"GUN "+GM.ammo.gun:"GUN · RELOAD";
-  if($("gmGs"))$("gmGs").style.display=live.some(t=>t.type==="gnd")?"":"none";if($("gmId"))$("gmId").classList.toggle("lk",!!GM.lock)}
+  if($("gmGs")){$("gmGs").style.display="";$("gmGs").classList.toggle("hot",live.some(t=>t.type==="gnd"))}if($("gmLvlC")){const lt="MISSION "+gmLvl()+(on?"":" · game off");if($("gmLvlC").textContent!==lt)$("gmLvlC").textContent=lt}if($("gmId"))$("gmId").classList.toggle("lk",!!GM.lock)}
 function gmToggle(){if(!S.gameOn){if(!confirm("Alien game: passengers only (not the pilot, crew or the driver). Imaginary targets for fun, never real aircraft. Turn it on?"))return false;
-    S.gameOn=true;S.gameEver=1;saveS();GM.next=gmFirst();GM.c=null;gmPrep();try{voxPlay("game-on")}catch(e){}gmKickCamSoon()}
-  else{S.gameOn=false;saveS();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmStopGun();gmFreeGL(true);try{voxPlay("game-off")}catch(e){}gmKickCamSoon()}
+    S.gameOn=true;S.gameEver=1;saveS();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmDoneHide();GM.next=Date.now()+3000;GM.firstAir=true;GM.c=null;gmPrep();gmNote("MISSION "+gmLvl()+" · contacts inbound in a few seconds","");try{voxPlay("game-on")}catch(e){}gmKickCamSoon()}
+  else{S.gameOn=false;saveS();gmDoneHide();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmStopGun();gmFreeGL(true);try{voxPlay("game-off")}catch(e){}gmKickCamSoon()}
   gmUI();try{statsRender()}catch(e){}hap(20);return S.gameOn}
 function gmKickCam(){if(!arOn||!AR.stream)return;const v=$("arVid");if(!v)return;try{const p=v.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}}
 function gmKickCamSoon(){gmKickCam();setTimeout(gmKickCam,300);setTimeout(gmKickCam,1200)}
@@ -3671,7 +3692,9 @@ function gmStep(dt){const now=Date.now(),v=gmView();if(!v)return;const so=AR.so;
     if(t.rA>C.a){t.rA=C.a;t.vA=-Math.abs(t.vA)}if(t.rA<-C.a){t.rA=-C.a;t.vA=Math.abs(t.vA)}if(t.rE>hi){t.rE=hi;t.vE=-Math.abs(t.vE)}if(t.rE<lo){t.rE=lo;t.vE=Math.abs(t.vE)}
     const hd=Math.atan2(-t.vE,t.vA);t.hd=t.type==="msh"||t.type==="gnd"?0:hd;t.bank=t.type==="ftr"?Math.max(-0.6,Math.min(0.6,t.vE*0.2)):0;
     /* never sit on a real box (aircraft, towns, landmarks): push away from it */
-    const p=gmPos(t,v);for(const b of AR.hits||[]){if(p.x+p.h>b.x0&&p.x-p.h<b.x1&&p.y+p.h>b.y0&&p.y-p.h<b.y1){const bx=(b.x0+b.x1)/2,by=(b.y0+b.y1)/2;t.rA+=(p.x>=bx?1:-1)*20*dt;t.rE+=(p.y<=by?1:-1)*10*dt;t.cl=(t.cl||0)+1}}}
+    const p=gmPos(t,v);for(const b of AR.hits||[]){if(p.x+p.h>b.x0&&p.x-p.h<b.x1&&p.y+p.h>b.y0&&p.y-p.h<b.y1){const bx=(b.x0+b.x1)/2,by=(b.y0+b.y1)/2;t.rA+=(p.x>=bx?1:-1)*20*dt;t.rE+=(p.y<=by?1:-1)*10*dt;t.cl=(t.cl||0)+1}}
+    /* v26f: the push can nudge a target past the cone edge; clamp again so it stays out the window */
+    t.rA=Math.max(-C.a,Math.min(C.a,t.rA));t.rE=Math.max(lo,Math.min(hi,t.rE))}
   /* smart rounds: home on the target only while the crosshair is inside that target's box */
   const cx=v.pj.cx,cy=v.pj.cy,under=gmUnder(v);
   for(const r of GM.rd){r.t+=dt;const tg=under&&(!GM.lock||under.id===GM.lock)?under:null;r.home=!!tg;
@@ -3689,15 +3712,15 @@ function gmUnder(v){let best=null,bd=1e9;for(const t of GM.tg){if(t.dead||t.type
 function gmDmg(t,n,v){t.hp-=n;GM.fx.push({a:(GM.c||0)+t.rA,e:t.rE,t:0,big:t.hp<=0?(t.type==="msh"?2:1):0});if(t.hp>0)return;
   t.dead=Date.now();if(GM.lock===t.id)GM.lock=null;const T=GMT[t.type];GM.st.score+=T.pts;GM.st.kills++;GM.st.air++;if(t.type==="msh")GM.st.mom++;GM.st.best=Math.max(GM.st.best,GM.st.score);gmSave();
   gmNote("SPLASH · "+T.n+" +"+T.pts,t.type==="msh"?"mothership":"splash");gmBadgeCheck();try{hap([30,30,60])}catch(e){}
-  if(!GM.tg.some(q=>!q.dead))setTimeout(()=>{if(S.gameOn&&!GM.tg.some(q=>!q.dead))gmNote("MISSION COMPLETE · "+GM.st.score.toLocaleString()+" pts","mission")},1600)}
+  if(!GM.tg.some(q=>!q.dead))setTimeout(()=>{if(S.gameOn&&!GM.tg.some(q=>!q.dead)){gmNote("MISSION COMPLETE · "+GM.st.score.toLocaleString()+" pts","mission");gmDoneShow()}},1600)}
 /* ---------- weapons ---------- */
 function gmIdent(){const v=gmView();if(!v)return null;let best=null,bd=1e9;for(const t of GM.tg){if(t.dead||t.type==="gnd")continue;const p=gmPos(t,v),d=Math.hypot(p.x-v.pj.cx,p.y-v.pj.cy);if(d<Math.max(130,p.h*2)&&d<bd){bd=d;best=t}}
   if(!best){const g=GM.tg.find(t=>!t.dead&&t.type==="gnd");gmNote(g?"NO AIR TARGET NEAR THE CROSSHAIR · ground forces: use GUNSHIP":"NO ALIEN NEAR THE CROSSHAIR",null);return null}
   GM.lock=best.id;gmNote("LOCKED · ALIEN "+GMT[best.type].n,"target-locked");hap(15);return best.id}
 function gmMsl(){if(!GM.lock){gmNote("IDENT FIRST · lock a target, then MSL",null);return false}if(GM.ammo.msl<=0){gmNote("NO MISSILES · rearming","winchester");return false}
   const v=gmView();if(!v)return false;GM.ammo.msl--;GM.rl.msl=Date.now();GM.st.shots++;GM.ms.push({a:v.az,e:v.el-6,tg:GM.lock,t:0,tof:1.8,tr:[]});gmNote("FOX THREE",GM.ms.length===1?"fox":null);gmUI();return true}
-function gmGunShot(){const v=gmView();if(!v||GM.ammo.gun<=0){gmStopGun();if(GM.ammo.gun<=0){GM.rl.gun=Date.now();gmNote("WINCHESTER · gun reloading","winchester")}return}
-  GM.ammo.gun--;GM.st.shots++;GM.rd.push({a:v.az,e:v.el,t:0,tof:0.7,home:false});if(GM.rd.length>60)GM.rd.shift()}
+function gmGunShot(){const v=gmView();if(!v||GM.ammo.gun<=0){gmStopGun();if(GM.ammo.gun<=0){/* v26f: pressing fire while empty must not restart the 15 s reload */gmNote("WINCHESTER · gun reloading · "+Math.max(1,Math.ceil((15000-(Date.now()-GM.rl.gun))/1000))+" s","winchester")}return}
+  GM.ammo.gun--;if(GM.ammo.gun<=0)GM.rl.gun=Date.now();GM.st.shots++;GM.rd.push({a:v.az,e:v.el,t:0,tof:0.7,home:false});if(GM.rd.length>60)GM.rd.shift()}
 function gmStartGun(){if(GM.firing)return;gmGunShot();GM.firing=setInterval(gmGunShot,90);if(!GM.gunSaid||Date.now()-GM.gunSaid>8000){GM.gunSaid=Date.now();try{voxPlay("guns")}catch(e){}}}
 function gmStopGun(){if(GM.firing){clearInterval(GM.firing);GM.firing=0}gmUI()}
 /* ---------- drawing: red ALIEN boxes + models + tracers, on the overlay canvases above the real symbology ---------- */
@@ -3753,19 +3776,45 @@ $("arCv").addEventListener("click",e=>{if(!S.gameOn)return;const v=gmView();if(!
 $("gmTgl").onclick=gmToggle;$("gmId").onclick=gmIdent;$("gmMsl").onclick=gmMsl;
 {const g=$("gmGun");g.addEventListener("pointerdown",e=>{e.preventDefault();gmStartGun()});["pointerup","pointercancel","pointerleave"].forEach(k=>g.addEventListener(k,gmStopGun));
   g.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();gmStartGun()}});g.addEventListener("keyup",gmStopGun)}
-$("gmGs").onclick=()=>{const t=GM.tg.find(q=>!q.dead&&q.type==="gnd");if(t)gsOpen(t)};
+/* v26f: GUNSHIP (belly cam) always works: with no ground forces yet it calls one in, then opens the view. Offline, any seat. */
+function gmBellyGo(){if(!S.gameOn&&!gmToggle())return false;let t=GM.tg.find(q=>!q.dead&&q.type==="gnd");
+  if(!t){if(!gmLive()&&!GM.force){gmNote("NO GROUND FORCES YET · answer the passenger check first","");return false}const w=gmWave("gnd");t=w&&w[0]}
+  if(!t){gmNote("NO GROUND FORCES YET · try again in a moment","");return false}gsOpen(t);return true}
+$("gmGs").onclick=gmBellyGo;$("gmBelly").onclick=gmBellyGo;
+/* v26f: mission complete panel: NEXT LEVEL (harder) or RESTART (level 1, score reset) */
+function gmDoneShow(){const d=$("gmDone");if(!d||!S.gameOn)return;GM.done=true;setTx($("gmDoneT"),"MISSION "+gmLvl()+" COMPLETE");setTx($("gmDoneS"),GM.st.score.toLocaleString()+" pts · best "+GM.st.best.toLocaleString()+" · next: level "+(gmLvl()+1)+", tougher and faster aliens");d.style.display="flex";try{$("gmNext").focus()}catch(e){}}
+function gmDoneHide(){GM.done=false;const d=$("gmDone");if(d)d.style.display="none"}
+function gmGo(next){if(next)GM.st.lvl=gmLvl()+1;else{GM.st.lvl=1;GM.st.score=0}gmSave();gmDoneHide();GM.tg=GM.tg.filter(q=>!q.dead);GM.c=null;GM.next=Date.now()+60000;if(!GM.gsOn)setTimeout(()=>{if(S.gameOn&&!GM.gsOn)gmWave(DRV.on?undefined:"air")},2500);
+  if(GM.gsOn){const w=GM.arWas;GM.arWas=false;gsClose();setTimeout(()=>{const ws=gmWave("gnd");if(ws&&ws[0]){gsOpen(ws[0]);GM.arWas=w}},300)}
+  gmNote((next?"LEVEL ":"RESTART · MISSION ")+gmLvl()+" · contacts inbound",null);gmUI();hap(20)}
+$("gmNext").onclick=()=>gmGo(true);$("gmRestart").onclick=()=>gmGo(false);$("gmDoneX").onclick=gmDoneHide;
 $("gmMsg").onclick=()=>{$("gmMsg").style.display="none"};
 document.addEventListener("visibilitychange",()=>{if(document.hidden)gmStopGun()});
 /* ---------- gunship view (ground targets) ---------- */
 async function gsOpen(t){if(GM.gsOn)return;GM.gsOn=true;GM.gsWave=t;GM.arWas=arOn;if(arOn)arClose();document.body.classList.add("gs");$("gsMsg").style.display="none";
   try{voxPlay("gunship")}catch(e){}
   try{const m=await gmMod();if(!GM.gs)GM.gs=m.createGunship(freshCv("gsCv"),{kill:gsKill,clear:gsClear,hud:gsHud,fire:(k,n)=>{if(n===0)gsNote(k+" WINCHESTER","winchester")}});
-    if(!GM.gsOn)return;GM.gs.fps(BAT&&BAT.on?30:60);GM.gs.open({bases:t.bases,troops:t.troops});gsNote("WHITE-HOT · drag to slew, 105 / 25 MM to fire. Imaginary targets.")}
+    if(!GM.gsOn)return;GM.gs.fps(BAT&&BAT.on?30:60);GM.gs.open({bases:t.bases,troops:t.troops});gsNote("WHITE-HOT · drag to slew, 105 / 25 MM to fire. Imaginary targets.");bcGroundSet()}
   catch(e){gsNote("Gunship view needs WebGL, which this browser has switched off.")}}
+/* v26f: belly cam ground = the real satellite imagery from a downloaded 3D route pack under the aircraft (offline, from Cache Storage),
+   in white-hot / black-hot thermal tones; synthetic ground when no pack covers the spot */
+const BC={src:"synthetic",z:0,at:0};
+async function bcGround(p){if(!p||p.lat==null)return null;const pk=await svPack();const [mx,my]=pk.merc(p.lat,p.lon),half=3500/(40075016*Math.cos(rad(p.lat))),SZ=512;
+  for(const z of [14,12,10]){const n=2**z,x0=Math.floor((mx-half)*n),x1=Math.floor((mx+half)*n),y0=Math.floor((my-half)*n),y1=Math.floor((my+half)*n);const ks=[];
+    for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){const k="i/"+z+"/"+x+"/"+y;if(pk.have(k))ks.push([k,x,y])}if(!ks.length)continue;
+    const c=document.createElement("canvas");c.width=c.height=SZ;const g=c.getContext("2d");g.fillStyle="#555";g.fillRect(0,0,SZ,SZ);let ok=0;const sc=SZ/(2*half*n);
+    for(const [k,x,y] of ks){const b=await pk.getTile(k);if(!b)continue;try{const im=await createImageBitmap(b);g.drawImage(im,(x/n-(mx-half))*n*sc,(y/n-(my-half))*n*sc,sc,sc);im.close&&im.close();ok++}catch(e){}}
+    if(!ok)continue;const d=g.getImageData(0,0,SZ,SZ),q=d.data,w=document.createElement("canvas"),bk=document.createElement("canvas");w.width=w.height=bk.width=bk.height=SZ;
+    const dw=new ImageData(SZ,SZ),db=new ImageData(SZ,SZ);for(let i=0;i<q.length;i+=4){/* thermal: luminance, contrast up; vegetation (green) reads cooler than rock/roads */
+      let l=(0.35*q[i]+0.45*q[i+1]+0.2*q[i+2])/255;l=Math.max(0,Math.min(1,(l-0.5)*1.5+0.45-0.15*Math.max(0,(q[i+1]-q[i])/255)));const vw=Math.round(30+l*170),vb=Math.round(235-l*170);
+      dw.data[i]=dw.data[i+1]=dw.data[i+2]=vw;db.data[i]=db.data[i+1]=db.data[i+2]=vb;dw.data[i+3]=db.data[i+3]=255}
+    w.getContext("2d").putImageData(dw,0,0);bk.getContext("2d").putImageData(db,0,0);return {wht:w,bht:bk,src:"pack z"+z,z,tiles:ok}}
+  return null}
+async function bcGroundSet(){BC.src="synthetic";BC.z=0;BC.at=Date.now();try{const g=await bcGround(zmFocus());if(!GM.gsOn||!GM.gs)return;if(g&&GM.gs.ground&&GM.gs.ground(g)){BC.src=g.src;BC.z=g.z;gsNote("WHITE-HOT · real ground from your 3D route pack (satellite, offline). Drag to slew, 105 / 25 MM to fire. Imaginary targets.")}}catch(e){BC.err=String(e&&e.message||e)}}
 function gsClose(){if(!GM.gsOn)return;GM.gsOn=false;try{GM.gs&&GM.gs.close()}catch(e){}try{GM.gs&&GM.gs.dispose()}catch(e){}GM.gs=null;document.body.classList.remove("gs");if(GM.arWas){GM.arWas=false;arOpen()}}
 function gsKill(type){const pts=type==="base"?400:50;GM.st.score+=pts;GM.st.kills++;GM.st.ground++;GM.st.best=Math.max(GM.st.best,GM.st.score);GM.st.hits++;gmSave();gmBadgeCheck();
   if(GM.gsWave){if(type==="base")GM.gsWave.bases=Math.max(0,GM.gsWave.bases-1);else GM.gsWave.troops=Math.max(0,GM.gsWave.troops-1)}gsNote((type==="base"?"BASE DESTROYED +400":"DRONE DOWN +50"),type==="base"?"splash":null)}
-function gsClear(){if(GM.gsWave){GM.gsWave.dead=Date.now();GM.gsWave=null}gsNote("AREA CLEAR · MISSION COMPLETE","mission")}
+function gsClear(){if(GM.gsWave){GM.gsWave.dead=Date.now();GM.gsWave=null}gsNote("AREA CLEAR · MISSION COMPLETE","mission");gmDoneShow()}
 function gsNote(t,clip){const el=$("gsMsg");el.textContent=t;el.style.display="block";clearTimeout(GM.gsT);GM.gsT=setTimeout(()=>{el.style.display="none"},5000);if(clip)try{voxPlay(clip)}catch(e){}}
 function gsHud(v){const cv=$("gsHud"),W=v.w,H=v.h;if(!W||!H)return;const dpr=window.devicePixelRatio||1;if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
   const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);const SYM=v.pol==="wht"?"#ffffff":"#111111",RED="#ff3b3b",F=s=>"700 "+s+"px \"B612 Mono\",monospace";
@@ -3807,6 +3856,82 @@ window.cpGame={state:()=>({on:S.gameOn,ever:!!S.gameEver,live:GM.tg.filter(t=>!t
   place:(id,rA,rE,still)=>{const t=GM.tg.find(q=>q.id===id);if(!t)return false;t.rA=rA;t.rE=rE;if(still){t.vA=t.vE=0;t.jk=1e9}return true},
   pan:(a,e)=>{GM.pan.a=a;GM.pan.e=e},aim:id=>{const t=GM.tg.find(q=>q.id===id);const pj=AR.pj;if(!t||!pj)return false;const base=pj.az!=null?pj.az:(GM.c||0);GM.pan.a=w180((GM.c||0)+t.rA-base);GM.pan.e=t.rE-(pj.pitch||0);return true},
   pos:id=>{const v=gmView(),t=GM.tg.find(q=>q.id===id);return v&&t?gmPos(t,v):null},gs:{open:()=>{const t=GM.tg.find(q=>!q.dead&&q.type==="gnd");return t?(gsOpen(t),true):false},close:gsClose,fire:k=>GM.gs&&GM.gs.fire(k),aimAt:i=>GM.gs&&GM.gs.aimAt(i),view:()=>GM.gs&&GM.gs.view()},
-  badges:gmBadges,reset:()=>{GM.st={score:0,best:0,kills:0,air:0,ground:0,mom:0,shots:0,hits:0,waves:0};gmSave()},toggle:gmToggle,
+  lvl:()=>gmLvl(),done:()=>!!GM.done,next:()=>gmGo(true),restart:()=>gmGo(false),belly:gmBellyGo,clearAll:()=>{for(const t of GM.tg)if(!t.dead)gmDmg(t,999,gmView()||{pj:{ppd:1}})},bc:()=>({src:GM.gs&&GM.gs.groundSrc?GM.gs.groundSrc():BC.src,z:BC.z,err:BC.err||""}),badges:gmBadges,reset:()=>{GM.st={score:0,best:0,kills:0,air:0,ground:0,mom:0,shots:0,hits:0,waves:0};gmSave()},toggle:gmToggle,
   tris:async()=>(await gmMod()).stats()};
+
+/* ================= v26f: compact AR bar, AR 3D mode, real-aircraft FRIENDLY markers ================= */
+{const FLT=["norm","grn","wht","nvg","flir","ir"],FLN={norm:"TV",grn:"GRN",wht:"WHT",nvg:"NVG",flir:"FLIR",ir:"IR"};
+  const _au=arUI;arUI=function(){const r=_au.apply(this,arguments);try{const f=S.arFlt||"norm";if($("arFltB").textContent!==FLN[f])$("arFltB").textContent=FLN[f]||"TV";
+    $("arSen").parentNode.style.display=$("arSen").style.display==="none"?"none":"";$("ar3B").classList.toggle("on",!!A3.on);$("ar3B").setAttribute("aria-pressed",A3.on?"true":"false");
+    const m=document.body.classList.contains("arMore");$("arMoreB").classList.toggle("on",m);$("arMoreB").setAttribute("aria-expanded",m?"true":"false")}catch(e){}return r};
+  $("arFltB").onclick=()=>{const i=FLT.indexOf(S.arFlt||"norm");S.arFlt=FLT[(i+1)%FLT.length];saveS();arUI();hap(10)};
+  $("arMoreB").onclick=()=>{const m=!document.body.classList.contains("arMore");document.body.classList.toggle("arMore",m);S.arMore=m?"on":"off";saveS();arUI()};
+  /* collapsed state remembered */
+  $("arHide").onclick=()=>{document.body.classList.add("arMin");S.arMin="on";saveS()};$("arShow").onclick=()=>{document.body.classList.remove("arMin");S.arMin="off";saveS()};
+  if(S.arMin==="on")document.body.classList.add("arMin");if(S.arMore==="on")document.body.classList.add("arMore")}
+/* game button: short label for the compact bar */
+{const _gu=gmUI;gmUI=function(){const r=_gu.apply(this,arguments);const b=$("gmTgl");if(b){const t=S.gameOn?"Game: ON":"Game: off";if(b.textContent!==t)b.textContent=t}return r}}
+
+/* ---- AR 3D: the synthetic view instead of the camera (sees past cloud), looking where the phone points.
+   One WebGL context for it: the 3D window view is closed first, and the game's WebGL models drop to their 2D fallback while it runs. ---- */
+const A3={on:false,ctl:null,busy:false,err:"",or:{az:null,pitch:0,roll:0,vfov:0},opens:0};
+function ar3Orient(){const pj=AR.pj,o=A3.or;if(!pj){o.az=null;return o}o.az=pj.az!=null?pj.az:(GM.c!=null?GM.c:null);o.pitch=pj.pitch||0;o.roll=pj.roll||0;o.vfov=pj.ppd?Math.max(20,Math.min(100,pj.H/pj.ppd)):0;return o}
+async function ar3Set(on){if(A3.busy)return;if(!on){A3.on=false;document.body.classList.remove("ar3");if(A3.ctl){try{A3.ctl.close()}catch(e){}A3.ctl=null}S.ar3="off";saveS();if(arOn){arCamStart();if(S.gameOn)gmPrep()}arUI();return}
+  A3.busy=true;try{if(SV.on)svClose();gmFreeGL(false);arCamStop();const [m]=await Promise.all([SV.mod||(SV.mod=import("./sv3d.js")),svPack()]);if(!arOn){return}
+    A3.ctl=m.create(freshCv("ar3Cv"),{state:svState,frame:null,err:t=>{if(A3.on)A3.err=t}},{fx:"none",view:"fwd",fps:BAT&&BAT.on?20:30,wx:false,low:(navigator.hardwareConcurrency||4)<=2,dpr:1.25,orient:ar3Orient});
+    A3.on=true;A3.opens++;A3.err="";document.body.classList.add("ar3");S.ar3="on";saveS()}
+  catch(e){A3.err=String(e&&e.message||e);A3.on=false}finally{A3.busy=false;arUI()}}
+$("ar3B").onclick=()=>{hap(10);ar3Set(!A3.on)};
+{const _ao=arOpen;arOpen=function(){const r=_ao.apply(this,arguments);if(S.ar3==="on"&&!A3.on)ar3Set(true);return r};
+  const _ac=arClose;arClose=function(){A3.on=false;if(A3.ctl){try{A3.ctl.close()}catch(e){}A3.ctl=null}document.body.classList.remove("ar3");return _ac.apply(this,arguments)};
+  $("arBtn").onclick=()=>arOpen();$("arExit").onclick=()=>arClose()}
+/* the AR camera restarts on open; keep it off while 3D replaces it */
+{const _cs=arCamStart;arCamStart=function(){if(A3.on)return;return _cs.apply(this,arguments)}}
+
+/* ---- FRIENDLY: real ADS-B aircraft (nearby traffic + the tracked aircraft) as green markers in AR, the 3D views and the belly cam.
+   Never targets: the game holds fire on them. Nearby lookup via the Worker about every 10 s while one of those views is open. ---- */
+const FR={ac:[],at:0,ms:10000,busy:false,err:"",n:0,box:[],nb:0,blocked:0,day:store.get("frq",{d:"",n:0})};
+for(let i=0;i<24;i++)FR.box.push({x0:0,y0:0,x1:0,y1:0,a:null});
+function frCentre(){if(SV.on||A3.on){const s=svState();if(s&&s.lat!=null)return s}return last}
+async function frPoll(){if(FR.busy||document.hidden||!(arOn||SV.on||GM.gsOn)||!cfOk()||demo||REPLAY)return;const now=Date.now();if(now-FR.at<FR.ms)return;const P=frCentre();if(!P||P.lat==null)return;
+  const day=new Date().toISOString().slice(0,10);if(FR.day.d!==day)FR.day={d:day,n:0};if(FR.day.n>=2000){FR.err="Daily nearby-aircraft limit reached";return}
+  FR.busy=true;FR.at=now;try{FR.day.n++;store.set("frq",FR.day);const r=await svcFetch(SVC.near+"/"+P.lat.toFixed(4)+"/"+P.lon.toFixed(4)+"/"+SVC.nearNm,{},12000);
+    if(r.status===429){FR.ms=60000;FR.err="busy";return}if(!r.ok)throw new Error("answered "+r.status);FR.ms=10000;
+    const j=await r.json(),t=Date.now();FR.ac=(Array.isArray(j.ac)?j.ac:[]).filter(a=>a&&typeof a.lat==="number"&&typeof a.lon==="number").slice(0,60).map(a=>({hex:String(a.hex||"").slice(0,6).toLowerCase(),cs:String(a.flight||"").trim().slice(0,8),reg:String(a.r||"").slice(0,10),type:String(a.t||"").slice(0,5),
+      lat:a.lat,lon:a.lon,alt:typeof a.alt_baro==="number"?a.alt_baro/FT:(typeof a.alt_geom==="number"?a.alt_geom/FT:null),gnd:a.alt_baro==="ground",gs:typeof a.gs==="number"?a.gs*NMm/3600:0,trk:typeof a.track==="number"?a.track:null,t:t-(typeof a.seen_pos==="number"?a.seen_pos*1000:0)}));
+    FR.err="";FR.n++;if(typeof SPOT==="object"&&SPOT&&(!SPOT.at||t-SPOT.at>5000)){SPOT.ac=FR.ac}}
+  catch(e){FR.err=String(e&&e.message||e);FR.ms=30000}finally{FR.busy=false}}
+setInterval(()=>{try{frPoll()}catch(e){}},1000);
+/* positions now (dead-reckoned between lookups), plus the tracked aircraft; skip "self" (within 1.5 km and 300 m of the viewer) */
+function frList(P,skipHex){const out=[],now=Date.now(),h=P&&P.alt!=null?P.alt:0;if(!P)return out;
+  const add=(a,trk)=>{const dt=Math.min(120,(now-a.t)/1000);let la=a.lat,lo=a.lon;if(a.trk!=null&&a.gs>3&&!a.gnd){const d=a.gs*dt;la+=d*Math.cos(rad(a.trk))/111320;lo+=d*Math.sin(rad(a.trk))/(111320*Math.cos(rad(la)))}
+    const q={lat:la,lon:lo},d=dist(P,q);if(d>60000)return;if(d<1500&&Math.abs((a.alt||0)-h)<300)return;out.push({a,lat:la,lon:lo,alt:a.gnd?0:a.alt,d,b:brg(P,q),trk})};
+  for(const a of FR.ac){if(skipHex&&a.hex===skipHex)continue;if(TKS&&TKS.hex&&a.hex===TKS.hex)continue;add(a,false)}
+  try{if(TKS&&TKS.on&&TKS.L&&TKS.hex!==skipHex){const L=tkLive()||TKS.L;add({hex:TKS.hex||"",cs:TKS.flt||(TKS.cs&&TKS.cs.length?TKS.cs[TKS.cs.length-1].cs:""),reg:TKS.reg||"",type:TKS.type||"",lat:L.lat,lon:L.lon,alt:L.alt,gnd:!!L.gnd,gs:0,trk:null,t:now},true)}}catch(e){}
+  out.sort((x,y)=>x.d-y.d);return out.slice(0,24)}
+function frLabel(f){const a=f.a;return ["FRIENDLY",(a.cs||a.reg||(a.hex||"").toUpperCase())+(f.trk?" (TRACKED)":"")]}
+function frSub(f){const a=f.a,rg=fDst(f.d);return [a.type||"",(rg<10?rg.toFixed(1):Math.round(rg))+" "+S.dst.toUpperCase(),a.gnd?"GND":f.alt!=null?Math.round(f.alt*FT/100)*100+" FT":""].filter(Boolean).join(" · ")}
+const FRG="#3dff6e";
+function frMark(x,X,Y,s,f){x.strokeStyle="rgba(0,0,0,.85)";x.lineWidth=4;x.beginPath();x.moveTo(X,Y-s);x.lineTo(X+s,Y);x.lineTo(X,Y+s);x.lineTo(X-s,Y);x.closePath();x.stroke();
+  x.strokeStyle=FRG;x.lineWidth=2;x.stroke();x.font="700 11px \"B612 Mono\",monospace";x.textAlign="left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";x.fillStyle=FRG;
+  const l=frLabel(f),t1=l[0]+" · "+l[1],t2=frSub(f);x.strokeText(t1,X+s+4,Y-3);x.fillText(t1,X+s+4,Y-3);x.font="700 10px \"B612 Mono\",monospace";x.strokeText(t2,X+s+4,Y+10);x.fillText(t2,X+s+4,Y+10)}
+/* AR: after the normal symbology, on the same canvas */
+function frDrawAR(){FR.nb=0;const pj=AR.pj,L=last;if(!pj||!L)return;const az=pj.az!=null?pj.az:(GM.c!=null?GM.c:null);if(az==null)return;const x=$("arCv").getContext("2d"),h=Math.max(0,L.alt||0);
+  for(const f of frList(L)){const drop=f.d*f.d/(2*R)*0.87,el=deg(Math.atan2((f.alt||0)-h-drop,Math.max(1,f.d))),dA=w180(f.b-az),dE=el-(pj.pitch||0);if(Math.abs(dA)>80)continue;
+    const dx=dA*pj.ppd,dy=dE*pj.ppd,X=pj.cx+dx*pj.cr+dy*pj.sr,Y=pj.cy+dx*pj.sr-dy*pj.cr;if(X<-40||X>pj.W+40||Y<-40||Y>pj.H+40)continue;
+    const s=Math.max(9,Math.min(26,14000/Math.max(500,f.d)*2));frMark(x,X,Y,s,f);if(FR.nb<FR.box.length){const b=FR.box[FR.nb++];b.x0=X-s-6;b.y0=Y-s-6;b.x1=X+s+6;b.y1=Y+s+6;b.a=f;try{AR.hits&&AR.hits.push({n:"FRIENDLY · "+frLabel(f)[1],x0:b.x0,y0:b.y0,x1:b.x1,y1:b.y1,fr:1})}catch(e){}}}}
+function frUnder(cx,cy){for(let i=0;i<FR.nb;i++){const b=FR.box[i];if(cx>=b.x0&&cx<=b.x1&&cy>=b.y0&&cy<=b.y1)return b.a}return null}
+/* hold fire on a friendly under the crosshair (unless an alien is in the crosshair) */
+function frBlock(){try{const v=gmView();if(!v)return false;if(gmUnder(v))return false;const f=frUnder(v.pj.cx,v.pj.cy);if(!f)return false;FR.blocked++;gmNote("FRIENDLY · "+frLabel(f)[1]+" · HOLD FIRE · real aircraft, never a target","");try{hap([60,40,60])}catch(e){}return true}catch(e){return false}}
+{const _g=gmGunShot;gmGunShot=function(){if(frBlock()){gmStopGun();return}return _g.apply(this,arguments)};const _s=gmStartGun;gmStartGun=function(){if(frBlock())return;return _s.apply(this,arguments)};
+  const _m=gmMsl;gmMsl=function(){if(frBlock())return false;return _m.apply(this,arguments)};const _i=gmIdent;gmIdent=function(){if(frBlock())return null;return _i.apply(this,arguments)};
+  $("gmMsl").onclick=()=>gmMsl();$("gmId").onclick=()=>gmIdent()}
+/* 3D window view (and AR 3D): project with the renderer's camera */
+const FRO={x:0,y:0};
+function frDraw3D(x){const c=SV.ctl;if(!c||!c.project)return 0;const P=svState();if(!P)return 0;let n=0;const self=tkOn()&&TKS?TKS.hex:null;
+  for(const f of frList(P,self)){if(!c.project(f.lat,f.lon,f.alt||0,FRO))continue;if(FRO.x<-20||FRO.y<-20||FRO.x>x.canvas.clientWidth+20||FRO.y>x.canvas.clientHeight+20)continue;frMark(x,FRO.x,FRO.y,Math.max(8,Math.min(20,12000/Math.max(500,f.d)*2)),f);n++}FR.n3=n;return n}
+{const _sh=svHud;svHud=function(st,p){const r=_sh.apply(this,arguments);try{const c=$("svHud");if(c.clientWidth)frDraw3D(c.getContext("2d"))}catch(e){}return r}}
+window.cpFR=()=>({n:FR.n,ac:FR.ac.length,nb:FR.nb,n3:FR.n3||0,blocked:FR.blocked,err:FR.err,ms:FR.ms,boxes:FR.box.slice(0,FR.nb).map(b=>({x0:Math.round(b.x0),y0:Math.round(b.y0),x1:Math.round(b.x1),y1:Math.round(b.y1),cs:b.a.a.cs||b.a.a.reg})),a3:{on:A3.on,err:A3.err,opens:A3.opens,st:A3.ctl?A3.ctl.status():null,or:Object.assign({},A3.or)}});
+{const _gp=gmPrep;gmPrep=function(){if(A3.on)return;return _gp.apply(this,arguments)}}
+window.cpA3=()=>({on:A3.on,err:A3.err,opens:A3.opens,probe:A3.ctl?A3.ctl.probe():null,st:A3.ctl?A3.ctl.status():null,or:Object.assign({},A3.or),cam:!!AR.stream,gameGL:!!GM.ar});
 }
