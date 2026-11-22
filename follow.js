@@ -28,7 +28,7 @@ async function poll(){if(!st.id||st.busy)return;st.busy=true;const id=st.id,seq=
   st.busy=false;draw();clearTimeout(st.t);if(!(st.d&&st.d.st))st.t=setTimeout(poll,document.hidden?POLL*2:POLL)}
 function txt(id,v){const e=$(id);if(e.textContent!==v)e.textContent=v}
 function draw(){const d=st.d;
-  if(d){const dv=d.fr==="DRV",who=dv?"Shared drive":"Shared flight",rt=dv?"Drive":(d.fr||"?")+" → "+(d.to||"?");txt("title",who);txt("sub",rt+" · Cabin Panel");document.title=who+" "+rt;$("mode").hidden=!dv;document.body.classList.toggle("drive",dv);txt("altL",dv?"Altitude":"Height");txt("spdL",dv?"Speed":"Speed");
+  if(d){const dv=d.fr==="DRV",who=dv?"Shared drive":"Shared flight",rt=dv?"Drive":(d.fr||"?")+" → "+(d.to||"?"),fl=!dv&&typeof d.fl==="string"&&/^[A-Z0-9]{3,8}$/.test(d.fl)?d.fl:"",rg=!dv&&typeof d.rg==="string"&&/^[A-Z0-9][A-Z0-9-]{1,9}$/.test(d.rg)?d.rg:"",idt=[fl,rg].filter(Boolean).join(" · ");txt("title",idt||who);txt("sub",rt+" · Cabin Panel");document.title=(idt?idt+" · ":"")+who+" "+rt;$("mode").hidden=!dv;document.body.classList.toggle("drive",dv);txt("altL",dv?"Altitude":"Height");txt("spdL",dv?"Speed":"Speed");
     const p=d.pts||[],l=p[p.length-1];const isL=!dv&&landed(d);$("landed").hidden=!isL;if(isL)txt("landed","✈ Landed"+(d.to?" at "+d.to:"")+" · "+hhmm(l[0]));
     txt("eta",isL?"Landed":d.eta?hhmm(d.eta)+(dv?" est.":""):"--:--");txt("alt",l&&l[3]!=null?(dv?Math.round(l[3]/10)*10+" m":Math.round(l[3]*FT/100)*100+" ft"):"---");txt("spd",l&&l[4]!=null?(dv?Math.round(l[4]*3.6)+" km/h":Math.round(l[4]*1.94384)+" kt"):"---");
     txt("dtg",l&&st.dest?Math.round(dist({lat:l[1],lon:l[2]},st.dest)/1000)+" km":"---");

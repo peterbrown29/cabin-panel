@@ -2278,7 +2278,7 @@ function svFrame(st,p){const now=Date.now();if(SV.snapReq){SV.snapReq=false;try{
 async function svOpen(){if(SV.on)return;try{if(arOn)arClose();if(fhOn)fhExit();if(cmpOn)cmpClose()}catch(e){}SV.on=true;SV.cov={at:0,ids:[]};document.body.classList.add("sv");$("svPhase").textContent=PHN[PH.p]||"";svMsg("Loading the 3D view…");
   try{const [m]=await Promise.all([SV.mod||(SV.mod=import("./sv3d.js")),svPack()]);if(!SV.on)return;
     const lowGpu=(navigator.hardwareConcurrency||4)<=2;
-    SV.ctl=m.create($("svCv"),{state:svState,frame:svFrame,err:t=>svMsg(t)},{fx:S.svfx,view:S.svview,fps:+S.svfps||30,wx:S.svwx!=="off",low:lowGpu,dpr:1.5});
+    gmFreeGL(true);SV.ctl=m.create(freshCv("svCv"),{state:svState,frame:svFrame,err:t=>svMsg(t)},{fx:S.svfx,view:S.svview,fps:+S.svfps||30,wx:S.svwx!=="off",low:lowGpu,dpr:1.5});
     if(!svState())svMsg("Waiting for a GPS fix. Tap Start GPS on the HUD page, track an aircraft on the Route page, or run the Demo flight.");else svMsg("")}
   catch(e){SV.mod=null;svMsg("The 3D view could not start: "+(e&&e.message||e))}
   try{wantWake||$("wakeBtn").click()}catch(e){}try{$("svExit").focus()}catch(e){}}
@@ -2803,7 +2803,7 @@ function shUI(){const on=SH.on&&SH.exp>Date.now();const t=$("shTag");if(t)t.styl
   else setTx($("shSt"),"Off. Nothing is shared until you tap Start sharing.")}
 async function shStart(){if(!cfOk()){say(cfWhy()+".");return false}const n="";
   $("shStart").disabled=true;$("shStart").dataset.busy="1";
-  try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n:"",fr:shFr(),to:shTo()})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
+  try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n:"",fr:shFr(),to:shTo(),fl:shFl(),rg:shRg()})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
     const j=await r.json();Object.assign(SH,{on:true,id:j.id,token:j.token,exp:j.exp,sent:0,err:"",buf:[]});shSave();shUI();shSample(true);shSend(true);hap(20);return true}
   catch(e){setTx($("shSt"),"Couldn't start sharing: "+((e&&e.message)||e)+".");return false}finally{delete $("shStart").dataset.busy;$("shStart").disabled=false;cfApply()}}
 async function shStop(){const id=SH.id,tok=SH.token;
@@ -2820,7 +2820,7 @@ function shSample(force){if(!SH.on)return;const L=tkOn()&&!DRV.on?TKS.L:last;if(
 async function shSend(force){if(!SH.on||SH.busy)return;if(SH.exp<=Date.now()){Object.assign(SH,{on:false});shSave();shUI();return}
   if(!cfOk()||!SH.buf.length||(!force&&Date.now()-SH.lastT<SVC.shareSendMs))return;SH.busy=true;SH.lastT=Date.now();
   const pts=SH.buf.length>12?thin(SH.buf,12):SH.buf.slice(),to=apBy(S.to),n=tkOn()?null:navT(viewL()||last,to);
-  try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,n:"",fr:shFr(),to:shTo(),eta:DRV.on?drvEtaMs():n&&n.sec!=null?Math.round(Date.now()+n.sec*1000):null})},12000);
+  try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,n:"",fr:shFr(),to:shTo(),fl:shFl(),rg:shRg(),eta:DRV.on?drvEtaMs():n&&n.sec!=null?Math.round(Date.now()+n.sec*1000):null})},12000);
     if(r.status===404||r.status===410||r.status===403){Object.assign(SH,{on:false,err:"share ended"});shSave()}
     else if(r.ok){SH.buf=SH.buf.filter(q=>q[0]>pts[pts.length-1][0]);SH.sent=Date.now();SH.err="";shSave()}else SH.err="update failed ("+r.status+")"}
   catch(e){SH.err="no connection"}finally{SH.busy=false;shUI()}}
@@ -2831,7 +2831,8 @@ if($("shStart")){$("shStart").onclick=shStart;$("shStop").onclick=()=>{if(confir
     $("shNew").disabled=true;try{if(await shStop())await shStart()}finally{$("shNew").disabled=false;shUI()}};
   $("shShare").onclick=async()=>{const u=shLink(SH.id);try{if(navigator.share){await navigator.share({title:DRV.on?"Follow my drive":"Follow my flight",text:(DRV.on?"Follow my drive":"Follow my flight"+(S.from&&S.to?" "+S.from+" → "+S.to:""))+" on Cabin Panel",url:u});return}}catch(e){if(e&&e.name==="AbortError")return}
     try{await navigator.clipboard.writeText(u);setTx($("shSt"),"Link copied.")}catch(e){$("shLink").select()}};}
-window.cpShare={state:()=>({on:SH.on,id:SH.id?SH.id.slice(0,4)+"…":"",hasToken:!!SH.token,exp:SH.exp,sent:SH.sent,buf:SH.buf.length,err:SH.err,link:SH.id?shLink(SH.id):""}),send:()=>shSend(true),sample:()=>shSample(true),stop:()=>shStop(),start:()=>shStart(),rawId:()=>SH.id};
+window.cpShare={state:()=>({on:SH.on,id:SH.id?SH.id.slice(0,4)+"…":"",hasToken:!!SH.token,exp:SH.exp,sent:SH.sent,buf:SH.buf.length,err:SH.err,link:SH.id?shLink(SH.id):""}),send:()=>shSend(true),sample:()=>shSample(true),stop:()=>shStop(),start:()=>shStart(),rawId:()=>SH.id,
+  ids:(o)=>{o=o||{};const sv={f:S.flt,d:DRV.on,m:demo};try{if("flt" in o)S.flt=o.flt;if(o.drive)DRV.on=true;if(o.demo)demo=demo||{};return {fl:shFl(),rg:shRg()}}finally{S.flt=sv.f;DRV.on=sv.d;demo=sv.m}}};
 
 /* ---- follower view ---- */
 let FW={id:"",d:null,at:0,err:"",iv:0,busy:false};
@@ -2854,7 +2855,7 @@ function fwDraw(){const cv=$("fwCv");if(!cv||!FW.id)return;const W=cv.clientWidt
   x.strokeStyle="#3dff6e";x.lineWidth=3;x.beginPath();pts.forEach((p,i)=>{const [X,Y]=P(p.lat,p.lon);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke();
   x.font='700 13px "B612 Mono",monospace';for(const a of [fr,to]){if(!a)continue;const [X,Y]=P(a.lat,a.lon);x.fillStyle="#3dff6e";x.beginPath();x.arc(X,Y,5,0,7);x.fill();x.fillText(a.c,X+8,Y-6)}
   if(lp){const [X,Y]=P(lp.lat,lp.lon);x.save();x.translate(X,Y);x.rotate(rad(lp.trk||0));x.fillStyle="#ffd400";x.strokeStyle="#000";x.lineWidth=1.5;x.beginPath();if(d.fr==="DRV"){x.moveTo(-6,-12);x.lineTo(6,-12);x.quadraticCurveTo(8,-12,8,-9);x.lineTo(8,10);x.quadraticCurveTo(8,12,6,12);x.lineTo(-6,12);x.quadraticCurveTo(-8,12,-8,10);x.lineTo(-8,-9);x.quadraticCurveTo(-8,-12,-6,-12);x.closePath();x.fill();x.stroke();x.fillStyle="#000";x.fillRect(-6,-7,12,4);x.fillRect(-6,5,12,3)}else{x.moveTo(0,-13);x.lineTo(9,10);x.lineTo(0,5);x.lineTo(-9,10);x.closePath();x.fill();x.stroke()}x.restore()}
-  const dv=d.fr==="DRV";setTx($("fwHead"),dv?"Shared drive · DRIVE":"Shared flight"+(d.fr&&d.to?" · "+d.fr+" → "+d.to:""));
+  const dv=d.fr==="DRV",fwId=dv?"":[typeof d.fl==="string"&&/^[A-Z0-9]{3,8}$/.test(d.fl)?d.fl:"",typeof d.rg==="string"&&/^[A-Z0-9][A-Z0-9-]{1,9}$/.test(d.rg)?d.rg:""].filter(Boolean).join(" · ");setTx($("fwHead"),dv?"Shared drive · DRIVE":"Shared flight"+(fwId?" · "+fwId:"")+(d.fr&&d.to?" · "+d.fr+" → "+d.to:""));
   const age=lp?Math.round((Date.now()-lp.t)/60000):null,tz=to?to.tz:undefined;
   setTx(info,d.st?"Sharing has ended."+(lp?" Last position "+hhmm(lp.t)+".":""):(lp?[lp.alt!=null?Math.round(fAlt(lp.alt)/100)*100+" "+S.alt:"",lp.spd!=null?Math.round(fSpd(lp.spd))+" "+S.spd:"",d.eta?"ETA "+hhmm(d.eta,tz)+(to?" "+to.c+" time":""):"","updated "+(age<1?"just now":age+" min ago")].filter(Boolean).join(" · "):"Waiting for the first position.")+(FW.err==="offline"?" · You're offline: showing the last update.":FW.err?" · "+FW.err:"")+" · Positions arrive only while the sharer has internet. Entertainment only.")}
 if($("fwExit")){$("fwExit").onclick=fwClose;$("fwGo").onclick=()=>{const id=fwParse($("fwIn").value);if(!id){setTx($("fwTxt"),"Paste the link you were sent (it contains #follow=…).");return}fwOpen(id)};window.addEventListener("resize",()=>{if(FW.id)fwDraw()})}
@@ -3283,6 +3284,11 @@ function shHeldWhy(){if(!DRV.on)return "position held back: you are not at an ai
   if(DRV.why==="weak")return "position held back: GPS too weak to share safely";
   return "position held back: within 5 km of where this drive started or a private spot (privacy)"}
 const shFr=()=>DRV.on?"DRV":(S.from||""),shTo=()=>DRV.on?"":(S.to||"");
+/* v26b: flight number and registration for the follow page header (never in the link; empty in Drive mode, demo and replay) */
+function shIdOk(){return !DRV.on&&!demo&&!REPLAY&&!(PH&&PH.demo)}
+function shTk(){return !DRV.on&&tkOn()?TKS:null}  /* the share follows the tracked aircraft, so its flight/rego win */
+const shFl=()=>{if(!shIdOk())return "";const t=shTk(),c=t&&t.cs&&t.cs.length?t.cs[t.cs.length-1].cs:"";const v=String((t?(t.flt||c):S.flt)||"").replace(/<[^>]*>/g,"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);return /^[A-Z0-9]{3,8}$/.test(v)?v:""},
+  shRg=()=>{if(!shIdOk())return "";const t=shTk();const v=String(t&&t.reg||"").toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,10);return /^[A-Z0-9][A-Z0-9-]{1,9}$/.test(v)?v:""};
 /* ---- ride smoothness (replaces the landing score in Drive mode). For fun: GPS and phone sensors, not a driving assessment. ---- */
 const rsNew=()=>({dur:0,sq:0,brake:0,accel:0,corner:0,bump:0,le:{}});
 function rsStep(L){const T=DRV.trip;if(!T)return;const rs=T.rs||(T.rs=rsNew()),p=DRV.pf;DRV.pf={t:L.t,spd:L.spd,trk:L.trk};if(!p||L.spd==null||p.spd==null)return;
@@ -3479,6 +3485,9 @@ function gmSave(){store.set("game",GM.st)}
 /* v26b: the game runs in every phase (gate, parked, taxi, airborne), in Demo flight and with no GPS at all. The only gate kept is
    Drive mode's passenger check: while it is unanswered (first arming, or the 4-hourly re-check) nothing spawns. */
 function gmLive(){if(DRV.on)return !paxNeeded();return true}
+/* A canvas whose WebGL context was released (forceContextLoss) stays dead, so every new renderer gets a fresh canvas element. */
+function freshCv(id){const o=$(id);if(!o)return o;const n=o.cloneNode(false);o.replaceWith(n);return n}
+function gmFreeGL(gs){try{GM.ar&&GM.ar.dispose()}catch(e){}GM.ar=null;if(gs&&!GM.gsOn){try{GM.gs&&GM.gs.dispose()}catch(e){}GM.gs=null}}
 function gmFirst(){return Date.now()+gmRand(15000,45000)}
 function gmMod(){return GM.mod||(GM.mod=import("./game.js").catch(e=>{GM.modErr=String(e&&e.message||e);GM.mod=null;throw e}))}
 function gmNote(t,clip){const el=$("gmMsg");if(el){el.textContent=t;el.style.display="block";clearTimeout(GM.noteT);GM.noteT=setTimeout(()=>{el.style.display="none"},6000)}
@@ -3512,11 +3521,11 @@ function gmUI(){const on=!!S.gameOn,b=$("gmTgl");if(b){b.textContent=on?"Alien g
   if($("gmGs"))$("gmGs").style.display=live.some(t=>t.type==="gnd")?"":"none";if($("gmId"))$("gmId").classList.toggle("lk",!!GM.lock)}
 function gmToggle(){if(!S.gameOn){if(!confirm("Alien game: passengers only (not the pilot, crew or the driver). Imaginary targets for fun, never real aircraft. Turn it on?"))return false;
     S.gameOn=true;S.gameEver=1;saveS();GM.next=gmFirst();GM.c=null;gmPrep();try{voxPlay("game-on")}catch(e){}gmKickCamSoon()}
-  else{S.gameOn=false;saveS();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmStopGun();try{GM.ar&&GM.ar.clear()}catch(e){}try{voxPlay("game-off")}catch(e){}gmKickCamSoon()}
+  else{S.gameOn=false;saveS();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmStopGun();gmFreeGL(true);try{voxPlay("game-off")}catch(e){}gmKickCamSoon()}
   gmUI();try{statsRender()}catch(e){}hap(20);return S.gameOn}
 function gmKickCam(){if(!arOn||!AR.stream)return;const v=$("arVid");if(!v)return;try{const p=v.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}}
 function gmKickCamSoon(){gmKickCam();setTimeout(gmKickCam,300);setTimeout(gmKickCam,1200)}
-function gmPrep(){if(GM.ar||!S.gameOn)return;gmMod().then(m=>{if(!GM.ar){try{GM.ar=m.createAR($("gmCv"))}catch(e){GM.modErr="webgl";GM.ar=null}}gmKickCamSoon()}).catch(()=>{gmKickCamSoon()})}
+function gmPrep(){if(GM.ar||!S.gameOn)return;gmMod().then(m=>{if(!GM.ar&&S.gameOn){try{GM.ar=m.createAR(freshCv("gmCv"))}catch(e){GM.modErr="webgl";GM.ar=null}}gmKickCamSoon()}).catch(()=>{gmKickCamSoon()})}
 /* ---------- per-frame: move targets, rounds, missiles; draw (after the real AR symbology) ---------- */
 function gmView(){const pj=AR.pj;if(!pj)return null;const sensor=AR.ot&&Date.now()-AR.ot<5000;if(sensor){GM.pan.a=0;GM.pan.e=0}
   const az=(pj.az!=null?pj.az:(GM.c!=null?GM.c:0))+GM.pan.a,el=(pj.pitch||0)+GM.pan.e;return {az,el,pj}}
@@ -3574,7 +3583,7 @@ function gmDraw(dt){const ov=$("gmOv"),pj=AR.pj;if(!ov||!pj)return;const W=pj.W,
     if(t.type!=="gnd"&&list.length<10&&fade>0)list.push({id:t.id,type:t.type,x:p.x,y:p.y,s:p.s,hd:t.hd,bank:t.bank,fade});
     if(t.type==="gnd"&&fade>0){for(let i=0;i<Math.min(3,t.bases);i++)list.length<10&&list.push({id:t.id*10+i,type:"base",x:p.x+(i-((t.bases-1)/2))*p.s*0.9,y:p.y,s:p.s*0.7,hd:0.6,fade})}
     if(!t.dead)boxes.push([t,p])}
-  try{if(GM.ar){const cv=$("gmCv");GM.ar.size(W,H,dpr);GM.info=GM.ar.render(list,t0)}else gmFallback(x,list)}catch(e){GM.ar=null;GM.modErr="render";gmFallback(x,list)}
+  try{if(GM.ar){const cv=$("gmCv");GM.ar.size(W,H,dpr);GM.info=GM.ar.render(list,t0)}else gmFallback(x,list)}catch(e){gmFreeGL(false);GM.modErr="render";gmFallback(x,list)}
   /* red ALIEN boxes: dashed corners + tag; locked = solid box + diamond */
   x.lineJoin="miter";GM.labs=[];let hudR=null;try{const hb=$("gmHud"),cb=ov.getBoundingClientRect(),r=hb&&hb.offsetParent?hb.getBoundingClientRect():null;if(r&&r.width)hudR=[r.left-cb.left-4,r.top-cb.top-4,r.right-cb.left+4,r.bottom-cb.top+4]}catch(e){}
   for(const [t,p] of boxes){const lk=GM.lock===t.id,h=p.h,X0=p.x-h,Y0=p.y-h,cl=h*0.45;x.strokeStyle="rgba(0,0,0,.85)";x.lineWidth=4.2;
@@ -3622,10 +3631,10 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden)gmStopGun()
 /* ---------- gunship view (ground targets) ---------- */
 async function gsOpen(t){if(GM.gsOn)return;GM.gsOn=true;GM.gsWave=t;GM.arWas=arOn;if(arOn)arClose();document.body.classList.add("gs");$("gsMsg").style.display="none";
   try{voxPlay("gunship")}catch(e){}
-  try{const m=await gmMod();if(!GM.gs)GM.gs=m.createGunship($("gsCv"),{kill:gsKill,clear:gsClear,hud:gsHud,fire:(k,n)=>{if(n===0)gsNote(k+" WINCHESTER","winchester")}});
+  try{const m=await gmMod();if(!GM.gs)GM.gs=m.createGunship(freshCv("gsCv"),{kill:gsKill,clear:gsClear,hud:gsHud,fire:(k,n)=>{if(n===0)gsNote(k+" WINCHESTER","winchester")}});
     if(!GM.gsOn)return;GM.gs.fps(BAT&&BAT.on?30:60);GM.gs.open({bases:t.bases,troops:t.troops});gsNote("WHITE-HOT · drag to slew, 105 / 25 MM to fire. Imaginary targets.")}
   catch(e){gsNote("Gunship view needs WebGL, which this browser has switched off.")}}
-function gsClose(){if(!GM.gsOn)return;GM.gsOn=false;try{GM.gs&&GM.gs.close()}catch(e){}document.body.classList.remove("gs");if(GM.arWas){GM.arWas=false;arOpen()}}
+function gsClose(){if(!GM.gsOn)return;GM.gsOn=false;try{GM.gs&&GM.gs.close()}catch(e){}try{GM.gs&&GM.gs.dispose()}catch(e){}GM.gs=null;document.body.classList.remove("gs");if(GM.arWas){GM.arWas=false;arOpen()}}
 function gsKill(type){const pts=type==="base"?400:50;GM.st.score+=pts;GM.st.kills++;GM.st.ground++;GM.st.best=Math.max(GM.st.best,GM.st.score);GM.st.hits++;gmSave();gmBadgeCheck();
   if(GM.gsWave){if(type==="base")GM.gsWave.bases=Math.max(0,GM.gsWave.bases-1);else GM.gsWave.troops=Math.max(0,GM.gsWave.troops-1)}gsNote((type==="base"?"BASE DESTROYED +400":"DRONE DOWN +50"),type==="base"?"splash":null)}
 function gsClear(){if(GM.gsWave){GM.gsWave.dead=Date.now();GM.gsWave=null}gsNote("AREA CLEAR · MISSION COMPLETE","mission")}

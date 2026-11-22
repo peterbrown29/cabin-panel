@@ -81,7 +81,7 @@ export function createAR(cv){
       if(!list.length){if(!blank){r.clear();blank=true}return {calls:0,tris:0}}
       blank=false;r.render(sc,cam);return {calls:r.info.render.calls,tris:r.info.render.triangles}},
     clear(){r.clear();blank=true},
-    dispose(){for(const o of pool.values()){o.userData.bm.dispose();o.userData.gm.dispose()}pool.clear();r.dispose()}}}
+    dispose(){for(const o of pool.values()){o.userData.bm.dispose();o.userData.gm.dispose()}pool.clear();r.dispose();try{r.forceContextLoss()}catch(e){}}}}
 
 /* ================= Gunship view: ground-stabilised thermal camera in a left-hand orbit ================= */
 function noise(x,y){const s=Math.sin(x*12.9898+y*78.233)*43758.5453;return s-Math.floor(s)}
@@ -142,5 +142,5 @@ export function createGunship(cv,hooks){
         out.push({id:e.id,type:e.type,x:(v3.x+1)/2*w,y:(1-v3.y)/2*h,s:Math.max(10,e.s*h/(2*cam.position.distanceTo(e.o.position)*Math.tan(cam.fov*Math.PI/360))),hp:e.hp})}
       return {w,h,ents:out,left:ents.filter(e=>e.alive).length,ammo:{105:W[105].n,25:W[25].n},rdy105:performance.now()/1000>=W[105].rdy,zoom,pol,shells:shells.length,calls:r.info.render.calls,tris:r.info.render.triangles}},
     state(){return {on,left:ents.filter(e=>e.alive).length,ammo:{105:W[105].n,25:W[25].n},zoom,pol,calls:r.info.render.calls,tris:r.info.render.triangles}},
-    dispose(){api.close();document.removeEventListener("visibilitychange",vis);r.dispose()}};
+    dispose(){api.close();document.removeEventListener("visibilitychange",vis);r.dispose();try{r.forceContextLoss()}catch(e){}}};
   return api}
