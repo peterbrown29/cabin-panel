@@ -3479,7 +3479,7 @@ function gmSave(){store.set("game",GM.st)}
 /* v26b: the game runs in every phase (gate, parked, taxi, airborne), in Demo flight and with no GPS at all. The only gate kept is
    Drive mode's passenger check: while it is unanswered (first arming, or the 4-hourly re-check) nothing spawns. */
 function gmLive(){if(DRV.on)return !paxNeeded();return true}
-function gmFirst(){return Date.now()+gmRand(30000,90000)}
+function gmFirst(){return Date.now()+gmRand(15000,45000)}
 function gmMod(){return GM.mod||(GM.mod=import("./game.js").catch(e=>{GM.modErr=String(e&&e.message||e);GM.mod=null;throw e}))}
 function gmNote(t,clip){const el=$("gmMsg");if(el){el.textContent=t;el.style.display="block";clearTimeout(GM.noteT);GM.noteT=setTimeout(()=>{el.style.display="none"},6000)}
   if(!arOn&&!GM.gsOn){$("toast").textContent=t;$("toast").style.display="";clearTimeout(toastT);toastT=setTimeout(()=>{$("toast").style.display="none"},9000)}
@@ -3487,7 +3487,7 @@ function gmNote(t,clip){const el=$("gmMsg");if(el){el.textContent=t;el.style.dis
 function gmAnchor(){try{const so=arSolve(0);if(so.win!=null)return so.win;if(so.az!=null)return so.az}catch(e){}const L=last;if(L&&L.trk!=null)return (L.trk+(S.arSide==="right"?90:-90)+360)%360;return AR.pj&&AR.pj.az!=null?AR.pj.az:0}
 function gmRand(a,b){return a+Math.random()*(b-a)}
 function gmAdd(type,o){const T=GMT[type],g=gmGround(),C=g?GM_CONE_GND:GM_CONE,t={id:GM.seq++,type,gnd0:g,rA:gmRand(-C.a+3,C.a-3),rE:type==="gnd"?(g?gmRand(C.gLo+0.4,C.gHi-0.3):gmRand(C.gLo+2,C.gHi-2)):type==="msh"?(g?gmRand(9,13):gmRand(6,11)):gmRand(C.eLo+2,C.eHi-2),
-    vA:0,vE:0,d:type==="gnd"&&g?gmRand(0.4,1.5):gmRand(T.d[0],T.d[1]),sc:type==="gnd"&&g?0.1:1,hp:T.hp,hp0:T.hp,born:Date.now(),life:type==="gnd"?240000:type==="msh"?150000:gmRand(70000,100000),dead:0,hd:0,bank:0,jk:0,troops:type==="gnd"?(o&&o.troops)||6:0,bases:type==="gnd"?(o&&o.bases)||1:0};
+    vA:0,vE:0,d:type==="gnd"&&g?gmRand(0.5,1.5):gmRand(T.d[0],T.d[1]),sc:type==="gnd"&&g?0.1:1,hp:T.hp,hp0:T.hp,born:Date.now(),life:type==="gnd"?240000:type==="msh"?150000:gmRand(70000,100000),dead:0,hd:0,bank:0,jk:0,troops:type==="gnd"?(o&&o.troops)||6:0,bases:type==="gnd"?(o&&o.bases)||1:0};
   const a=Math.random()*Math.PI*2;t.vA=Math.cos(a)*T.spd;t.vE=Math.sin(a)*T.spd*0.4;if(o)Object.assign(t,o);GM.tg.push(t);return t}
 function gmWave(kind){if(GM.c==null||!GM.tg.some(t=>!t.dead))GM.c=gmAnchor();
   if(!kind){const r=Math.random();kind=DRV.on?(r<0.55?"gnd":r<0.95?"air":"msh"):gmGround()?(r<0.35?"gnd":r<0.9?"air":"msh"):(r<0.25?"gnd":r<0.85||PH.p!=="cruise"?"air":"msh")}
