@@ -2448,7 +2448,8 @@ function svFrame(st,p){const now=Date.now();if(SV.snapReq){SV.snapReq=false;try{
   if(now-SV.cov.at>4000){SV.cov.at=now;svPack().then(pk=>{SV.cov.ids=pk.covers(p.lat,p.lon)}).catch(()=>{})}
   if(now-SV.hudAt>66){SV.hudAt=now;try{svHud(st,p)}catch(e){}}
   const L=st.lit;const dr=$("svDrops");const rain=L&&L.rain&&S.svfx==="none";dr.style.display=rain?"block":"none";if(rain)dr.style.backgroundImage="url("+(L.rain>1?"drops-heavy.webp":"drops-light.webp")+")";
-  if(!SV.cov.ids.length&&SV.cov.at)svMsg("No 3D route pack covers this spot, so this is a plain sky and horizon. Download one on the Route page before you fly.");
+  if(SVL.noteUntil>now){/* v27: a tapped place label's note stays up for 9 s */}
+  else if(!SV.cov.ids.length&&SV.cov.at)svMsg("No 3D route pack covers this spot, so this is a plain sky and horizon. Download one on the Route page before you fly.");
   else if(SV.msg&&!/could not|paused/.test(SV.msg))svMsg("")}
 async function svOpen(){if(SV.on)return;try{if(arOn)arClose();if(fhOn)fhExit();if(cmpOn)cmpClose()}catch(e){}SV.on=true;SV.cov={at:0,ids:[]};document.body.classList.add("sv");$("svPhase").textContent=PHN[PH.p]||"";svMsg("Loading the 3D view…");
   try{const [m]=await Promise.all([SV.mod||(SV.mod=import("./sv3d.js")),svPack()]);if(!SV.on)return;
@@ -4026,4 +4027,46 @@ document.querySelector('.seg[data-k="ckMode"]').addEventListener("click",()=>set
 setInterval(()=>{if(document.hidden)return;try{const pm=PG.els[PG.i];if(pm&&pm.id==="pg-map"&&TKS&&TKS.on)CK.mapSeen=TKS.hex||TKS.reg||TKS.flt;if(pm&&pm.id==="pg-route")ckRender()}catch(e){}},1000);
 ckRender(true);
 window.cpCk=()=>{const m=S.ckMode,st=ckSteps(m),man=ckMan(m);return {mode:m,key:ckKey(m),steps:st.map(q=>({id:q.id,auto:q.a,man:!!man[q.id],go:q.go})),done:st.filter(q=>q.a||man[q.id]).length,n:st.length,prog:$("ckProg").textContent,page:PG.els[PG.i]?PG.els[PG.i].id:""}};
+
+/* ---------- v27: 3D place labels in the 3D window view: towns, cities, airports and landmarks with name + distance.
+   Chosen and decluttered at 2 Hz (seat side first, max 30), re-projected every HUD frame; tap a label for its note.
+   Works with no 3D pack (synthetic ground) and at night: drawn on the HUD canvas with a dark outline. Labels toggle in the 3D bar. */
+const SVL={sel:[],at:0,ms:0,hit:[],tap:0,cand:0,noteUntil:0};
+if(S.svlab!=="on"&&S.svlab!=="off")S.svlab="on";
+function svlKind(l){return l.kind==="ap"?"Airport":l.kind==="city"?"City":l.kind==="town"?"Town":l.kind==="wiki"?"Place":(typeof kindName==="function"?kindName(l):"Landmark")}
+function svlCands(P){const out=[],h=Math.max(300,P.alt||0),R=Math.max(40000,Math.min(250000,3570*Math.sqrt(h)*1.1)),me={lat:P.lat,lon:P.lon};
+  const add=(n,lat,lon,kind,w,note)=>{if(!isFinite(lat)||!isFinite(lon))return;const d=dist(me,{lat,lon});if(d>R||d<300)return;out.push({n,lat,lon,kind,w,note,d})};
+  for(const a of AP)add(a.n+" ("+a.c+")",a.lat,a.lon,"ap",4,"Airport · "+a.c);
+  for(const t of TOWNS){const pop=+t[4]||0;add(String(t[0]),t[1],t[2],pop>=100000?"city":"town",pop>=1e6?6:pop>=100000?4.5:pop>=10000?3:pop>=2000?2:1,(pop>=100000?"City":"Town")+" · "+String(t[3]||"")+(pop?" · pop "+pop.toLocaleString():""))}
+  for(const l of lmAll())add(String(l.n),l.lat,l.lon,l.kind||"lm",l.kind==="town"?2:3.5,String(l.note||""));
+  SVL.cand=out.length;return out}
+function svlSelect(){const c=SV.ctl;if(!c||!c.project)return;const P=svState();if(!P||P.lat==null){SVL.sel=[];return}const t0=performance.now();
+  const cv=$("svHud"),W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;const seat=S.seat==="left"||S.seat==="right"?S.seat:null,hd=P.trk!=null?P.trk:(P.hd||0);
+  const o={x:0,y:0},pos=[];
+  for(const q of svlCands(P)){let gh=0;try{gh=elevAt(q.lat,q.lon)||0}catch(e){}if(!c.project(q.lat,q.lon,gh,o))continue;if(o.x<4||o.x>W-4||o.y<40||o.y>H-30)continue;
+    const rel=w180(brg({lat:P.lat,lon:P.lon},q)-hd),side=rel<-3?"left":rel>3?"right":"ahead";
+    const sc=q.w*2-Math.log10(q.d/1000+1)*2+(seat&&side===seat?4:0)+(q.kind==="ap"&&q.d<30000?2:0);pos.push(Object.assign({},q,{gh,x:o.x,y:o.y,side,sc}))}
+  pos.sort((a,b)=>b.sc-a.sc);const x=cv.getContext("2d");x.font="600 12px \"B612 Mono\",ui-monospace,monospace";const rects=[],sel=[];
+  /* declutter: try the label at 4 heights above its point (leader 25/47/69/91 px); drop it if every height collides */
+  for(const q of pos){if(sel.length>=30)break;const t=q.n+" · "+svlDist(q.d),w=x.measureText(t).width+10;let put=false;
+    const cx=Math.max(w/2+2,Math.min(W-w/2-2,q.x));for(const lv of [25,47,69,91]){const r=[cx-w/2,q.y-lv-9,cx+w/2,q.y-lv+9];if(r[1]<36)break;if(rects.some(b=>r[0]<b[2]+4&&r[2]+4>b[0]&&r[1]<b[3]+3&&r[3]+3>b[1]))continue;rects.push(r);q.lv=lv;put=true;break}
+    if(!put)continue;q.t=t;q.w2=w;sel.push(q)}
+  SVL.sel=sel;SVL.ms=+(performance.now()-t0).toFixed(1);SVL.at=Date.now()}
+function svlDist(d){const v=fDst(d);return (v<10?v.toFixed(1):Math.round(v))+" "+S.dst.toUpperCase()}
+function svlDraw(x){SVL.hit=[];if(S.svlab==="off"||!SV.ctl||!SV.ctl.project)return;if(Date.now()-SVL.at>=500)try{svlSelect()}catch(e){}
+  const o={x:0,y:0},night=S.svfx==="nvg"?"#d6ffd6":S.svfx==="flir"?"#ffffff":"#ffe9a8";x.save();x.shadowBlur=0;x.font="600 12px \"B612 Mono\",ui-monospace,monospace";x.textAlign="center";x.textBaseline="middle";
+  for(const q of SVL.sel){if(!SV.ctl.project(q.lat,q.lon,q.gh,o))continue;const w=q.w2,CW=x.canvas.clientWidth,lx=Math.max(w/2+2,Math.min(CW-w/2-2,o.x)),ly=o.y-(q.lv||25);
+    x.strokeStyle="rgba(0,0,0,.85)";x.lineWidth=3;x.beginPath();x.moveTo(o.x,o.y);x.lineTo(lx,ly+9);x.stroke();x.strokeStyle=night;x.lineWidth=1.2;x.beginPath();x.moveTo(o.x,o.y);x.lineTo(lx,ly+9);x.stroke();
+    x.fillStyle=night;x.beginPath();x.arc(o.x,o.y,q.kind==="ap"?3.5:2.5,0,7);x.fill();
+    x.fillStyle="rgba(0,0,0,.62)";x.fillRect(lx-w/2,ly-9,w,18);x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";x.strokeText(q.t,lx,ly);x.fillStyle=q.side===S.seat?"#ffffff":night;x.fillText(q.t,lx,ly);
+    SVL.hit.push({q,x0:lx-w/2-6,y0:ly-15,x1:lx+w/2+6,y1:Math.max(ly+15,o.y+6)})}x.restore()}
+{const _sh=svHud;svHud=function(st,p){const r=_sh.apply(this,arguments);try{const c=$("svHud");if(c.clientWidth)svlDraw(c.getContext("2d"))}catch(e){}return r}}
+/* tap a label (a tap, not a drag) to show its note */
+/* the 3D canvas is replaced on every open (fresh WebGL context), so listen on the overlay and accept taps on the canvas only */
+{const ov=$("svOv");let d0=null;ov.addEventListener("pointerdown",e=>{d0=e.target&&e.target.id==="svCv"?{x:e.clientX,y:e.clientY,t:Date.now()}:null});
+  ov.addEventListener("pointerup",e=>{if(!d0)return;const mv=Math.hypot(e.clientX-d0.x,e.clientY-d0.y),dt=Date.now()-d0.t;d0=null;if(mv>10||dt>600||S.svlab==="off")return;svlTap(e.clientX,e.clientY)})}
+function svlTap(cx,cy){const r=$("svHud").getBoundingClientRect(),x=cx-r.left,y=cy-r.top;const h=SVL.hit.find(b=>x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1);if(!h)return false;const q=h.q;SVL.tap++;
+  svMsg(q.n+" · "+svlKind(q)+" · "+svlDist(q.d)+(q.side==="ahead"?" ahead":" on the "+q.side)+(q.note?". "+q.note:""));SVL.noteUntil=Date.now()+9000;return true}
+document.querySelector('.seg[data-k="svlab"]').addEventListener("click",()=>setTimeout(()=>{SVL.at=0;if(S.svlab==="off")SVL.sel=[]},0));
+window.cpSVL=()=>({on:S.svlab!=="off",n:SVL.sel.length,cand:SVL.cand,ms:SVL.ms,at:SVL.at,labels:SVL.hit.map(b=>({n:b.q.n,kind:b.q.kind,d:Math.round(b.q.d),side:b.q.side,x:Math.round((b.x0+b.x1)/2),y:Math.round(b.y0+15),r:[Math.round(b.x0),Math.round(b.y0),Math.round(b.x1),Math.round(b.y1)]})),seat:S.seat});
 }
