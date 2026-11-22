@@ -1663,12 +1663,12 @@ function arDraw(dt){
     const maxLw=Math.min(148,Math.max(64,Math.floor(W*0.38)));
     l1=ellip(l1,10,maxLw);
     {const m=l2.match(/^(.*?)(?: \u00b7 )?(\d[\d.,]*\s+(?:NM|KM|MI))$/);
-      const info=m&&m[1]?m[1]:"" ,rs=m?m[2]:l2;x.font=F(9);
+      const info=m&&m[1]?m[1]:"" ,rs=m?m[2]:l2;x.font=F(10);
       const gap=info?x.measureText(" \u00b7 ").width:0,rw=x.measureText(rs).width;
-      const keep=info?ellip(info,9,Math.max(24,maxLw-rw-gap)):"";
+      const keep=info?ellip(info,10,Math.max(24,maxLw-rw-gap)):"";
       l2=keep?keep+" \u00b7 "+rs:rs;}
-    x.font=F(10);const lw=Math.max(x.measureText(l1).width,(x.font=F(9),x.measureText(l2).width)),lh=24;
-    const xLo=4,xHi=W-4,yLo=2,yHi=(typeof bt==="number"?bt:H)-4,ySafe=Math.max(tY+30,yLo);
+    x.font=F(10);const lw=Math.max(x.measureText(l1).width,x.measureText(l2).width),lh=24;
+    const xLo=4,xHi=W-4,yLo=2,yBar=(typeof bt==="number"?bt:H)-4,yHi=by-hh<yBar?yBar:H-4,ySafe=Math.max(tY+30,yLo);
     const raw=[[bx+hw+5,by-hh+9,"left"],[bx-hw-5,by-hh+9,"right"],[bx-lw/2,by+hh+16,"left"],[bx-lw/2,by-hh-17,"left"]];
     for(const dy of [-28,-14,14,28,42])for(const side of [0,1])raw.push([raw[side][0],raw[side][1]+dy,raw[side][2]]);
     const fit=(c,yMin)=>{let x0=c[2]==="left"?c[0]:c[0]-lw,y0=c[1]-10;
@@ -1677,11 +1677,12 @@ function arDraw(dt){
         nat: (c[2]==="left"?c[0]:c[0]-lw)>=xLo&&(c[2]==="left"?c[0]:c[0]-lw)+lw<=xHi&&c[1]-10>=yMin&&c[1]-10+lh<=yHi};
     };
     const nearD=p=>{const nx=p.al==="left"?p.cx+Math.min(lw,40):p.cx-Math.min(lw,40);return Math.hypot(nx-bx,p.cy-by)};
+    const sideOf=i=>i<4?i:(i-4)%2;
     let pick=null;
-    for(const [ci,c] of raw.entries()){const p=fit(c,ySafe);if(!p.nat||hitR(p.r))continue;pick=p;pick.i=ci;break}
+    for(const [ci,c] of raw.entries()){const p=fit(c,ySafe);if(!p.nat||hitR(p.r))continue;pick=p;pick.i=sideOf(ci);break}
     if(!pick){let best=null,bestD=1e9;
       for(const [ci,c] of raw.entries()){const p=fit(c,yLo);const d=nearD(p)+(hitR(p.r)?25:0);
-        if(d<bestD){best=p;best.i=ci;best.fb=1;bestD=d}}pick=best}
+        if(d<bestD){best=p;best.i=sideOf(ci);best.fb=1;bestD=d}}pick=best}
     res(pick.r);
     const ga=x.globalAlpha;x.globalAlpha=Math.max(ga,al||0.9);T(l1,pick.cx,pick.cy,10,pick.al,col);T(l2,pick.cx,pick.cy+11,9,pick.al,DIM);x.globalAlpha=ga;AR.lay.labels++;
     AR.labs.push({n:t.n,bx:+bx.toFixed(1),by:+by.toFixed(1),lx:+pick.cx.toFixed(1),ly:+pick.cy.toFixed(1),al:pick.al,ci:pick.i,fb:!!pick.fb,t1:l1,t2:l2})};
