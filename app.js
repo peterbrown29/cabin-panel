@@ -1653,13 +1653,24 @@ function arDraw(dt){
   const labTxt=t=>{const nm=(t.n.length>18?t.n.slice(0,17)+"\u2026":t.n).toUpperCase(),rg=fDst(t.d),rs=(rg<10?rg.toFixed(1):Math.round(rg).toLocaleString())+" "+S.dst.toUpperCase();
     const info=t.kind==="ac"?(t.note||"").toUpperCase():"";return [nm,(info?(info.length>30?info.slice(0,29)+"\u2026":info)+" \u00b7 ":"")+rs]};
   const lab=(t,bx,by,hw,hh,col,al)=>{const [l1,l2]=labTxt(t);x.font=F(10);const lw=Math.max(x.measureText(l1).width,x.measureText(l2).width),lh=24;
-    const cands=[[bx+hw+5,by-hh+9,"left"],[bx-hw-5,by-hh+9,"right"],[bx-lw/2,by+hh+12,"left"],[bx-lw/2,by-hh-17,"left"]];let pick=null;
-    for(const [ci,c] of cands.entries()){const x0=c[2]==="left"?c[0]:c[0]-lw,r=[x0-2,c[1]-10,lw+4,lh];if(r[0]<2||r[0]+r[2]>W-2||r[1]<tY+30||r[1]+r[3]>H-2||hitR(r))continue;pick=c;pick.i=ci;res(r);break}
-    if(!pick){/* crowded: overlap other symbols rather than drop the label, but keep it fully on screen beside its box */
-      for(const [ci,c] of cands.entries()){const x0=c[2]==="left"?c[0]:c[0]-lw;if(x0<2||x0+lw>W-2||c[1]-10<tY+30||c[1]+14>H-2)continue;pick=c.slice();pick.i=ci;break}
-      if(!pick){pick=cands[2].slice();pick.i=2;pick[0]=Math.max(4,Math.min(W-4-lw,pick[0]));pick[1]=Math.max(tY+40,Math.min(H-14,pick[1]))}pick.fb=1}
-    const ga=x.globalAlpha;x.globalAlpha=Math.max(ga,al||0.9);T(l1,pick[0],pick[1],10,pick[2],col);T(l2,pick[0],pick[1]+11,9,pick[2],DIM);x.globalAlpha=ga;AR.lay.labels++;
-    AR.labs.push({n:t.n,bx:+bx.toFixed(1),by:+by.toFixed(1),lx:+pick[0].toFixed(1),ly:+pick[1].toFixed(1),al:pick[2],ci:pick.i,fb:!!pick.fb,t1:l1,t2:l2})};
+    /* stay on the canvas and above the AR bar (labels under the bar looked like they had been dropped). Prefer a free slot
+       in the content area; if the box is coming in from an edge, slide the closest slot on-screen beside it rather than
+       hiding the label or parking it far from the box. Overlap HUD chrome if that keeps the label on its box. */
+    const xLo=4,xHi=W-4,yLo=2,yHi=(typeof yB==="number"?yB:H)-4,ySafe=Math.max(tY+30,yLo);
+    const raw=[[bx+hw+5,by-hh+9,"left"],[bx-hw-5,by-hh+9,"right"],[bx-lw/2,by+hh+12,"left"],[bx-lw/2,by-hh-17,"left"]];
+    const fit=(c,yMin)=>{let x0=c[2]==="left"?c[0]:c[0]-lw,y0=c[1]-10;
+      x0=Math.max(xLo,Math.min(xHi-lw,x0));y0=Math.max(yMin,Math.min(yHi-lh,y0));
+      return {cx:c[2]==="left"?x0:x0+lw,cy:y0+10,al:c[2],r:[x0-2,y0,lw+4,lh],
+        nat: (c[2]==="left"?c[0]:c[0]-lw)>=xLo&&(c[2]==="left"?c[0]:c[0]-lw)+lw<=xHi&&c[1]-10>=yMin&&c[1]-10+lh<=yHi};
+    };
+    let pick=null;
+    for(const [ci,c] of raw.entries()){const p=fit(c,ySafe);if(!p.nat||hitR(p.r))continue;pick=p;pick.i=ci;break}
+    if(!pick){let best=null,bestD=1e9;
+      for(const [ci,c] of raw.entries()){const p=fit(c,yLo);const d=Math.hypot(p.cx-c[0],p.cy-c[1])+(hitR(p.r)?30:0);
+        if(d<bestD){best=p;best.i=ci;best.fb=1;bestD=d}}pick=best}
+    res(pick.r);
+    const ga=x.globalAlpha;x.globalAlpha=Math.max(ga,al||0.9);T(l1,pick.cx,pick.cy,10,pick.al,col);T(l2,pick.cx,pick.cy+11,9,pick.al,DIM);x.globalAlpha=ga;AR.lay.labels++;
+    AR.labs.push({n:t.n,bx:+bx.toFixed(1),by:+by.toFixed(1),lx:+pick.cx.toFixed(1),ly:+pick.cy.toFixed(1),al:pick.al,ci:pick.i,fb:!!pick.fb,t1:l1,t2:l2})};
   if(az==null||!L)return;
   /* targets */
   const hf=W/ppd/2,vf=H/ppd/2,on=[],offL=[],offR=[];
@@ -1701,7 +1712,7 @@ function arDraw(dt){
     T(nm,xx-side*17,y-1,10,side<0?"left":"right",c);T(sub,xx-side*17,y+11,10,side<0?"left":"right",DIM);
     AR.hits.push({n:t.n,x0:side<0?0:W-mw-30,x1:side<0?mw+30:W,y0:y-14,y1:y+16})}};
   cue(offL.filter(t=>t.n!==(des&&des.n)),-1);cue(offR.filter(t=>t.n!==(des&&des.n)),1);
-  /* other targets in view: box or diamond always; name only where it fits (right, then left), else hidden */
+  /* other targets in view: box or diamond always, with a name label that stays on the box */
   const others=on.filter(t=>t!==des).sort((a,b)=>pri(a)-pri(b)).slice(0,9);
   for(const t of others){const s=Math.max(4,Math.min(26,Math.max(unc,Math.min(3,deg(Math.atan2(t.r*0.5,t.d))))*ppd*0.72));x.save();const bR=[t.px-s,t.py-s,2*s,2*s],undr=[RS[1],RS[2],RS[4]].some(q=>bR[0]<q[0]+q[2]&&bR[0]+bR[2]>q[0]&&bR[1]<q[1]+q[3]&&bR[1]+bR[3]>q[1]);x.globalAlpha=undr?.22:t.hid?.45:.9;
     if(s>7)S2(()=>{x.rect(t.px-s,t.py-s*0.7,2*s,1.4*s)},1);else S2(()=>{x.moveTo(t.px,t.py-5);x.lineTo(t.px+5,t.py);x.lineTo(t.px,t.py+5);x.lineTo(t.px-5,t.py);x.closePath()},1.2);
