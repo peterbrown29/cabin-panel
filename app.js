@@ -783,29 +783,44 @@ const fltMsg=t=>{$("fltTxt").textContent=t};
 async function lookupFlight(){
   const raw=$("fltIn").value.trim(),c=toCallsign(raw);
   if(!c){fltMsg("Enter a flight number like QF812, VA1234 or JQ501.");return}
-  if(!c.cs){fltMsg("I don't know airline code "+raw.slice(0,2).toUpperCase()+". Try its 3-letter code instead, e.g. QFA812.");return}
+  /* v26c: keep the flight number even if the route lookup fails or there's no internet (codeshares are often missing from the free databases) */
+  const fn=String(c.iata||raw).toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);
+  if(fn&&fn!==S.flt){S.flt=fn;S.fltName=c.name||"";S.fltCs=c.cs||"";saveS();render()}
+  const manual=fn+" saved. Set From and To below by hand"+(S.from&&S.to?" (now "+S.from+" → "+S.to+")":"")+". To follow the plane live, type its tail number (VH-…) below and tap Track it live.";
+  if(!c.cs){fltMsg("I don't know airline code "+raw.slice(0,2).toUpperCase()+", so I can't look up the route. "+manual);return}
   let framed=false;try{framed=window.self!==window.top}catch(e){framed=true}
-  if(framed){fltMsg("Flight lookup needs the installed app. This preview page blocks internet access.");return}
-  if(!cfOk()){fltMsg("No internet. Look up your flight before you board.");return}
+  if(framed){fltMsg("Flight lookup needs the installed app. This preview page blocks internet access. "+manual);return}
+  if(!cfOk()){fltMsg("No internet for the route lookup. "+manual);return}
   fltMsg("Looking up "+c.iata+" ("+c.cs+")…");$("fltBtn").disabled=true;
   let res=null,src="";
   try{const r=await fetchT("https://api.adsbdb.com/v0/callsign/"+c.cs,9000);if(r.ok){const j=await r.json(),f=j&&j.response&&j.response.flightroute;
     if(f&&f.origin&&f.destination){const m=a=>({iata:a.iata_code,icao:a.icao_code,name:a.name,city:a.municipality,lat:a.latitude,lon:a.longitude});res={o:m(f.origin),d:m(f.destination),mid:f.midpoint?m(f.midpoint):null,airline:f.airline&&f.airline.name};src="adsbdb.com"}}}catch(e){}
   if(!res){try{const r=await fetchT("https://hexdb.io/api/v1/route/icao/"+c.cs,9000);if(r.ok){const j=await r.json();if(j&&j.route){const parts=String(j.route).split("-");res={o:{icao:parts[0]},d:{icao:parts[parts.length-1]},mid:parts.length>2?{icao:parts[1]}:null,airline:c.name};src="hexdb.io"}}}catch(e){}}
   $("fltBtn").disabled=false;
-  if(!res){fltMsg("Couldn't find a route for "+c.iata+". The free route databases don't cover every flight. Pick your airports below instead.");return}
+  if(!res){fltMsg(c.iata+"'s route isn't in the free route databases"+(/^VA4\d{3}$/.test(c.iata)?" (VA 4000-series flights are usually codeshares flown by another airline under its own flight number)":"")+". "+manual);return}
   const A=resolveAp(res.o),B=resolveAp(res.d);
-  if(!A||!B){fltMsg("Found "+c.iata+" ("+(res.o.iata||res.o.icao)+" → "+(res.d.iata||res.d.icao)+") but couldn't place those airports. Pick them below.");return}
+  if(!A||!B){fltMsg("Found "+c.iata+" ("+(res.o.iata||res.o.icao)+" → "+(res.d.iata||res.d.icao)+") but couldn't place those airports. "+manual);return}
   S.from=A.c;S.to=B.c;S.flt=c.iata;S.fltName=res.airline||c.name||"";S.fltCs=c.cs;saveS();$("from").value=A.c;$("to").value=B.c;prof=[];window.__terr=null;
   const via=res.mid?" via "+(res.mid.city||res.mid.iata||res.mid.icao):"";
   fltMsg(`${c.iata}${S.fltName?" · "+S.fltName:""}: ${A.n} (${A.c}) → ${B.n} (${B.c})${via}. Route set and saved for offline use. Route data from ${src} can be out of date, so check it against your boarding pass.`);
   render();drawMap();profAll();
 }
 $("fltBtn").onclick=lookupFlight;$("fltIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();lookupFlight()}});
-$("fltClr").onclick=()=>{S.flt="";S.fltName="";S.fltCs="";saveS();$("fltIn").value="";fltMsg("Flight number cleared.");render()};
+$("fltClr").onclick=()=>{S.flt="";S.fltName="";S.fltCs="";S.fltReg="";saveS();$("fltIn").value="";$("fltReg").value="";fltMsg("Flight number cleared.");render()};
+/* v26c: your own aircraft's tail number. Saved for the share, and one tap starts live tracking by registration (works when the callsign doesn't match, e.g. codeshares) */
+function fltRegSave(){const r=tkNormReg(String($("fltReg").value||"").replace(/<[^>]*>/g,""));S.fltReg=/^[A-Z0-9][A-Z0-9-]{1,9}$/.test(r)?r:"";saveS();return S.fltReg}
+$("fltReg").addEventListener("change",fltRegSave);
+$("fltTrk").onclick=async()=>{const r=fltRegSave();const raw=$("fltIn").value.trim();
+  if(raw){const fn=String((toCallsign(raw)||{}).iata||raw).toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);if(fn&&fn!==S.flt){S.flt=fn;saveS()}}
+  if(!r){fltMsg("Type your aircraft's tail number first, e.g. VH-YIA. It's painted on the tail and the rear fuselage, or the crew can tell you.");$("fltReg").focus();return}
+  $("tkReg").value=r;$("tkFlt").value=S.flt||"";if(S.to)$("tkAp").value=S.to;
+  fltMsg("Tracking "+r+(S.flt?" ("+S.flt+")":"")+" by tail number. It shows on the HUD whenever your own GPS isn't flying. Needs internet.");
+  try{await tkStart()}catch(e){}};
+$("fltReg").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("fltTrk").click()}});
+if(S.fltReg)$("fltReg").value=S.fltReg;
 XAP=XAP.map(cleanAp).filter(Boolean);XAP.forEach(x=>{if(!apBy(x.c))AP.push(x);addApOption(x)});
 if(S.from)$("from").value=S.from;if(S.to)$("to").value=S.to;
-if(S.flt){$("fltIn").value=S.flt;fltMsg(`Saved: ${S.flt}${S.fltName?" · "+S.fltName:""}, ${S.from||"?"} → ${S.to||"?"}. Works offline.`)}
+if(S.flt){$("fltIn").value=S.flt;fltMsg(`Saved: ${S.flt}${S.fltName?" · "+S.fltName:""}${S.fltReg?" · "+S.fltReg:""}, ${S.from||"?"} → ${S.to||"?"}. Works offline.`)}
 
 
 /* ================= logbook export / import, haptics ================= */
@@ -3288,7 +3303,7 @@ const shFr=()=>DRV.on?"DRV":(S.from||""),shTo=()=>DRV.on?"":(S.to||"");
 function shIdOk(){return !DRV.on&&!demo&&!REPLAY&&!(PH&&PH.demo)}
 function shTk(){return !DRV.on&&tkOn()?TKS:null}  /* the share follows the tracked aircraft, so its flight/rego win */
 const shFl=()=>{if(!shIdOk())return "";const t=shTk(),c=t&&t.cs&&t.cs.length?t.cs[t.cs.length-1].cs:"";const v=String((t?(t.flt||c):S.flt)||"").replace(/<[^>]*>/g,"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);return /^[A-Z0-9]{3,8}$/.test(v)?v:""},
-  shRg=()=>{if(!shIdOk())return "";const t=shTk();const v=String(t&&t.reg||"").toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,10);return /^[A-Z0-9][A-Z0-9-]{1,9}$/.test(v)?v:""};
+  shRg=()=>{if(!shIdOk())return "";const t=shTk();const v=String((t?t.reg:S.fltReg)||"").toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,10);return /^[A-Z0-9][A-Z0-9-]{1,9}$/.test(v)?v:""};
 /* ---- ride smoothness (replaces the landing score in Drive mode). For fun: GPS and phone sensors, not a driving assessment. ---- */
 const rsNew=()=>({dur:0,sq:0,brake:0,accel:0,corner:0,bump:0,le:{}});
 function rsStep(L){const T=DRV.trip;if(!T)return;const rs=T.rs||(T.rs=rsNew()),p=DRV.pf;DRV.pf={t:L.t,spd:L.spd,trk:L.trk};if(!p||L.spd==null||p.spd==null)return;
