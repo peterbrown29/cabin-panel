@@ -443,13 +443,15 @@ details.more>.note,details.more>p.note{margin-top:2px!important}
 #gmCv,#gmOv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;background:transparent}#gmOv{z-index:2}
 #gmTgl.pri{background:#4a0e0e;border-color:#ff3b3b;color:#ffd6d6}.gmSub{font-size:10px;opacity:.75}
 /* v27c: locked game HUD — fixed slots and sizes, score/card out of the button flow, weapons separated from mode switches */
-#gmHud{display:none;position:absolute;right:max(10px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top,0px) + 132px);z-index:6;flex-direction:column;align-items:stretch;gap:0;width:72px}
+/* v27d: game buttons live in the bottom thumb zone, above the AR bar and the home indicator; score + target card stay up out of the way */
+#gmHud{display:none;position:absolute;left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));top:auto;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:6;flex-direction:row;justify-content:space-between;align-items:flex-end;gap:12px;width:auto;pointer-events:none}
 body.gmOn #gmHud{display:flex}
-#gmSc{display:block;height:18px;box-sizing:border-box;font:700 10px/18px "B612 Mono",monospace;font-variant-numeric:tabular-nums;color:#ff6b6b;text-align:center;background:rgba(0,0,0,.6);border-radius:5px;padding:0 3px;text-shadow:0 0 2px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
-#gmTgt{position:absolute;right:100%;top:0;margin-right:6px;width:112px;z-index:1;pointer-events:none}
-#gmMode,#gmWpn{display:grid;grid-template-columns:1fr;gap:4px;flex:none}
-#gmMode{margin-top:5px}
-#gmWpn{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,59,59,.55)}
+#gmMode,#gmWpn{display:grid;gap:4px;flex:none;pointer-events:auto}
+#gmMode{grid-template-columns:72px 72px}
+#gmWpn{grid-template-columns:1fr;margin:0;padding:0;border:0}
+#gmSc{display:none;position:absolute;top:calc(env(safe-area-inset-top,0px) + 48px);right:max(10px,env(safe-area-inset-right));z-index:6;height:18px;box-sizing:border-box;font:700 10px/18px "B612 Mono",monospace;font-variant-numeric:tabular-nums;color:#ff6b6b;text-align:center;background:rgba(0,0,0,.6);border-radius:5px;padding:0 5px;text-shadow:0 0 2px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:48px;max-width:160px}
+body.gmOn #gmSc{display:block}
+#gmTgt{position:absolute;top:calc(env(safe-area-inset-top,0px) + 132px);right:max(10px,env(safe-area-inset-right));left:auto;margin:0;width:112px;z-index:6;pointer-events:none}
 #gmHud button{width:72px;height:40px;min-width:72px;max-width:72px;min-height:40px;max-height:40px;box-sizing:border-box;padding:0 2px;border:1.5px solid #ff3b3b;border-radius:7px;background:rgba(20,0,0,.6);color:#ff6b6b;font:700 10px/1 "B612 Mono",monospace;font-variant-numeric:tabular-nums;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;touch-action:none;user-select:none;-webkit-user-select:none}
 #gmHud button:active,#gmHud button.lk{background:#ff3b3b;color:#180000}
 #gmHud button.dim{opacity:.38;pointer-events:none}
@@ -457,21 +459,20 @@ body.gmOn #gmHud{display:flex}
 #gmMsg{display:none;position:absolute;left:12px;right:94px;top:calc(env(safe-area-inset-top,0px) + 132px);z-index:7;background:rgba(30,0,0,.82);border:1.5px solid #ff3b3b;border-radius:8px;padding:7px 10px;color:#ffd6d6;font:700 12px "B612 Mono",monospace;max-width:420px}
 #gmMsg.tapClose::after{color:#ff9a9a}
 #arMsg.tapClose::after{text-align:center}
-/* v27c landscape: same 72×40 slots in a fixed two-column grid (mode above, weapons below); score + card stay out of the flow */
+/* v27d landscape: same locked slots, both clusters in the bottom corners (weapons as a 3-wide row so every bottom edge stays in the thumb zone) */
 @media (orientation:landscape){
-#gmHud{top:calc(env(safe-area-inset-top,0px) + 130px);width:148px}
-#gmSc{position:absolute;right:100%;top:0;margin-right:6px;width:auto;max-width:160px;min-width:max-content;height:18px;padding:0 5px}
-#gmTgt{top:22px}
-#gmMode,#gmWpn{grid-template-columns:72px 72px}
-#gmMode{margin-top:0}
-#gmMsg{top:calc(env(safe-area-inset-top,0px) + 70px);right:166px}
+#gmHud{top:auto;width:auto;bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+#gmMode{grid-template-columns:72px 72px 72px 72px}
+#gmWpn{grid-template-columns:72px 72px 72px}
+#gmMsg{top:calc(env(safe-area-inset-top,0px) + 70px);right:166px;left:12px}
 }
 #gsOv{position:fixed;inset:0;z-index:34;background:#111;display:none;overflow:hidden}body.gs{overflow:hidden}body.gs #gsOv{display:block}
 #gsCv,#gsHud{position:absolute;inset:0;width:100%;height:100%;display:block}#gsHud{touch-action:none;cursor:crosshair}
 #gsExit{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:3;min-height:40px;font-size:12px}
 #gsTag{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:3;color:#ff6b6b;border-color:#ff3b3b}
-#gsBar{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));z-index:3;display:flex;justify-content:center;gap:8px;padding:0 10px}
-#gsBar button{min-height:52px;min-width:70px;background:rgba(0,0,0,.6);color:#fff;border:2px solid #ddd;border-radius:10px;font:700 14px "B612 Mono",monospace;touch-action:none;user-select:none;-webkit-user-select:none}
+#gsBar{position:absolute;left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:3;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:0}
+#gsMode,#gsWpn{display:flex;gap:8px;flex:none}
+#gsBar button{width:72px;height:44px;min-width:72px;max-width:72px;min-height:44px;max-height:44px;box-sizing:border-box;padding:0 2px;background:rgba(0,0,0,.6);color:#fff;border:2px solid #ddd;border-radius:8px;font:700 12px "B612 Mono",monospace;touch-action:none;user-select:none;-webkit-user-select:none}
 #gs105,#gs25{border-color:#ff3b3b!important;color:#ff8a8a!important}
 #gsMsg{display:none;position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 110px);z-index:4;margin:0 auto;max-width:460px;background:rgba(0,0,0,.78);border:1.5px solid #ff3b3b;border-radius:8px;padding:7px 10px;color:#fff;font:700 12px "B612 Mono",monospace}
 /* v26d: not-found actions and the pick-by-hand list in the tracking tile */
@@ -507,6 +508,11 @@ ul.ck li.done .ckT>b{text-decoration:line-through;opacity:.75}
 ul.ck li button{min-width:52px;min-height:44px;padding:0 10px}
 .ckFlash{outline:2px solid var(--ink);outline-offset:3px}
 
+
+/* v27d: with the game on, the AR bar keeps a fixed height so the thumb-zone buttons never have to move */
+body.gmOn #arBar #arMsg{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 175px);bottom:auto;margin:0;z-index:7;pointer-events:auto}
+body.gmOn #arBar .arMain2{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 8px);bottom:auto;margin:0;z-index:7}
+body.gmOn.arMore #arMore{position:fixed;left:12px;right:12px;top:28%;bottom:auto;margin:0;z-index:8;display:grid;background:rgba(0,0,0,.88);border:1px solid rgba(141,255,158,.35);border-radius:10px;padding:8px}
 /* v27: target type card + recommended weapon highlight */
 #gmTgt{background:rgba(20,0,0,.72);border:1px solid #ff3b3b;border-radius:6px;padding:3px 4px;font:700 9px "B612 Mono",monospace;color:#ffb3b3;line-height:1.25;letter-spacing:.02em}
 #gmTgt[hidden]{display:none}

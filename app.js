@@ -4145,7 +4145,7 @@ function gsaDraw(){const c=$("gsaCv"),W=c.clientWidth,H=c.clientHeight;if(!W||!H
   const x=c.getContext("2d");x.setTransform(pr,0,0,pr,0,0);x.clearRect(0,0,W,H);const v=gmView();if(!v)return;const cx=v.pj.cx,cy=v.pj.cy;
   const col=S.gsaFlt==="bht"?"#101010":S.gsaFlt==="nvg"||S.gsaFlt==="crt"?"#b8ffb8":"#ffffff",sh=S.gsaFlt==="bht"?"rgba(255,255,255,.8)":"rgba(0,0,0,.85)";
   x.strokeStyle=col;x.fillStyle=col;x.lineWidth=2;x.shadowColor=sh;x.shadowBlur=3;x.font="700 13px \"B612 Mono\",ui-monospace,monospace";x.textBaseline="middle";
-  const m=Math.min(W,H)*0.06,L=Math.min(W,H)*0.08;let bt=H-m-110;try{const bb=$("arBar").getBoundingClientRect(),cb=c.getBoundingClientRect();if(bb.height&&!document.body.classList.contains("arHid"))bt=Math.min(bt,bb.top-cb.top-60)}catch(e){}
+  const m=Math.min(W,H)*0.06,L=Math.min(W,H)*0.08;let bt=H-m-110;try{const bb=$("arBar").getBoundingClientRect(),cb=c.getBoundingClientRect(),hud=$("gmHud")&&$("gmHud").getBoundingClientRect();if(bb.height&&!document.body.classList.contains("arHid")&&!document.body.classList.contains("arMin"))bt=Math.min(bt,bb.top-cb.top-12);if(hud&&hud.height)bt=Math.min(bt,hud.top-cb.top-12)}catch(e){}
   for(const [X,Y,dx,dy] of [[m,m+76,1,1],[W-m,m+76,-1,1],[m,bt,1,-1],[W-m,bt,-1,-1]]){x.beginPath();x.moveTo(X,Y+dy*L);x.lineTo(X,Y);x.lineTo(X+dx*L,Y);x.stroke()}
   const g=16,r=46;x.beginPath();x.moveTo(cx-r-30,cy);x.lineTo(cx-g,cy);x.moveTo(cx+g,cy);x.lineTo(cx+r+30,cy);x.moveTo(cx,cy-r-30);x.lineTo(cx,cy-g);x.moveTo(cx,cy+g);x.lineTo(cx,cy+r+30);x.stroke();
   x.strokeRect(cx-r,cy-r,2*r,2*r);for(const k of [-1,1]){x.beginPath();x.moveTo(cx+k*r,cy-8);x.lineTo(cx+k*(r-10),cy);x.lineTo(cx+k*r,cy+8);x.stroke()}
