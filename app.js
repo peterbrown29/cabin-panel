@@ -2970,46 +2970,55 @@ window.cpReplay={start:i=>{const en=BOOK[i];if(en)replayStart(en.pts,en);return 
    write token that stays on this phone. Expires after 24 h; Stop sharing ends it at once. Stored: position, height,
    speed, track, route codes and ETA. v24: no name (the old optional first name is never sent and is cleared on the
    server with every update; follower pages ignore it). */
-let SH=Object.assign({on:false,id:"",token:"",exp:0,buf:[],lastS:0,lastT:0,sent:0,err:"",held:0},store.get("share",{}),{buf:[],n:""});
+let SH=Object.assign({on:false,id:"",token:"",exp:0,buf:[],lastS:0,lastT:0,sent:0,err:"",held:0,stopping:false,stopN:0},store.get("share",{}),{buf:[],n:"",stopN:0});
 if(S.shName!=null){delete S.shName;saveS()}
-const shSave=()=>store.set("share",{on:SH.on,id:SH.id,token:SH.token,exp:SH.exp,sent:SH.sent});
+if(SH.exp&&SH.exp<Date.now()){SH.on=false;SH.stopping=false;SH.id="";SH.token="";SH.exp=0;SH.err=""}
+const shSave=()=>store.set("share",{on:SH.on,id:SH.id,token:SH.token,exp:SH.exp,sent:SH.sent,stopping:!!SH.stopping});
 shSave();
 const shLink=id=>shLink2(id);
-function shUI(){const on=SH.on&&SH.exp>Date.now();const t=$("shTag");if(t)t.style.display=on?"":"none";if(!$("shTile"))return;
-  $("shStart").style.display=on?"none":"";$("shStop").style.display=on?"":"none";$("shLinkRow").style.display=on?"":"none";
-  if(on){$("shLink").value=shLink(SH.id);setTx($("shSt"),"Sharing on · "+(SH.sent?"last update sent "+hhmm(SH.sent):"waiting for the first update")+" · stops by itself at "+hhmm(SH.exp)+(SH.held&&Date.now()-SH.held<60000?" · "+shHeldWhy():"")+(cfOk()?"":" · offline: updates resume when you're connected")+(SH.err?" · "+SH.err:""))}
+function shUI(){const stopping=!!SH.stopping,on=SH.on&&SH.exp>Date.now()&&!stopping;const t=$("shTag");if(t){t.style.display=(on||stopping)?"":"none";t.textContent=stopping?"STOPPING":"SHARING";t.classList.toggle("stopping",stopping);t.title=stopping?"Stopping this share; will retry until the server confirms":"Your flight is being shared"}
+  if(!$("shTile"))return;
+  $("shStart").style.display=(on||stopping)?"none":"";$("shStop").style.display=(on||stopping)?"":"none";$("shLinkRow").style.display=(on||stopping)?"":"none";
+  if($("shStop"))$("shStop").disabled=stopping;if($("shNew"))$("shNew").disabled=stopping;
+  if(stopping){if(SH.id)$("shLink").value=shLink(SH.id);setTx($("shSt"),"Stopping… will retry"+(cfOk()?"":" when you're connected")+" until the server confirms the link has ended."+(SH.err?" · "+SH.err:""))}
+  else if(on){$("shLink").value=shLink(SH.id);setTx($("shSt"),"Sharing on · "+(SH.sent?"last update sent "+hhmm(SH.sent):"waiting for the first update")+" · stops by itself at "+hhmm(SH.exp)+(SH.held&&Date.now()-SH.held<60000?" · "+shHeldWhy():"")+(cfOk()?"":" · offline: updates resume when you're connected")+(SH.err?" · "+SH.err:""))}
   else setTx($("shSt"),"Off. Nothing is shared until you tap Start sharing.")}
 async function shStart(){if(!cfOk()){say(cfWhy()+".");return false}const n="";
   $("shStart").disabled=true;$("shStart").dataset.busy="1";
   try{const r=await svcFetch(SVC.share,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n:"",fr:shFr(),to:shTo(),fl:shFl(),rg:shRg(),cs:shCs(),hx:shHx()})},12000);if(!r.ok)throw new Error(r.status===429?"too many shares just now, try again later":"answered "+r.status);
     const j=await r.json();Object.assign(SH,{on:true,id:j.id,token:j.token,exp:j.exp,sent:0,err:"",buf:[]});shSave();shUI();shSample(true);shSend(true);hap(20);return true}
   catch(e){setTx($("shSt"),"Couldn't start sharing: "+((e&&e.message)||e)+".");return false}finally{delete $("shStart").dataset.busy;$("shStart").disabled=false;cfApply()}}
-async function shStop(){const id=SH.id,tok=SH.token;
-  if(id&&tok){try{if(!cfOk())throw new Error("offline");const r=await svcFetch(SVC.share+"/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+tok}},10000);if(!r.ok&&r.status!==404&&r.status!==410)throw new Error("answered "+r.status)}
-    catch(e){SH.err="Could not end the old link ("+e.message+"). Try Stop sharing again while connected; until then the old link still works (it ends by itself after 24 h).";shSave();shUI();return false}}
-  Object.assign(SH,{on:false,id:"",token:"",exp:0,buf:[],err:""});shSave();shUI();return true}
+function shStopDone(){clearTimeout(SH.stopT);Object.assign(SH,{on:false,id:"",token:"",exp:0,buf:[],err:"",stopping:false,stopN:0,stopT:0,held:0});shSave();shUI();return true}
+function shStopSched(){clearTimeout(SH.stopT);SH.stopN=(SH.stopN||0)+1;const ms=Math.min(60000,2000*Math.pow(2,Math.min(SH.stopN-1,5)));SH.stopT=setTimeout(()=>{SH.stopT=0;shStopTry()},ms)}
+async function shStopTry(){if(!SH.stopping)return true;if(!SH.id||(SH.exp&&SH.exp<=Date.now()))return shStopDone();
+  if(!cfOk()){SH.err="offline";shSave();shUI();shStopSched();return false}
+  let delErr="";
+  if(SH.token){try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"DELETE",headers:{Authorization:"Bearer "+SH.token}},10000);if(r.ok||r.status===404||r.status===410)return shStopDone();delErr="answered "+r.status}catch(e){delErr=(e&&e.message)||"failed"}}
+  try{const g=await svcFetch(SVC.share+"/"+SH.id,{method:"GET"},8000);if(g.status===404||g.status===410)return shStopDone();if(g.ok){const j=await g.json();if(j&&(j.st||j.e==="not found or expired"))return shStopDone()}}catch(e){}
+  SH.err=delErr||"not confirmed yet";shSave();shUI();shStopSched();return false}
+async function shStop(){if(!SH.id)return shStopDone();SH.stopping=true;SH.err="";shSave();shUI();return shStopTry()}
 
 /* v24 privacy: your own phone's position is only shared at an airport (within 4 km) or once moving faster than 50 kt,
    so a share started at home or the office never shows where you are. While tracking an aircraft from the ground,
    sharing follows that aircraft (what your gauges show), never a stale phone position. */
 function shPrivOk(L){if(!L)return false;if(DRV.on)return drvPrivOk(L);if(L.tk)return !tkStale();if(L.spd!=null&&L.spd>25.7)return true;const n=nearestAp(L);return !!(n&&n.d<4000)}
-function shSample(force){if(!SH.on)return;const L=tkOn()&&!DRV.on?TKS.L:last;if(!L||L.lat==null)return;if(!shPrivOk(L)){SH.held=Date.now();return}SH.held=0;const p=SH.buf[SH.buf.length-1];if(!force&&p&&p[0]===L.t)return;
+function shSample(force){if(!SH.on||SH.stopping)return;const L=tkOn()&&!DRV.on?TKS.L:last;if(!L||L.lat==null)return;if(!shPrivOk(L)){SH.held=Date.now();return}SH.held=0;const p=SH.buf[SH.buf.length-1];if(!force&&p&&p[0]===L.t)return;
   SH.buf.push([L.t||Date.now(),+L.lat.toFixed(5),+L.lon.toFixed(5),L.alt!=null?Math.round(L.alt):null,L.spd!=null?+L.spd.toFixed(1):null,L.trk!=null?Math.round(L.trk):null]);if(SH.buf.length>40)SH.buf=thin(SH.buf,20)}
-async function shSend(force){if(!SH.on||SH.busy)return;if(SH.exp<=Date.now()){Object.assign(SH,{on:false});shSave();shUI();return}
+async function shSend(force){if(SH.stopping||!SH.on||SH.busy)return;if(SH.exp<=Date.now()){Object.assign(SH,{on:false});shSave();shUI();return}
   if(!cfOk()||!SH.buf.length||(!force&&Date.now()-SH.lastT<SVC.shareSendMs))return;SH.busy=true;SH.lastT=Date.now();
   const pts=SH.buf.length>12?thin(SH.buf,12):SH.buf.slice(),to=apBy(S.to),n=tkOn()?null:navT(viewL()||last,to);
   try{const r=await svcFetch(SVC.share+"/"+SH.id,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+SH.token},body:JSON.stringify({p:pts,n:"",fr:shFr(),to:shTo(),fl:shFl(),rg:shRg(),cs:shCs(),hx:shHx(),eta:DRV.on?drvEtaMs():n&&n.sec!=null?Math.round(Date.now()+n.sec*1000):null})},12000);
     if(r.status===404||r.status===410||r.status===403){Object.assign(SH,{on:false,err:"share ended"});shSave()}
     else if(r.ok){SH.buf=SH.buf.filter(q=>q[0]>pts[pts.length-1][0]);SH.sent=Date.now();SH.err="";shSave()}else SH.err="update failed ("+r.status+")"}
   catch(e){SH.err="no connection"}finally{SH.busy=false;shUI()}}
-setInterval(()=>{shSample(false)},SVC.shareSampleMs);setInterval(()=>{shSend(false)},5000);window.addEventListener("cp-online",()=>shSend(true));
+setInterval(()=>{shSample(false)},SVC.shareSampleMs);setInterval(()=>{shSend(false)},5000);window.addEventListener("cp-online",()=>{if(SH.stopping)shStopTry();else shSend(true)});if(SH.stopping)setTimeout(()=>shStopTry(),400);
 if($("shStart")){$("shStart").onclick=shStart;$("shStop").onclick=()=>{if(confirm("Stop sharing your flight? Followers will see that sharing has ended."))shStop()};
   /* v24: New link: end the old share (its link stops showing your flight) and start a fresh one with a new random id */
   $("shNew").onclick=async()=>{if(!cfOk()){say(cfWhy()+".");return}if(!confirm("Make a new follow link? The old link stops working straight away; send the new one to your family."))return;
     $("shNew").disabled=true;try{if(await shStop())await shStart()}finally{$("shNew").disabled=false;shUI()}};
   $("shShare").onclick=async()=>{const u=shLink(SH.id);try{if(navigator.share){await navigator.share({title:DRV.on?"Follow my drive":"Follow my flight",text:(DRV.on?"Follow my drive":"Follow my flight"+(S.from&&S.to?" "+S.from+" → "+S.to:""))+" on Cabin Panel",url:u});return}}catch(e){if(e&&e.name==="AbortError")return}
     try{await navigator.clipboard.writeText(u);setTx($("shSt"),"Link copied.")}catch(e){$("shLink").select()}};}
-window.cpShare={state:()=>({on:SH.on,id:SH.id?SH.id.slice(0,4)+"…":"",hasToken:!!SH.token,exp:SH.exp,sent:SH.sent,buf:SH.buf.length,err:SH.err,link:SH.id?shLink(SH.id):""}),send:()=>shSend(true),sample:()=>shSample(true),stop:()=>shStop(),start:()=>shStart(),rawId:()=>SH.id,
+window.cpShare={state:()=>({on:SH.on,stopping:!!SH.stopping,id:SH.id?SH.id.slice(0,4)+"…":"",hasToken:!!SH.token,exp:SH.exp,sent:SH.sent,buf:SH.buf.length,err:SH.err,link:SH.id?shLink(SH.id):"",pill:$("shTag")?$("shTag").textContent:"",pillOn:$("shTag")&&$("shTag").style.display!=="none",status:$("shSt")?$("shSt").textContent:""}),send:()=>shSend(true),sample:()=>shSample(true),stop:()=>shStop(),tryStop:()=>shStopTry(),start:()=>shStart(),rawId:()=>SH.id,
   ids:(o)=>{o=o||{};const sv={f:S.flt,d:DRV.on,m:demo};try{if("flt" in o)S.flt=o.flt;if(o.drive)DRV.on=true;if(o.demo)demo=demo||{};return {fl:shFl(),rg:shRg(),cs:shCs(),hx:shHx(),label:fltLabel()}}finally{S.flt=sv.f;DRV.on=sv.d;demo=sv.m}}};
 
 /* ---- follower view ---- */
@@ -3700,9 +3709,11 @@ function gmTick(){if(!S.gameOn||document.hidden)return;const now=Date.now();
 setInterval(()=>{try{gmTick();gmUI()}catch(e){}},1000);
 function gmUI(){const on=!!S.gameOn,b=$("gmTgl");if(b){b.textContent=on?"Alien game: ON":"Alien game: off";b.classList.toggle("pri",on);b.setAttribute("aria-pressed",on?"true":"false")}
   document.body.classList.toggle("gmOn",on);const live=GM.tg.filter(t=>!t.dead);
-  if($("gmSc"))$("gmSc").textContent=GM.st.score.toLocaleString()+" PTS"+(live.length?" · "+live.length+" ALIEN"+(live.length>1?"S":""):"");
-  if($("gmMsl"))$("gmMsl").textContent="MSL "+GM.ammo.msl;if($("gmGun"))$("gmGun").textContent=GM.ammo.gun>0?"GUN "+GM.ammo.gun:"GUN · RELOAD";
-  if($("gmGs")){$("gmGs").style.display="";$("gmGs").classList.toggle("hot",live.some(t=>t.type==="gnd"))}if($("gmLvlC")){const lt="MISSION "+gmLvl()+(on?"":" · game off");if($("gmLvlC").textContent!==lt)$("gmLvlC").textContent=lt}if($("gmId"))$("gmId").classList.toggle("lk",!!GM.lock)}
+  /* v27c: score is a fixed-height chip; do not append the alien count (it wrapped and shifted every button). */
+  if($("gmSc"))$("gmSc").textContent=GM.st.score.toLocaleString()+" PTS";
+  if($("gmMsl"))$("gmMsl").textContent="MSL "+String(GM.ammo.msl);
+  if($("gmGun"))$("gmGun").textContent=GM.ammo.gun>0?"GUN "+String(GM.ammo.gun).padStart(3," "):"RELOAD";
+  if($("gmGs"))$("gmGs").classList.toggle("hot",live.some(t=>t.type==="gnd"));if($("gmLvlC")){const lt="MISSION "+gmLvl()+(on?"":" · game off");if($("gmLvlC").textContent!==lt)$("gmLvlC").textContent=lt}if($("gmId"))$("gmId").classList.toggle("lk",!!GM.lock)}
 function gmToggle(){if(!S.gameOn){if(!confirm("Alien game: passengers only (not the pilot, crew or the driver). Imaginary targets for fun, never real aircraft. Turn it on?"))return false;
     S.gameOn=true;S.gameEver=1;saveS();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmDoneHide();GM.next=Date.now()+3000;GM.firstAir=true;GM.c=null;gmPrep();gmNote("MISSION "+gmLvl()+" · contacts inbound in a few seconds","");try{voxPlay("game-on")}catch(e){}gmKickCamSoon()}
   else{S.gameOn=false;saveS();gmDoneHide();GM.tg=[];GM.rd=[];GM.ms=[];GM.lock=null;gmStopGun();gmFreeGL(true);try{voxPlay("game-off")}catch(e){}gmKickCamSoon()}
@@ -3815,7 +3826,15 @@ $("gmTgl").onclick=gmToggle;$("gmId").onclick=gmIdent;$("gmMsl").onclick=gmMsl;
 function gmBellyGo(){if(!S.gameOn&&!gmToggle())return false;let t=GM.tg.find(q=>!q.dead&&q.type==="gnd");
   if(!t){if(!gmLive()&&!GM.force){gmNote("NO GROUND FORCES YET · answer the passenger check first","");return false}const w=gmWave("gnd");t=w&&w[0]}
   if(!t){gmNote("NO GROUND FORCES YET · try again in a moment","");return false}gsOpen(t);return true}
-$("gmGs").onclick=gmBellyGo;$("gmBelly").onclick=gmBellyGo;
+/* v27c: during combat, GUNSHIP and GS · AR need a second tap within 1.6 s so a slip while firing cannot open a mode. The page GUNSHIP · belly cam button stays a single tap. */
+function gmInCombat(){return !!(S.gameOn&&GM.tg.some(t=>!t.dead))}
+function gmArmClear(btn,label){if(!btn)return;delete btn.dataset.sure;btn.classList.remove("sure");if(label!=null)btn.textContent=label;if(btn._sureT){clearTimeout(btn._sureT);btn._sureT=0}}
+function gmArmMode(btn,go,label){if(!btn)return go();if(!gmInCombat()){gmArmClear(btn,label);return go()}
+  if(btn.dataset.sure==="1"){gmArmClear(btn,label);return go()}
+  btn.dataset.sure="1";btn.classList.add("sure");btn.textContent="TAP AGAIN";
+  if(btn._sureT)clearTimeout(btn._sureT);
+  btn._sureT=setTimeout(()=>gmArmClear(btn,label),1600)}
+$("gmGs").onclick=()=>gmArmMode($("gmGs"),gmBellyGo,"GUNSHIP");$("gmBelly").onclick=gmBellyGo;
 /* v26f: mission complete panel: NEXT LEVEL (harder) or RESTART (level 1, score reset) */
 function gmDoneShow(){const d=$("gmDone");if(!d||!S.gameOn)return;GM.done=true;setTx($("gmDoneT"),"MISSION "+gmLvl()+" COMPLETE");setTx($("gmDoneS"),GM.st.score.toLocaleString()+" pts · best "+GM.st.best.toLocaleString()+" · next: level "+(gmLvl()+1)+", tougher and faster aliens");d.style.display="flex";try{$("gmNext").focus()}catch(e){}}
 function gmDoneHide(){GM.done=false;const d=$("gmDone");if(d)d.style.display="none"}
@@ -4103,7 +4122,11 @@ const GSA={on:false,n105:12,rl:0,shells:[],kills:0,at:0};
 const GSAF=["wht","bht","nvg","flir","crt"],GSAN={wht:"WHT",bht:"BHT",nvg:"NVG",flir:"FLIR",crt:"CRT"};
 if(!GSAF.includes(S.gsaFlt))S.gsaFlt="wht";
 function gsaApply(){document.body.classList.toggle("gsar",GSA.on);for(const f of GSAF)document.body.classList.toggle("gsa-"+f,GSA.on&&S.gsaFlt===f);
-  const b=$("gmGsAr");b.classList.toggle("on",GSA.on);b.setAttribute("aria-pressed",GSA.on?"true":"false");$("gsaCtl").hidden=!GSA.on;setTx($("gsaFlt"),GSAN[S.gsaFlt]);setTx($("gsa105"),"105 · "+GSA.n105)}
+  const b=$("gmGsAr");b.classList.toggle("on",GSA.on);b.setAttribute("aria-pressed",GSA.on?"true":"false");
+  /* v27c: 105 and the filter keep a fixed slot; dim them when the overlay is off instead of display:none. */
+  for(const id of ["gsa105","gsaFlt"]){const e=$(id);if(!e)continue;e.classList.toggle("dim",!GSA.on);e.toggleAttribute("disabled",!GSA.on);e.setAttribute("aria-disabled",GSA.on?"false":"true")}
+  if($("gsaFlt"))setTx($("gsaFlt"),GSAN[S.gsaFlt]);
+  if($("gsa105"))setTx($("gsa105"),"105 "+String(GSA.n105).padStart(2," "))}
 function gsaToggle(on){on=on==null?!GSA.on:!!on;if(on){if(!arOn)return false;if(!S.gameOn&&!gmToggle())return false;if(GM.gsOn)try{gsClose()}catch(e){}}
   GSA.on=on;GSA.shells=[];if(!on){const c=$("gsaCv");try{c.getContext("2d").clearRect(0,0,c.width,c.height)}catch(e){}}
   gsaApply();gmNote(on?"GUNSHIP OVERLAY · window seat · 105 hits ground and air, GUN hits ground too · imaginary targets":"GUNSHIP OVERLAY OFF",null);hap(15);return on}
@@ -4136,10 +4159,10 @@ function gsaDraw(){const c=$("gsaCv"),W=c.clientWidth,H=c.clientHeight;if(!W||!H
 {const _d=gmDraw;gmDraw=function(){const r=_d.apply(this,arguments);if(GSA.on)try{gsaStep();gsaDraw()}catch(e){}return r}}
 /* 25 mm GUN also hits ground forces under the reticle while the overlay is on */
 {const _g=gmGunShot;gmGunShot=function(){const before=GM.ammo.gun;const r=_g.apply(this,arguments);if(GSA.on&&GM.ammo.gun<before){const v=gmView();if(v){const t=gsaUnder(v,0).find(q=>q.type==="gnd");if(t&&Math.random()<0.18)gsaKill(t,v)}}return r}}
-$("gmGsAr").onclick=()=>gsaToggle();$("gsa105").onclick=()=>gsaFire105();
-$("gsaFlt").onclick=()=>{S.gsaFlt=GSAF[(GSAF.indexOf(S.gsaFlt)+1)%GSAF.length];saveS();gsaApply();hap(10)};
+$("gmGsAr").onclick=()=>gmArmMode($("gmGsAr"),()=>gsaToggle(),"GS · AR");$("gsa105").onclick=()=>gsaFire105();
+$("gsaFlt").onclick=()=>{if(!GSA.on)return;S.gsaFlt=GSAF[(GSAF.indexOf(S.gsaFlt)+1)%GSAF.length];saveS();gsaApply();hap(10)};
 {const _ac=arClose;arClose=function(){if(GSA.on){GSA.on=false;GSA.shells=[];gsaApply()}return _ac.apply(this,arguments)}}
-{const _t=gmToggle;gmToggle=function(){const r=_t.apply(this,arguments);if(!S.gameOn&&GSA.on){GSA.on=false;GSA.shells=[];gsaApply()}return r}}
+{const _t=gmToggle;gmToggle=function(){const r=_t.apply(this,arguments);gmArmClear($("gmGs"),"GUNSHIP");gmArmClear($("gmGsAr"),"GS · AR");if(!S.gameOn&&GSA.on){GSA.on=false;GSA.shells=[];gsaApply()}return r}}
 {const _o=gsOpen;gsOpen=function(){if(GSA.on){GSA.on=false;GSA.shells=[];gsaApply()}return _o.apply(this,arguments)}}
 {const _u=gmUI;gmUI=function(){const r=_u.apply(this,arguments);if(GSA.on&&(!arOn||!S.gameOn)){GSA.on=false;GSA.shells=[];gsaApply()}return r}}
 gsaApply();

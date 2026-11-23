@@ -222,6 +222,8 @@ label.chk.cfdis{opacity:.5}
 .cfWhy{display:inline-block;font:700 10px "B612 Mono",monospace;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:1px 5px;margin:0 4px;vertical-align:middle;letter-spacing:.04em;text-transform:uppercase}
 #netTag{background:#3a2a00;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px;font:700 10px "B612 Mono",monospace;margin-left:4px}
 #shTag{background:#0b3a1a;color:#3dff6e;border:1px solid #3dff6e;border-radius:6px;padding:1px 6px;font:700 10px "B612 Mono",monospace;margin-left:4px;cursor:pointer}
+#shTag.stopping{background:#3a2a00;color:#ffd23b;border-color:#ffd23b}
+#shTag.stopping::before{background:#ffd23b;animation:none}
 #shTag::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#3dff6e;margin-right:4px;animation:shp 1.4s infinite}
 @keyframes shp{50%{opacity:.25}}
 #tbBan{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:9000;background:#b30000;color:#fff;border:3px solid #ffd400;border-radius:10px;padding:8px 10px;box-shadow:0 4px 18px rgba(0,0,0,.6);animation:tbf 1s steps(2) infinite;font-family:"B612 Mono",monospace;text-align:left}
@@ -440,26 +442,29 @@ details.more>.note,details.more>p.note{margin-top:2px!important}
 /* v26: Alien game layer (red = game, never used by the real boxes) */
 #gmCv,#gmOv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;background:transparent}#gmOv{z-index:2}
 #gmTgl.pri{background:#4a0e0e;border-color:#ff3b3b;color:#ffd6d6}.gmSub{font-size:10px;opacity:.75}
-/* v27b: compact red game stack — narrower, tighter gap/type, GUN no longer taller; 44 px in portrait */
-#gmHud{display:none;position:absolute;right:max(10px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top,0px) + 132px);z-index:6;flex-direction:column;align-items:stretch;gap:5px;width:80px}
+/* v27c: locked game HUD — fixed slots and sizes, score/card out of the button flow, weapons separated from mode switches */
+#gmHud{display:none;position:absolute;right:max(10px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top,0px) + 132px);z-index:6;flex-direction:column;align-items:stretch;gap:0;width:72px}
 body.gmOn #gmHud{display:flex}
-#gmHud button{min-height:44px;background:rgba(20,0,0,.6);color:#ff6b6b;border:1.5px solid #ff3b3b;border-radius:7px;font:700 11px "B612 Mono",monospace;letter-spacing:.03em;padding:0 3px;line-height:1.15;touch-action:none;user-select:none;-webkit-user-select:none}
+#gmSc{display:block;height:18px;box-sizing:border-box;font:700 10px/18px "B612 Mono",monospace;font-variant-numeric:tabular-nums;color:#ff6b6b;text-align:center;background:rgba(0,0,0,.6);border-radius:5px;padding:0 3px;text-shadow:0 0 2px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
+#gmTgt{position:absolute;right:100%;top:0;margin-right:6px;width:112px;z-index:1;pointer-events:none}
+#gmMode,#gmWpn{display:grid;grid-template-columns:1fr;gap:4px;flex:none}
+#gmMode{margin-top:5px}
+#gmWpn{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,59,59,.55)}
+#gmHud button{width:72px;height:40px;min-width:72px;max-width:72px;min-height:40px;max-height:40px;box-sizing:border-box;padding:0 2px;border:1.5px solid #ff3b3b;border-radius:7px;background:rgba(20,0,0,.6);color:#ff6b6b;font:700 10px/1 "B612 Mono",monospace;font-variant-numeric:tabular-nums;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;touch-action:none;user-select:none;-webkit-user-select:none}
 #gmHud button:active,#gmHud button.lk{background:#ff3b3b;color:#180000}
-#gmGun{min-height:44px!important}
-#gmSc{font:700 10px "B612 Mono",monospace;color:#ff6b6b;text-align:center;background:rgba(0,0,0,.6);border-radius:5px;padding:2px 3px;text-shadow:0 0 2px #000}
-#gmMsg{display:none;position:absolute;left:12px;right:102px;top:calc(env(safe-area-inset-top,0px) + 132px);z-index:7;background:rgba(30,0,0,.82);border:1.5px solid #ff3b3b;border-radius:8px;padding:7px 10px;color:#ffd6d6;font:700 12px "B612 Mono",monospace;max-width:420px}
+#gmHud button.dim{opacity:.38;pointer-events:none}
+#gmHud button.sure{border-style:dashed;color:#ffd23b}
+#gmMsg{display:none;position:absolute;left:12px;right:94px;top:calc(env(safe-area-inset-top,0px) + 132px);z-index:7;background:rgba(30,0,0,.82);border:1.5px solid #ff3b3b;border-radius:8px;padding:7px 10px;color:#ffd6d6;font:700 12px "B612 Mono",monospace;max-width:420px}
 #gmMsg.tapClose::after{color:#ff9a9a}
 #arMsg.tapClose::after{text-align:center}
-/* v27b landscape: two-column 40 px targets so 5–7 buttons clear the bottom bar; score + target card sit left of the stack */
+/* v27c landscape: same 72×40 slots in a fixed two-column grid (mode above, weapons below); score + card stay out of the flow */
 @media (orientation:landscape){
-#gmHud{top:calc(env(safe-area-inset-top,0px) + 130px);width:136px;gap:4px;flex-direction:row;flex-wrap:wrap;align-items:stretch}
-#gmSc{position:absolute;right:100%;top:0;margin-right:6px;width:auto;min-width:max-content;padding:2px 5px;white-space:nowrap}
-#gmTgt{position:absolute;right:100%;top:22px;margin-right:6px;width:112px}
-#gmHud button{min-height:40px;height:40px;flex:0 0 calc((100% - 4px)/2);min-width:calc((100% - 4px)/2);font-size:10px;letter-spacing:.02em;padding:0 2px}
-#gmGun{min-height:40px!important;height:40px}
-#gsaCtl{display:contents}
-#gsaCtl[hidden]{display:none}
-#gmMsg{top:calc(env(safe-area-inset-top,0px) + 70px);right:154px}
+#gmHud{top:calc(env(safe-area-inset-top,0px) + 130px);width:148px}
+#gmSc{position:absolute;right:100%;top:0;margin-right:6px;width:auto;max-width:160px;min-width:max-content;height:18px;padding:0 5px}
+#gmTgt{top:22px}
+#gmMode,#gmWpn{grid-template-columns:72px 72px}
+#gmMode{margin-top:0}
+#gmMsg{top:calc(env(safe-area-inset-top,0px) + 70px);right:166px}
 }
 #gsOv{position:fixed;inset:0;z-index:34;background:#111;display:none;overflow:hidden}body.gs{overflow:hidden}body.gs #gsOv{display:block}
 #gsCv,#gsHud{position:absolute;inset:0;width:100%;height:100%;display:block}#gsHud{touch-action:none;cursor:crosshair}
@@ -503,7 +508,7 @@ ul.ck li button{min-width:52px;min-height:44px;padding:0 10px}
 .ckFlash{outline:2px solid var(--ink);outline-offset:3px}
 
 /* v27: target type card + recommended weapon highlight */
-#gmTgt{background:rgba(20,0,0,.72);border:1px solid #ff3b3b;border-radius:6px;padding:3px 4px;font:700 9px "B612 Mono",monospace;color:#ffb3b3;line-height:1.25;letter-spacing:.02em;pointer-events:none}
+#gmTgt{background:rgba(20,0,0,.72);border:1px solid #ff3b3b;border-radius:6px;padding:3px 4px;font:700 9px "B612 Mono",monospace;color:#ffb3b3;line-height:1.25;letter-spacing:.02em}
 #gmTgt[hidden]{display:none}
 #gmTgt b,#gmTgt span{display:block}
 #gmTgt b{color:#fff;font-size:11px}
@@ -515,10 +520,7 @@ ul.ck li button{min-width:52px;min-height:44px;padding:0 10px}
 /* v27: AR gunship overlay (window seat): thermal-style filters over the camera feed or AR 3D, gunship symbology on #gsaCv */
 #gsaCv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;display:none}
 body.gsar #gsaCv{display:block}
-#gsaCtl{display:flex;flex-direction:column;gap:5px}#gsaCtl[hidden]{display:none}
 #gmHud #gmGsAr.on{background:#ff3b3b;color:#180000}
-/* v27b: must follow the base #gsaCtl rule so landscape two-column wrap is not overridden */
-@media (orientation:landscape){#gsaCtl{display:contents}#gsaCtl[hidden]{display:none}}
 body.gsar.gsa-wht #arVid,body.gsar.gsa-wht #ar3Cv{filter:grayscale(1) contrast(1.6) brightness(1.1)}
 body.gsar.gsa-bht #arVid,body.gsar.gsa-bht #ar3Cv{filter:grayscale(1) invert(1) contrast(1.6) brightness(1.05)}
 body.gsar.gsa-nvg #arVid,body.gsar.gsa-nvg #ar3Cv{filter:grayscale(1) brightness(1.7) contrast(1.35) sepia(1) hue-rotate(65deg) saturate(5)}

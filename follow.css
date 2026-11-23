@@ -4,7 +4,12 @@ header{display:flex;gap:10px;align-items:center;padding:10px 14px}header img{bor
 h1{font-size:18px;margin:0}#sub{font-size:12px;color:#8fb3d9}
 #landed{margin:0 14px 8px;padding:10px 14px;border-radius:10px;background:#0f5132;color:#d1ffe4;font-weight:700;font-size:18px;text-align:center}
 main{flex:1;display:flex;flex-direction:column;padding:0 14px;gap:10px;min-height:0}
+#mapWrap{position:relative;width:100%;flex:1;min-height:260px;display:flex}
 #map{width:100%;flex:1;min-height:260px;border-radius:12px;background:#0a2440;border:1px solid #1d3d63}
+#ended{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(6,18,31,.82);text-align:center;padding:28px 20px;border-radius:12px;pointer-events:none}
+#ended[hidden]{display:none}
+#ended strong{display:block;font-size:28px;line-height:1.15;letter-spacing:.06em;text-transform:uppercase;color:#ffd23b}
+#ended p{margin:12px 0 0;font-size:18px;color:#e6f1ff;max-width:22em}
 #info{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .kv{background:#0b1d33;border:1px solid #1d3d63;border-radius:10px;padding:6px 8px;text-align:center}.kv span{display:block;font-size:11px;color:#8fb3d9;text-transform:uppercase;letter-spacing:.06em}.kv b{font-size:17px;font-variant-numeric:tabular-nums}
 #st{margin:0;font-size:13px;color:#b9cde6}
@@ -13,7 +18,7 @@ main{flex:1;display:flex;flex-direction:column;padding:0 14px;gap:10px;min-heigh
 form label{display:block;font-size:13px;margin-bottom:4px}.row{display:flex;gap:6px}input{flex:1;font-size:16px;padding:8px;border-radius:8px;border:1px solid #2b5585;background:#081a2e;color:#fff}
 button{font-size:16px;padding:8px 14px;border-radius:8px;border:0;background:#2f7de1;color:#fff}
 footer{font-size:11px;color:#7f9bbd;padding:10px 14px}
-@media (orientation:landscape) and (max-height:500px){main{flex-direction:row;flex-wrap:wrap}#map{flex:2 1 60%;min-height:200px}#info{flex:1 1 30%;grid-template-columns:1fr 1fr;align-content:start}}
+@media (orientation:landscape) and (max-height:500px){main{flex-direction:row;flex-wrap:wrap}#mapWrap{flex:2 1 60%;min-height:200px}#info{flex:1 1 30%;grid-template-columns:1fr 1fr;align-content:start}}
 
 /* v25: drive shares */
 #mode{display:inline-block;margin-left:8px;padding:1px 7px;border:1px solid #ffd400;color:#ffd400;font:700 11px/1.5 ui-monospace,Menlo,monospace;letter-spacing:.12em;vertical-align:middle}#mode[hidden]{display:none}

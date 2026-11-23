@@ -9,7 +9,10 @@ if(/\.github\.io$/i.test(location.hostname)){location.replace("https://cabin-ads
 (()=>{
 const API="https://cabin-adsb.cabinpanel-pb.workers.dev/share/",POLL=15000,POLL_AB=10000,R=6371008.8,NM=1852,FT=3.28084;
 const $=id=>document.getElementById(id),rad=d=>d*Math.PI/180,deg=r=>r*180/Math.PI;
-const st={id:null,d:null,err:"",at:0,ap:null,tiles:{},busy:false,t:0,dest:null,seq:0};
+const st={id:null,d:null,err:"",at:0,ap:null,tiles:{},busy:false,t:0,dest:null,seq:0,mapMsg:""};
+function isEnded(){if(st.d&&st.d.st)return true;if(st.id&&!st.d&&st.err&&/isn.t being shared|not found|expired/i.test(st.err))return true;return false}
+function endedMsg(){if(st.d&&st.d.st)return "The traveller ended this share.";return st.err||"This link has expired or isn't found."}
+function showEnded(){const on=isEnded(),el=$("ended");if(el){el.hidden=!on;if(on)txt("endedWhy",endedMsg())}}
 function idFrom(s){s=String(s||"");const m=s.match(/[#?&](?:id|follow)=([A-Za-z0-9_-]{22})(?![A-Za-z0-9_-])/)||s.match(/^\s*([A-Za-z0-9_-]{22})\s*$/);return m?m[1]:null}
 function dist(a,b){const p1=rad(a.lat),p2=rad(b.lat),dp=p2-p1,dl=rad(b.lon-a.lon),h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(h)))}
 async function airports(){if(st.ap)return st.ap;try{const r=await fetch("rwy.json",{cache:"force-cache"});const j=await r.json();st.ap={};for(const a of j)if(a&&a[0])st.ap[a[0]]={c:a[0],lat:a[2],lon:a[3]}}catch(e){st.ap={}}return st.ap}
@@ -33,7 +36,7 @@ async function poll(){if(!st.id||st.busy)return;st.busy=true;const id=st.id,seq=
   catch(e){if(seq!==st.seq){st.busy=false;return poll()}st.err="No connection. Trying again…"}
   st.busy=false;draw();clearTimeout(st.t);if(!(st.d&&st.d.st))st.t=setTimeout(poll,document.hidden?pollMs()*3:pollMs())}
 function txt(id,v){const e=$(id);if(e.textContent!==v)e.textContent=v}
-function draw(){const d=st.d;
+function draw(){const d=st.d;showEnded();
   if(d){const dv=d.fr==="DRV",who=dv?"Shared drive":"Shared flight",rt=dv?"Drive":(d.fr||"?")+" → "+(d.to||"?"),fl=!dv&&typeof d.fl==="string"&&/^[A-Z0-9]{3,8}$/.test(d.fl)?d.fl:"",rg=!dv&&typeof d.rg==="string"&&/^[A-Z0-9][A-Z0-9-]{1,9}$/.test(d.rg)?d.rg:"",idt=[fl,rg].filter(Boolean).join(" · ");txt("title",idt||who);txt("sub",rt+" · Cabin Panel");document.title=(idt?idt+" · ":"")+who+" "+rt;$("mode").hidden=!dv;document.body.classList.toggle("drive",dv);txt("altL",dv?"Altitude":"Height");txt("spdL",dv?"Speed":"Speed");
     const p=merged(d),l=p[p.length-1];const isL=!dv&&landed(d);$("landed").hidden=!isL;if(isL)txt("landed","✈ Landed"+(d.to?" at "+d.to:"")+" · "+hhmm(l[0]));
     txt("eta",isL?"Landed":d.eta?hhmm(d.eta)+(dv?" est.":""):"--:--");txt("alt",l&&l[3]!=null?(dv?Math.round(l[3]/10)*10+" m":Math.round(l[3]*FT/100)*100+" ft"):"---");txt("spd",l&&l[4]!=null?(dv?Math.round(l[4]*3.6)+" km/h":Math.round(l[4]*1.94384)+" kt"):"---");
@@ -50,7 +53,8 @@ function wm(lat,lon,z){const s=256*2**z,x=(lon+180)/360*s,sl=Math.sin(rad(Math.m
 function tile(z,x,y,cb){const k=z+"/"+x+"/"+y;let t=st.tiles[k];if(!t){t=st.tiles[k]=new Image();if(Object.keys(st.tiles).length>160)delete st.tiles[Object.keys(st.tiles)[0]];t.onload=cb;t.src="https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/"+z+"/"+y+"/"+x+".jpg"}return t.complete&&t.naturalWidth?t:null}
 function map(){const cv=$("map"),dpr=Math.min(2,window.devicePixelRatio||1),W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);
   g.fillStyle="#0a2440";g.fillRect(0,0,W,H);const d=st.d,P=merged(d).map(q=>({lat:q[1],lon:q[2],trk:q[5]}));const pts=P.slice();if(st.dest)pts.push({...st.dest});if(st.orig)pts.push({...st.orig});
-  if(!pts.length){g.fillStyle="#8fb3d9";g.font="14px system-ui";g.textAlign="center";g.fillText(st.id?"Waiting for position…":"No flight selected",W/2,H/2);return}
+  if(!pts.length){if(isEnded()){st.mapMsg="ended";return}st.mapMsg=st.id?"waiting":"none";g.fillStyle="#8fb3d9";g.font="14px system-ui";g.textAlign="center";g.fillText(st.mapMsg==="waiting"?"Waiting for position…":"No flight selected",W/2,H/2);return}
+  st.mapMsg="track";
   /* Unwrap longitudes about the first point: 179E -> 179W is 2 degrees, not 358. */
   const ref=pts[0].lon,unwrap=lo=>ref+((lo-ref+540)%360)-180;
   for(const p of pts)p.lon=unwrap(p.lon);
@@ -71,6 +75,6 @@ $("go").addEventListener("click",()=>{const id=idFrom($("code").value);if(!id){t
 $("code").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("go").click()}});
 window.addEventListener("hashchange",()=>{clearTimeout(st.t);st.d=null;start()});window.addEventListener("resize",map);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&st.id&&!(st.d&&st.d.st)&&Date.now()-st.at>pollMs()){clearTimeout(st.t);poll()}});
-window.cpFollowPage={state:()=>({id:st.id,d:st.d,err:st.err,landed:st.d?landed(st.d):false,dest:st.dest,pollMs:pollMs(),n:merged(st.d).length,src:$("src").textContent}),poll};
+window.cpFollowPage={state:()=>({id:st.id,d:st.d,err:st.err,landed:st.d?landed(st.d):false,dest:st.dest,pollMs:pollMs(),n:merged(st.d).length,src:$("src").textContent,ended:isEnded(),mapMsg:st.mapMsg,endedText:$("ended")&&!$("ended").hidden?($("ended").textContent||""):""}),poll};
 start();
 })();
