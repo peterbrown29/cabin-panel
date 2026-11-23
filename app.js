@@ -1692,6 +1692,9 @@ function arFrame(ts){AR.raf=0;if(!arOn)return;const dt=AR.lt?Math.min(0.5,(ts-AR
   try{arDraw(dt)}catch(e){console.warn(e)}try{frDrawAR()}catch(e){}
   AR.raf=requestAnimationFrame(arFrame)}
 window.cpAR=()=>({bias:AR.bias,flt:S.arFlt,on:arOn,cam:AR.cam,sen:AR.sen,src:AR.src,hdg:AR.hs,pitch:AR.ps,roll:AR.rs,targets:AR.tg.length,view:AR.view||null,lock:AR.lock,hits:(AR.hits||[]).slice(0,12),lay:AR.lay||null,labs:(AR.labs||[]).slice(0,16)});
+window.cpARLayout=()=>{const cv=$("arCv")&&$("arCv").getBoundingClientRect();
+  const to=r=>{if(!r||!cv)return null;return {x:+(cv.left+r[0]).toFixed(2),y:+(cv.top+r[1]).toFixed(2),w:+r[2].toFixed(2),h:+r[3].toFixed(2),l:+(cv.left+r[0]).toFixed(2),t:+(cv.top+r[1]).toFixed(2),r:+(cv.left+r[0]+r[2]).toFixed(2),b:+(cv.top+r[1]+r[3]).toFixed(2)};};
+  return {labels:(AR.labs||[]).map(l=>({n:l.n,t1:l.t1,t2:l.t2,cue:!!l.cue,box:to(l.r)})),blurb:to(AR.lay&&AR.lay.blurb),sensor:to(AR.lay&&AR.lay.sensor),rng:to(AR.lay&&AR.lay.rng),lay:AR.lay?{labels:AR.lay.labels,hidden:AR.lay.hidden,cues:AR.lay.cues}:null};};
 /* heading solution: FUSED (default) = phone compass for orientation (+WMM variation) with a slow GPS-track drift/bias
    correction learned while you look out of the chosen window; COMPASS = compass only; GPS = track ±90°.
    Box size = heading uncertainty: ~1° compass (measured in flight) + 0.5° lens/FOV + GPS terms, widened if iOS reports
@@ -1762,11 +1765,26 @@ function arDraw(dt){
   if(!gsx){x.font=F(10);{const w2=Math.max(...tr.map(s=>x.measureText(s).width))+8;x.fillStyle="rgba(0,0,0,.32)";x.fillRect(W-4-w2,tY+28,w2,46)}
   tr.forEach((s,i)=>T(s,W-8,tY+38+i*11,10,"right"))}
   AR.view=az==null?null:{az:+az.toFixed(1),unc:+unc.toFixed(1),pitch:+pitch.toFixed(1),roll:+roll.toFixed(1),ppd:+ppd.toFixed(2),src:so.src,bias:+AR.bias.toFixed(1)};
+  /* v27d: when the game is on, reserve the thumb-zone button boxes so place labels
+     and readouts stay off the buttons. With the game off the layout is unchanged. */
+  const gmOn=document.body.classList.contains("gmOn");
+  let gmTopL=null,gmTopR=null;const gmBox=[];
+  if(gmOn){const cvr=cv.getBoundingClientRect();
+    for(const id of ["gmId","gmGs","gmGsAr","gsaFlt","gmGun","gmMsl","gsa105"]){
+      const e=$(id);if(!e)continue;const g=e.getBoundingClientRect();if(!g.width||!g.height)continue;
+      const r=[g.left-cvr.left-3,g.top-cvr.top-3,g.width+6,g.height+6];
+      gmBox.push(r);res(r);
+      const mid=r[0]+r[2]/2;
+      if(mid<W/2)gmTopL=gmTopL==null?r[1]:Math.min(gmTopL,r[1]);
+      else gmTopR=gmTopR==null?r[1]:Math.min(gmTopR,r[1]);
+    }}
+  const hitsGm=r=>gmBox.some(q=>r[0]<q[0]+q[2]&&r[0]+r[2]>q[0]&&r[1]<q[1]+q[3]&&r[1]+r[3]>q[1]);
+  AR.hits=[];AR.lay={labels:0,hidden:0,cues:0,sensor:null,blurb:null,rng:null};AR.labs=[];
   /* bottom-right sensor block: kept above the ⚙ button so nothing is clipped */
   const br=[(so.src||"NO HDG")+(unc!=null?" ±"+unc.toFixed(1)+"°":""),(tiltOk?"EL "+(pitch>=0?"+":"")+pitch.toFixed(1)+"°":"EL ---")+"  TRIM "+(S.arTrim>0?"+":"")+S.arTrim,"BIAS "+(AR.bias>=0?"+":"")+AR.bias.toFixed(1)+"°  VAR "+(so.dec>=0?"E":"W")+Math.abs(so.dec).toFixed(0)];
   let brB=yB;if(arMin){const gr=$("arShow").getBoundingClientRect();if(gr.height)brB=Math.min(yB,gr.top-cT-8)}
-  x.font=F(10);const brW=Math.max(...br.map(s=>x.measureText(s).width));if(!gsx){br.forEach((s,i)=>T(s,W-8,brB-22+i*11,10,"right",i?DIM:SYM));res([W-brW-12,brB-34,brW+14,38])}
-  AR.hits=[];AR.lay={labels:0,hidden:0,cues:0};AR.labs=[];
+  if(gmOn&&gmTopR!=null)brB=Math.min(brB,gmTopR-4);
+  x.font=F(10);const brW=Math.max(...br.map(s=>x.measureText(s).width));if(!gsx){br.forEach((s,i)=>T(s,W-8,brB-22+i*11,10,"right",i?DIM:SYM));const sb=[W-brW-12,brB-34,brW+14,38];res(sb);AR.lay.sensor=sb}
   /* v26b: every target box carries its own label (name + type/alt + range), re-placed beside the box every frame */
   const labTxt=t=>{const nm=(t.n.length>18?t.n.slice(0,17)+"\u2026":t.n).toUpperCase(),rg=fDst(t.d),rs=(rg<10?rg.toFixed(1):Math.round(rg).toLocaleString())+" "+S.dst.toUpperCase();
     const info=t.kind==="ac"?(t.note||"").toUpperCase():"";return [nm,(info?(info.length>30?info.slice(0,29)+"\u2026":info)+" \u00b7 ":"")+rs]};
@@ -1799,11 +1817,12 @@ function arDraw(dt){
     let pick=null;
     for(const [ci,c] of raw.entries()){const p=fit(c,ySafe);if(!p.nat||hitR(p.r))continue;pick=p;pick.i=sideOf(ci);break}
     if(!pick){let best=null,bestD=1e9;
-      for(const [ci,c] of raw.entries()){const p=fit(c,yLo);const d=nearD(p)+(hitR(p.r)?25:0);
+      for(const [ci,c] of raw.entries()){const p=fit(c,yLo);if(gmOn&&hitsGm(p.r))continue;const d=nearD(p)+(hitR(p.r)?25:0);
         if(d<bestD){best=p;best.i=sideOf(ci);best.fb=1;bestD=d}}pick=best}
+    if(!pick){AR.lay.hidden++;return}
     res(pick.r);
     const ga=x.globalAlpha;x.globalAlpha=Math.max(ga,al||0.9);T(l1,pick.cx,pick.cy,10,pick.al,col);T(l2,pick.cx,pick.cy+11,9,pick.al,DIM);x.globalAlpha=ga;AR.lay.labels++;
-    AR.labs.push({n:t.n,bx:+bx.toFixed(1),by:+by.toFixed(1),lx:+pick.cx.toFixed(1),ly:+pick.cy.toFixed(1),al:pick.al,ci:pick.i,fb:!!pick.fb,t1:l1,t2:l2})};
+    AR.labs.push({n:t.n,bx:+bx.toFixed(1),by:+by.toFixed(1),lx:+pick.cx.toFixed(1),ly:+pick.cy.toFixed(1),al:pick.al,ci:pick.i,fb:!!pick.fb,t1:l1,t2:l2,r:pick.r})};
   if(az==null||!L)return;
   /* targets */
   const hf=W/ppd/2,vf=H/ppd/2,on=[],offL=[],offR=[];
@@ -1817,12 +1836,12 @@ function arDraw(dt){
   if(tg&&!gsx){const ls=[(AR.lock===tg.n?"◆ ":"")+tg.n.toUpperCase().slice(0,30),"BRG "+p3(tg.b)+"°T  EL "+(tg.el>=0?"+":"")+tg.el.toFixed(1)+"°"+(tg.hid?"  BEYOND HZN":"")];
     const mxw=narrow?Math.min(W-brW-32,W*0.58):Math.min(W*0.36,260);let notes=[];
     if(tg.note){x.font="10px \"B612\",sans-serif";let cur="";for(const w of tg.note.split(" ")){const tt=cur?cur+" "+w:w;if(x.measureText(tt).width>mxw){notes.push(cur);cur=w;if(notes.length===2)break}else cur=tt}if(notes.length<2&&cur)notes.push(cur);if(notes.length===2&&tg.note.indexOf(notes[1])+notes[1].length<tg.note.length-1)notes[1]+="…"}
-    const nL=ls.length+notes.length,by=yB-6-(nL-1)*11;
+    const nL=ls.length+notes.length;const blkB=(gmOn&&gmTopL!=null)?Math.min(yB,gmTopL-6):yB;const by=blkB-6-(nL-1)*11;
     ls.forEach((s,i)=>T(s,8,by+i*11,10,"left",i?DIM:(AR.lock===tg.n?"#ffbf00":SYM)));
     notes.forEach((s,i)=>{x.font="10px \"B612\",sans-serif";x.textAlign="left";x.lineWidth=3;x.strokeStyle="rgba(0,0,0,.9)";const yy=by+(ls.length+i)*11;x.strokeText(s,8,yy);x.fillStyle=SYM;x.fillText(s,8,yy)});
-    res([0,by-11,mxw+16,yB-by+16]);
-    const rng=fDst(tg.d),rs=(rng<10?rng.toFixed(1):Math.round(rng).toLocaleString())+" "+S.dst.toUpperCase(),ry=narrow?by-18:yB-12;
-    T("RNG",cx,ry-15,10,"center",DIM);T(rs,cx,ry,15,"center",AR.lock===tg.n?"#ffbf00":SYM);res([cx-56,ry-24,112,28])}
+    const bb=[0,by-11,mxw+16,blkB-by+16];res(bb);AR.lay.blurb=bb;
+    const rng=fDst(tg.d),rs=(rng<10?rng.toFixed(1):Math.round(rng).toLocaleString())+" "+S.dst.toUpperCase(),ry=narrow?by-18:blkB-12;
+    T("RNG",cx,ry-15,10,"center",DIM);T(rs,cx,ry,15,"center",AR.lock===tg.n?"#ffbf00":SYM);const rb=[cx-56,ry-24,112,28];res(rb);AR.lay.rng=rb}
   /* designated / locked target: track gates sized to the heading uncertainty; TGT / TGT LOCK above the box */
   if(des){const ang=Math.max(unc,Math.min(3,deg(Math.atan2(des.r*0.5,des.d)))),hw=Math.max(10,Math.min(W*0.18,28,ang*ppd*0.72)),hh=Math.max(8,Math.min(H*0.14,22,hw*0.75)),lk=AR.lock===des.n,c=lk?"#ffbf00":SYM;
     x.save();if(des.hid)x.setLineDash([6,5]);const g=Math.min(hw,hh)*0.5;x.strokeStyle="rgba(0,0,0,.85)";
@@ -1843,6 +1862,8 @@ function arDraw(dt){
     const xx=side<0?6:W-6,c=t.n===AR.lock?"#ffbf00":SYM;
     x.fillStyle="rgba(0,0,0,.8)";x.beginPath();x.moveTo(xx,y);x.lineTo(xx-side*13,y-8);x.lineTo(xx-side*13,y+8);x.closePath();x.fill();x.fillStyle=c;x.beginPath();x.moveTo(xx+side*-1,y);x.lineTo(xx-side*12,y-6.5);x.lineTo(xx-side*12,y+6.5);x.closePath();x.fill();
     T(nm,xx-side*17,y-1,10,side<0?"left":"right",c);T(sub,xx-side*17,y+11,10,side<0?"left":"right",DIM);
+    const cr=side<0?[0,y-14,mw+26,30]:[W-mw-26,y-14,mw+26,30];
+    AR.labs.push({n:t.n,t1:nm,t2:sub,cue:1,r:cr});
     AR.hits.push({n:t.n,x0:side<0?0:W-mw-30,x1:side<0?mw+30:W,y0:y-14,y1:y+16})}};
   cue(offL.filter(t=>t.n!==(des&&des.n)),-1);cue(offR.filter(t=>t.n!==(des&&des.n)),1);
   /* other targets in view: box or diamond always, with a name label that stays on the box */
